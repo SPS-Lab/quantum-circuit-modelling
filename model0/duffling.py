@@ -19,25 +19,15 @@ def duffing_single_mode(w, alpha, nlevels):
     I = np.eye(nlevels)
     return w * n + 0.5 * alpha * (n @ (n - I))
 
-def plot_energy_levels(w, alpha, nlevels):
+def energy_levels(w, alpha, nlevels):
     H = duffing_single_mode(w, alpha, nlevels)
     evals, evecs = np.linalg.eigh(H)
-    plt.plot(evals, label=f'w={w}, alpha={alpha}, nlevels={nlevels}')
-    plt.legend()
+    return evals
+
+def plot_energy_levels(w=5.0, alpha=-0.25, nlevels=6):
+    evals = energy_levels(w, alpha, nlevels)
+    plt.plot(evals)
     plt.xlabel('Level index')
     plt.ylabel('Energy (GHz)')
-    plt.title('Energy Levels')
+    plt.title('Energy Levels vs Level Index')
     plt.show()
-
-H_duffling = duffing_single_mode(w=5.0, alpha=-0.25, nlevels=6)
-print(f"H_duffling:\n{H_duffling}")
-
-evals, evecs = np.linalg.eigh(H_duffling)
-
-print(f"evals:\n{evals} GHz")
-print(f"evecs:\n{evecs}")
-
-print(f"evals[:4]:\n{evals[:4]}") # Which units?
-print(f"evecs[:4]:\n{evecs[:4]}")
-
-plot_energy_levels(w=5.0, alpha=-1.25, nlevels=6)

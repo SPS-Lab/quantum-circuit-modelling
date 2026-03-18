@@ -1,0 +1,24 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import cpb as cpb
+import duffling as duf
+
+def plot_energy_levels_vs_flux(EC, EJ_max, flux_bias, d, ng, nlevels):
+    cpb_energies = cpb.energy_levels_vs_flux(EC, EJ_max, flux_bias, d, ng, nlevels)
+
+    duf_energies = duf.energy_levels(w=5.0, alpha=-0.25, nlevels=nlevels)
+
+    plt.plot(flux_bias, cpb_energies, label='CPB')
+
+    # duf_energies is a 1D array (one value per level), independent of flux bias.
+    # Draw a horizontal line for each Duffing level.
+    for i, E in enumerate(duf_energies):
+        label = 'Duffing' if i == 0 else None
+        plt.axhline(y=E, color='r', linestyle='--', label=label)
+
+    plt.xlabel('Flux bias ($\\Phi / \\Phi_0$) (for CPB)')
+    plt.ylabel('Energy (GHz)')
+    plt.title('Energy Levels vs Flux Bias')
+    plt.show()
+
+plot_energy_levels_vs_flux(EC=1.0, EJ_max=20.0, flux_bias=np.linspace(0, 1, 100), d=0.1, ng=0.0, nlevels=6)
