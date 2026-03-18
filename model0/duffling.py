@@ -13,9 +13,7 @@ nlevels: number of levels
 """
 def duffing_single_mode(w, alpha, nlevels):
     a = destroy(nlevels)
-    print(f"a:\n{a}")
     n = a.conj().T @ a
-    print("n: \n", n)
     I = np.eye(nlevels)
     return w * n + 0.5 * alpha * (n @ (n - I))
 

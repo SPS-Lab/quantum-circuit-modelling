@@ -77,7 +77,3 @@ def plot_energy_levels_vs_flux(flux_bias):
     plt.ylabel('Energy (GHz)')
     plt.title('Energy Levels vs Flux Bias')
     plt.show()
-
-plot_EJ_vs_flux(EJ_max=1.0, d=0.1)
-
-plot_energy_levels_vs_flux(flux_bias=np.linspace(0, 1, 100)) #Dependence on flux bias not visible in plot

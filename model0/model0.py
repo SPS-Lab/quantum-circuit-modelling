@@ -3,11 +3,27 @@ import matplotlib.pyplot as plt
 import cpb as cpb
 import duffling as duf
 
-def plot_energy_levels_vs_flux(EC, EJ_max, flux_bias, d, ng, nlevels):
+def plot_energy_levels_vs_flux():
+    #Both models
+    nlevels = 6
+
+    #CPB parameters
+    EC = 1.0
+    EJ_max = 10.0
+    d = 0.1
+    ng = 0.0
+    flux_bias=np.linspace(0, 1, 100)
+
+    #Duffing parameters
+    w = 20.0
+    alpha = -0.25
+
+    cpb.plot_EJ_vs_flux(EJ_max, d)
+
     cpb_energies = cpb.energy_levels_vs_flux(EC, EJ_max, flux_bias, d, ng, nlevels)
 
-    duf_energies = duf.energy_levels(w=5.0, alpha=-0.25, nlevels=nlevels)
-
+    duf_energies = duf.energy_levels(w, alpha, nlevels)
+    
     plt.plot(flux_bias, cpb_energies, label='CPB')
 
     # duf_energies is a 1D array (one value per level), independent of flux bias.
@@ -21,4 +37,4 @@ def plot_energy_levels_vs_flux(EC, EJ_max, flux_bias, d, ng, nlevels):
     plt.title('Energy Levels vs Flux Bias')
     plt.show()
 
-plot_energy_levels_vs_flux(EC=1.0, EJ_max=20.0, flux_bias=np.linspace(0, 1, 100), d=0.1, ng=0.0, nlevels=6)
+plot_energy_levels_vs_flux()
