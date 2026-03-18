@@ -1,0 +1,23 @@
+name: scmodels-env
+
+channels:
+  - conda-forge
+
+dependencies:
+  # Core Python
+  - python=3.11
+
+  # Numerical stack
+  - numpy
+  - scipy
+
+  # Quantum toolkits (model + simulation layers)
+  - qutip
+  - scqubits
+
+  # Jupyter kernel support
+  - ipykernel
+
+  # Utilities
+  - matplotlib
+  - sympy
