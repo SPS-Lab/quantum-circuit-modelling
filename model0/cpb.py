@@ -9,12 +9,12 @@ from helpers import destroy
 """
 Flux-dependent Josephson energy
 EJ(phi) = EJ_max * sqrt( cos^2(pi * phi / phi0) + d^2 * sin^2(pi * phi / phi0) )
-phi_bias: applied flux phi / phi0
 EJ_max: maximum Josephson energy
+flux_bias: applied flux phi / phi0
 d: asymmetry parameter
 """
-def flux_dependent_EJ(phi_bias, EJ_max, d):
-    x = np.pi * np.asarray(phi_bias)
+def flux_dependent_EJ(EJ_max, flux_bias, d):
+    x = np.pi * np.asarray(flux_bias)
     cosx = np.cos(x)
     sinx = np.sin(x)
     return EJ_max * np.sqrt(cosx**2 + (d**2) * sinx**2)
@@ -47,23 +47,28 @@ def cooper_pair_box_hamiltonian(EC, EJ, ng, nlevels):
 
 def plot_EJ_vs_flux(EJ_max, d):
     flux_bias = np.linspace(0, 1, 100)
-    EJ = flux_dependent_EJ(flux_bias, EJ_max=EJ_max, d=d)
+    EJ = flux_dependent_EJ(EJ_max, flux_bias, d)
     plt.plot(flux_bias, EJ)
     plt.xlabel('Flux bias ($\Phi / \Phi_0$)')
     plt.ylabel('Josephson Energy (GHz)')
     plt.title('Flux-Dependent Josephson Energy')
     plt.show()
 
-def plot_energy_levels_vs_flux(flux_bias):
-    EJ_array = flux_dependent_EJ(flux_bias, EJ_max=1.0, d=0.1)
+def energy_levels_vs_flux(EC, EJ_max, flux_bias, d, ng, nlevels):
+    EJ_array = flux_dependent_EJ(EJ_max, flux_bias, d)
 
-    nlevels = 6
     energies = np.zeros((len(flux_bias), nlevels))
 
     for i, EJ in enumerate(EJ_array):
-        H_cooper_pair_box = cooper_pair_box_hamiltonian(EC=1.0, EJ=EJ, ng=0.0, nlevels=nlevels)
+        H_cooper_pair_box = cooper_pair_box_hamiltonian(EC, EJ, ng, nlevels)
         evals, _ = np.linalg.eigh(H_cooper_pair_box)
         energies[i, :] = evals
+
+    return energies
+
+def plot_energy_levels_vs_flux(flux_bias):
+    nlevels = 6
+    energies = energy_levels_vs_flux(EC=1.0, EJ_max=20.0, flux_bias=flux_bias, d=0.1, ng=0.0, nlevels=nlevels)
 
     for level in range(nlevels):
         plt.plot(flux_bias, energies[:, level])
