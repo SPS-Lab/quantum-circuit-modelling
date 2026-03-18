@@ -1,3 +1,7 @@
+"""
+Duffing single mode Hamiltonian
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from helpers import destroy
@@ -24,5 +28,16 @@ def plot_energy_levels(w, alpha, nlevels):
     plt.ylabel('Energy (GHz)')
     plt.title('Energy Levels')
     plt.show()
+
+H_duffling = duffing_single_mode(w=5.0, alpha=-0.25, nlevels=6)
+print(f"H_duffling:\n{H_duffling}")
+
+evals, evecs = np.linalg.eigh(H_duffling)
+
+print(f"evals:\n{evals} GHz")
+print(f"evecs:\n{evecs}")
+
+print(f"evals[:4]:\n{evals[:4]}") # Which units?
+print(f"evecs[:4]:\n{evecs[:4]}")
 
 plot_energy_levels(w=5.0, alpha=-1.25, nlevels=6)
