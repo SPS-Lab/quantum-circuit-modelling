@@ -52,7 +52,7 @@ def plot_EJ_vs_flux(EJ_max, d):
     plt.xlabel('Flux bias ($\Phi / \Phi_0$)')
     plt.ylabel('Josephson Energy (GHz)')
     plt.title('Flux-Dependent Josephson Energy')
-    plt.show()
+    plt.savefig("EJ_vs_flux.pdf", format="pdf")
 
 def energy_levels_vs_flux(EC, EJ_max, flux_bias, d, ng, nlevels):
     EJ_array = flux_dependent_EJ(EJ_max, flux_bias, d)
@@ -66,9 +66,8 @@ def energy_levels_vs_flux(EC, EJ_max, flux_bias, d, ng, nlevels):
 
     return energies
 
-def plot_energy_levels_vs_flux(flux_bias):
-    nlevels = 6
-    energies = energy_levels_vs_flux(EC=1.0, EJ_max=20.0, flux_bias=flux_bias, d=0.1, ng=0.0, nlevels=nlevels)
+def plot_energy_levels_vs_flux(EC=1.0, EJ_max=20.0, flux_bias=np.linspace(0, 1, 100), d=0.1, ng=0.0, nlevels=6):
+    energies = energy_levels_vs_flux(EC, EJ_max, flux_bias, d, ng, nlevels)
 
     for level in range(nlevels):
         plt.plot(flux_bias, energies[:, level])
@@ -76,4 +75,6 @@ def plot_energy_levels_vs_flux(flux_bias):
     plt.xlabel('Flux bias ($\\Phi / \\Phi_0$)')
     plt.ylabel('Energy (GHz)')
     plt.title('Energy Levels vs Flux Bias')
-    plt.show()
+    plt.savefig("energy_levels_vs_flux_cpb.pdf", format="pdf")
+
+plot_energy_levels_vs_flux(EC=1.0, EJ_max=50.0, d=0.0, ng=0.0)
