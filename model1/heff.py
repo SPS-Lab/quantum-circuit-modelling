@@ -37,7 +37,7 @@ def evolve_state(psi0, w1, w2, J, zeta, t_values):
 
     return psi_values
 
-def plot_evolve_state(psi0=np.array([1, 0, 0, 0], dtype=complex), w1=5.0, w2=5.2, J=0.01, zeta=0.002, dt=0.05, t=100):
+def plot_evolve_state(psi0=np.array([1, 0, 0, 0], dtype=complex), w1=5.0, w2=5.2, J=0.01, zeta=0.002, dt=0.05, t=10):
     t_values = np.linspace(0, t, int(t/dt))
     psi_t = evolve_state(psi0, w1, w2, J, zeta, t_values)
 
