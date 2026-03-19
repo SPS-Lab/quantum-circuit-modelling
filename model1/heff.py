@@ -37,7 +37,7 @@ def evolve_state(psi0, w1, w2, J, zeta, t_values):
 
     return psi_values
 
-def plot_evolve_state(psi0=np.array([1, 0, 0, 0], dtype=complex), w1=5.0, w2=5.2, J=0.01, zeta=0.002, dt=0.05, t=20):
+def plot_evolve_state(psi0=np.array([1, 0, 0, 0], dtype=complex), w1=5.0, w2=5.2, J=0.01, zeta=0.002, dt=0.05, t=100):
     t_values = np.linspace(0, t, int(t/dt))
     psi_t = evolve_state(psi0, w1, w2, J, zeta, t_values)
 
@@ -55,11 +55,13 @@ def plot_evolve_state(psi0=np.array([1, 0, 0, 0], dtype=complex), w1=5.0, w2=5.2
     hsv = np.stack((hue, saturation, value), axis=-1)
     rgb = hsv_to_rgb(hsv)
 
-    fig, ax = plt.subplots(figsize=(t, 4))
+    fig, ax = plt.subplots(figsize=(10, 4))
     ax.imshow(
         rgb,
         origin='lower',
         aspect='auto',
+        interpolation='nearest',
+        resample=False,
         extent=[t_values[0], t_values[-1], -0.5, psi_arr.shape[0] - 0.5],
     )
     ax.set_xlabel('Time (ns)')
