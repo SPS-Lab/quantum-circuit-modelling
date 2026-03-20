@@ -28,7 +28,10 @@ def plot_energy_levels(w=5.0, alpha=-1, nlevels=6):
     for i, E in enumerate(evals):
         plt.axhline(y=E, color='r', linestyle='--', label=f'Level {i}')
 
-    plt.xlabel('Level index')
+    # No meaningful x-data is plotted (we only draw horizontal lines),
+    # so Matplotlib would otherwise show its default x-range of 0..1.
+    plt.gca().set_xticks([])
+    plt.xlabel('')
     plt.ylabel('Energy (GHz)')
-    plt.title('Energy Levels vs Level Index')
+    plt.title('Energy Levels')
     plt.savefig("energy_levels_duffling.pdf", format="pdf")
