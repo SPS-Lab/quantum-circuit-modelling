@@ -4,7 +4,35 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import hsv_to_rgb
 from helpers import px, py, pz, I2
 
+
+def w_vs_flux(w_O, w_A, flux_bias):
+    w = w_O + w_A * np.cos(2 * np.pi * flux_bias)
+    return w
+
+def J_vs_flux(J_O, J_A, flux_bias):
+    J = J_O + J_A * np.cos(2 * np.pi * flux_bias)
+    return J
+
+def zeta_vs_flux(zeta_O, zeta_A, flux_bias):
+    zeta = zeta_O + zeta_A * np.cos(2 * np.pi * flux_bias)
+    return zeta
+
+def _coeff_for_ham(c):
+    """Scalar * (4,4) stays (4,4); 1D (n,) -> (n,1,1) for batched eigh."""
+    c = np.asarray(c)
+    if c.ndim == 0:
+        return c
+    if c.ndim == 1:
+        return c[:, np.newaxis, np.newaxis]
+    raise ValueError("w1, w2, J, zeta must be scalars or 1D arrays")
+
+
 def heff(w1, w2, J, zeta):
+    """Build H_eff. Coefficients may be scalars or 1D arrays (e.g. vs flux)."""
+    w1 = _coeff_for_ham(w1)
+    w2 = _coeff_for_ham(w2)
+    J = _coeff_for_ham(J)
+    zeta = _coeff_for_ham(zeta)
     return (
         0.5 * w1 * np.kron(pz, I2)
         + 0.5 * w2 * np.kron(I2, pz)
@@ -12,19 +40,22 @@ def heff(w1, w2, J, zeta):
         + 0.25 * zeta * np.kron(pz, pz)
     )
 
-
-def energy_levels(w1, w2, J, zeta):
-    H = heff(w1, w2, J, zeta)
-    evals, evecs = np.linalg.eigh(H)
+def energy_levels_vs_flux(w_O, w_A, J_O, J_A, zeta_O, zeta_A, flux_bias):
+    w1 = w_vs_flux(w_O, w_A, flux_bias)
+    w2 = w_vs_flux(w_O, w_A, flux_bias)
+    J = J_vs_flux(J_O, J_A, flux_bias)
+    zeta = zeta_vs_flux(zeta_O, zeta_A, flux_bias)
+    H = heff(w1, w2, J, zeta)  # (n_flux, 4, 4) when flux_bias is 1D
+    evals, _ = np.linalg.eigh(H)  # (n_flux, 4)
     return evals
 
-def plot_energy_levels(w1=5.0, w2=5.2, J=0.01, zeta=0.002):
-    evals = energy_levels(w1, w2, J, zeta)
-    plt.plot(evals)
-    plt.xlabel('Level index')
+def plot_energy_levels_vs_flux(w_O=5.0, w_A=0.2, J_O=0.01, J_A=0.002, zeta_O=0.002, zeta_A=0.0002, flux_bias=np.linspace(0, 1, 100)):
+    evals = energy_levels_vs_flux(w_O, w_A, J_O, J_A, zeta_O, zeta_A, flux_bias)
+    plt.plot(flux_bias, evals)
+    plt.xlabel('Flux bias ($\Phi / \Phi_0$)')
     plt.ylabel('Energy (GHz)')
-    plt.title('Energy Levels vs Level Index')
-    plt.show()
+    plt.title('Energy Levels vs Flux Bias')
+    plt.savefig("energy_levels_vs_flux_model1.pdf", format="pdf")
 
 def evolve_state(psi0, w1, w2, J, zeta, t_values):
     H = heff(w1, w2, J, zeta)
@@ -78,9 +109,9 @@ def plot_evolve_state(psi0=np.array([1, 0, 0, 0], dtype=complex), w1=5.0, w2=5.2
     cbar.set_label('Phase')
 
     fig.tight_layout()
-    plt.show()
+    plt.savefig("statevector_evolution_model1.pdf", format="pdf")
 
-plot_energy_levels()
+plot_energy_levels_vs_flux()
 
 
 
