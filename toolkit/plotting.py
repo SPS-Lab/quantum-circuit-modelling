@@ -86,6 +86,9 @@ def plot_evolve_state(
         ``panels``: one row per basis state (|0⟩ at bottom); twin y: |c_k| and phase.
     phase_amp_floor
         For ``line`` and ``panels``, mask phase where |c_k| is below this value.
+
+    Amplitude axes (``line`` and ``panels``) use a fixed y-range ``[0, 1]``, suitable for
+    normalized states (|c_k| ≤ 1). The heatmap encodes |c_k| in ``[0, 1]`` via clipping.
     """
     if style not in ("heatmap", "line", "panels"):
         raise ValueError('style must be "heatmap", "line", or "panels"')
@@ -156,7 +159,7 @@ def plot_evolve_state(
             ax.tick_params(axis="y", labelcolor=c)
             ax.set_title(lbl, loc="left", fontsize="medium")
             ax.grid(True, alpha=0.3)
-            ax.set_ylim(bottom=0.0)
+            ax.set_ylim(0.0, 1.0)
 
             valid = amp[k] >= phase_amp_floor
             ph_line = np.where(valid, np.mod(phase[k], 2 * np.pi), np.nan)
@@ -201,6 +204,7 @@ def plot_evolve_state(
 
         ax_amp.set_ylabel(r"$|c_k(t)|$")
         ax_amp.set_title("Amplitude by basis component")
+        ax_amp.set_ylim(0.0, 1.0)
         ax_amp.legend(loc="upper right", ncol=2, fontsize="small")
         ax_amp.grid(True, alpha=0.3)
 
