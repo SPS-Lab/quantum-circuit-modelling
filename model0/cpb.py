@@ -91,10 +91,10 @@ def plot_energy_levels_vs_flux(EC=1.0, EJ_max=20.0, flux_bias=np.linspace(0, 1, 
 
 
 def cpb_plot_evolve_state(psi0=np.array([np.sqrt(1), np.sqrt(0), np.sqrt(0), np.sqrt(0), np.sqrt(0), np.sqrt(0)], dtype=complex),
-                          EC=1.0, EJ_max=20.0, flux_bias=np.linspace(0, 1, 100), d=0.1, ng=0.5, nlevels=6,
+                          EC=1.0, EJ_max=20.0, ng=0.0, nlevels=6,
                           t=4.0, dt=0.01, outfile="statevector_evolution_cpb.pdf", style="panels"):
     H = cooper_pair_box_hamiltonian(EC, EJ_max, ng, nlevels)
-    print(f"H: {H}")
+    print(f"H:\n{H}")
     plot_evolve_state_under_hamiltonian(H, psi0, t, dt, outfile, style)
 
 

@@ -81,14 +81,14 @@ def plot_evolve_state(
         Figure suptitle; sensible defaults per ``style`` if omitted.
 
     style : {"heatmap", "line", "panels"}
-        ``heatmap``: HSV image (hue=phase, brightness=|amplitude|).
-        ``line``: |c_k| and phase mod 2π vs time, all levels on two axes.
-        ``panels``: one row per basis state (|0⟩ at bottom); twin y: |c_k| and phase.
+        ``heatmap``: HSV image (hue=phase, brightness=|c_k|^2).
+        ``line``: |c_k|^2 and phase mod 2pi vs time, all levels on two axes.
+        ``panels``: one row per basis state (|0⟩ at bottom); twin y: |c_k|^2 and phase.
     phase_amp_floor
-        For ``line`` and ``panels``, mask phase where |c_k| is below this value.
+        For ``line`` and ``panels``, mask phase where |c_k| is below this value (not |c_k|²).
 
-    Amplitude axes (``line`` and ``panels``) use a fixed y-range ``[0, 1]``, suitable for
-    normalized states (|c_k| ≤ 1). The heatmap encodes |c_k| in ``[0, 1]`` via clipping.
+    Population axes (``line`` and ``panels``) use a fixed y-range ``[0, 1]`` for |c_k|² when
+    the state is normalized. The heatmap encodes |c_k|² in ``[0, 1]`` via clipping.
     """
     if style not in ("heatmap", "line", "panels"):
         raise ValueError('style must be "heatmap", "line", or "panels"')
@@ -114,6 +114,7 @@ def plot_evolve_state(
     # (dim, n_times)
     psi_arr = np.array(psi_t).T
     amp = np.abs(psi_arr)
+    pop = amp**2  # population / probability |c_k|^2
     phase = np.angle(psi_arr)
 
     labels = (
@@ -154,8 +155,8 @@ def plot_evolve_state(
             ax = axes[dim - 1 - k]
             c = level_colors[k % len(level_colors)]
             lbl = labels[k]
-            ax.plot(t_values, amp[k], color=c, linestyle="-", label=r"$|c_k|$")
-            ax.set_ylabel(r"$|c_k|$", color=c)
+            ax.plot(t_values, pop[k], color=c, linestyle="-", label=r"$|c_k|^2$")
+            ax.set_ylabel(r"$|c_k|^2$", color=c)
             ax.tick_params(axis="y", labelcolor=c)
             ax.set_title(lbl, loc="left", fontsize="medium")
             ax.grid(True, alpha=0.3)
@@ -197,13 +198,13 @@ def plot_evolve_state(
         for k in range(dim):
             c = level_colors[k % len(level_colors)]
             lbl = labels[k]
-            ax_amp.plot(t_values, amp[k], label=lbl, color=c)
+            ax_amp.plot(t_values, pop[k], label=lbl, color=c)
             valid = amp[k] >= phase_amp_floor
             ph_line = np.where(valid, np.mod(phase[k], 2 * np.pi), np.nan)
             ax_ph.plot(t_values, ph_line, label=lbl, color=c)
 
-        ax_amp.set_ylabel(r"$|c_k(t)|$")
-        ax_amp.set_title("Amplitude by basis component")
+        ax_amp.set_ylabel(r"$|c_k(t)|^2$")
+        ax_amp.set_title("Population by basis component")
         ax_amp.set_ylim(0.0, 1.0)
         ax_amp.legend(loc="upper right", ncol=2, fontsize="small")
         ax_amp.grid(True, alpha=0.3)
@@ -228,10 +229,10 @@ def plot_evolve_state(
         return
 
     # --- heatmap ---
-    amplitude = np.clip(amp, 0.0, 1.0)
+    brightness = np.clip(pop, 0.0, 1.0)
     hue = (phase + np.pi) / (2 * np.pi)
     saturation = np.ones_like(hue)
-    value = amplitude
+    value = brightness
     hsv = np.stack((hue, saturation, value), axis=-1)
     rgb = hsv_to_rgb(hsv)
 

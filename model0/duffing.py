@@ -29,7 +29,10 @@ def duffing_single_mode(w, alpha, nlevels):
 
 def energy_levels(w, alpha, nlevels):
     H = duffing_single_mode(w, alpha, nlevels)
+    print(f"H:\n{H}")
     evals, evecs = np.linalg.eigh(H)
+    print(f"evals:\n{evals}")
+    print(f"evecs:\n{evecs}")
     return evals
 
 def plot_energy_levels(w=5.0, alpha=-1, nlevels=6):
@@ -44,7 +47,7 @@ def plot_energy_levels(w=5.0, alpha=-1, nlevels=6):
     plt.xlabel('')
     plt.ylabel('Energy (GHz)')
     plt.title('Energy Levels')
-    plt.savefig("energy_levels_duffling.pdf", format="pdf")
+    plt.savefig("energy_levels_duffing.pdf", format="pdf")
 
 
 
@@ -54,7 +57,7 @@ def duf_plot_evolve_state(psi0=np.array([np.sqrt(1), np.sqrt(1), np.sqrt(1), np.
                           nlevels=6,
                           t=4.0,
                           dt=0.01,
-                          outfile="statevector_evolution_duffling.pdf",
+                          outfile="statevector_evolution_duffing.pdf",
                           style="panels"):
     H = duffing_single_mode(w, alpha, nlevels)
     print(f"H: {H}")
@@ -62,4 +65,5 @@ def duf_plot_evolve_state(psi0=np.array([np.sqrt(1), np.sqrt(1), np.sqrt(1), np.
 
 
 if __name__ == "__main__":
-    duf_plot_evolve_state()
+    plot_energy_levels(alpha=-1.0)
+    #duf_plot_evolve_state()
