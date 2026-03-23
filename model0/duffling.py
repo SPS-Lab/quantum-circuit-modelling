@@ -8,14 +8,13 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from helpers import destroy
-
-# Repo root (parent of model0/) so `helpers.plotting` resolves when run from model0/
+# Repo root (parent of model0/) so `toolkit.plotting` resolves when run from model0/
 _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from helpers.plotting import plot_evolve_state as plot_evolve_state_under_hamiltonian
+from toolkit.plotting import plot_evolve_state as plot_evolve_state_under_hamiltonian
+from toolkit.helpers import destroy
 
 """
 w: angular frequency in GHz

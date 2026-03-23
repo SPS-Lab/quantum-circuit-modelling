@@ -2,9 +2,18 @@
 Cooper pair box (CPB) Hamiltonian
 """
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
-from helpers import destroy
+
+# Repo root (parent of model0/) so `toolkit.plotting` resolves when run from model0/
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+from toolkit.plotting import plot_evolve_state as plot_evolve_state_under_hamiltonian
 
 """
 Flux-dependent Josephson energy
@@ -79,3 +88,15 @@ def plot_energy_levels_vs_flux(EC=1.0, EJ_max=20.0, flux_bias=np.linspace(0, 1, 
     plt.ylabel('Energy (GHz)')
     plt.title('Energy Levels vs Flux Bias')
     plt.savefig("energy_levels_vs_flux_cpb.pdf", format="pdf")
+
+
+def cpb_plot_evolve_state(psi0=np.array([np.sqrt(1), np.sqrt(1), np.sqrt(1), np.sqrt(1), np.sqrt(1), np.sqrt(1)], dtype=complex),
+                          EC=1.0, EJ_max=20.0, flux_bias=np.linspace(0, 1, 100), d=0.1, ng=0.5, nlevels=6,
+                          t=4.0, dt=0.01, outfile="statevector_evolution_cpb.pdf", style="panels"):
+    H = cooper_pair_box_hamiltonian(EC, EJ_max, ng, nlevels)
+    print(f"H: {H}")
+    plot_evolve_state_under_hamiltonian(H, psi0, t, dt, outfile, style)
+
+
+if __name__ == "__main__":
+    cpb_plot_evolve_state()
