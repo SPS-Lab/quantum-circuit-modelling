@@ -24,8 +24,11 @@ d: asymmetry parameter
 """
 def flux_dependent_EJ(EJ_max, flux_bias, d):
     x = np.pi * np.asarray(flux_bias)
+    #print(f"x:\n{x}")
     cosx = np.cos(x)
+    #print(f"cosx:\n{cosx}")
     sinx = np.sin(x)
+    #print(f"sinx:\n{sinx}")
     return EJ_max * np.sqrt(cosx**2 + (d**2) * sinx**2)
 
 """
@@ -35,8 +38,12 @@ ng: dimensionless offset charge
 nlevels: number of charge basis states |n>
 """
 def cooper_pair_box_hamiltonian(EC, EJ, ng, nlevels):
-    # Charge number operator n_op with eigenvalues 0, 1, ..., nlevels-1
-    n_vals = np.arange(nlevels, dtype=float)
+    # Consecutive Cooper-pair numbers centered near ng (symmetric around ng=0).
+    # Truncating only n >= 0 imposes a hard boundary at n = -1 and badly distorts
+    # the transmon / Duffing limit when E_J >> E_C.
+    n_center = int(round(ng))
+    n_low = n_center - (nlevels // 2)
+    n_vals = np.arange(n_low, n_low + nlevels, dtype=float)
     n_op = np.diag(n_vals)
 
     # (n_op - n_g I)^2 term
@@ -54,9 +61,9 @@ def cooper_pair_box_hamiltonian(EC, EJ, ng, nlevels):
     return H_charge + H_josephson
 
 
-def plot_EJ_vs_flux(EJ_max, d):
-    flux_bias = np.linspace(0, 1, 100)
+def plot_EJ_vs_flux(EJ_max=20.0, d=0.1, flux_bias=np.linspace(0, 1, 100)):
     EJ = flux_dependent_EJ(EJ_max, flux_bias, d)
+    print(f"EJ:\n{EJ}")
     plt.plot(flux_bias, EJ)
     plt.xlabel('Flux bias ($\Phi / \Phi_0$)')
     plt.ylabel('Josephson Energy (GHz)')
@@ -71,27 +78,33 @@ def energy_levels_vs_flux(EC, EJ_max, flux_bias, d, ng, nlevels):
 
     for i, EJ in enumerate(EJ_array):
         H_cooper_pair_box = cooper_pair_box_hamiltonian(EC, EJ, ng, nlevels)
-        evals, _ = np.linalg.eigh(H_cooper_pair_box)
+        print(f"H_cooper_pair_box:\n{H_cooper_pair_box}")
+        evals, evacs = np.linalg.eigh(H_cooper_pair_box)
+        print(f"evals:\n{evals}")
+        print(f"evacs:\n{evacs}")
         energies[i, :] = evals
 
     return energies
 
-def plot_energy_levels_vs_flux(EC=1.0, EJ_max=20.0, flux_bias=np.linspace(0, 1, 100), d=0.1, ng=0.5, nlevels=6):
+def plot_energy_levels_vs_flux(EC=0.0, EJ_max=1.0, flux_bias=np.linspace(0, 1, 2), d=0.1, ng=0.5, nlevels=6):
     plot_EJ_vs_flux(EJ_max, d)
     
     energies = energy_levels_vs_flux(EC, EJ_max, flux_bias, d, ng, nlevels)
 
+    # Subtract the lowest energy at each flux to plot energies relative to the ground state
+    energies_relative = energies - energies[:, [0]]
+
     for level in range(nlevels):
-        plt.plot(flux_bias, energies[:, level])
+        plt.plot(flux_bias, energies_relative[:, level])
 
     plt.xlabel('Flux bias ($\\Phi / \\Phi_0$)')
-    plt.ylabel('Energy (GHz)')
-    plt.title('Energy Levels vs Flux Bias')
+    plt.ylabel('Energy relative to ground (GHz)')
+    plt.title('Energy Levels vs Flux Bias (relative to ground)')
     plt.savefig("energy_levels_vs_flux_cpb.pdf", format="pdf")
 
 
 def cpb_plot_evolve_state(psi0=np.array([np.sqrt(1), np.sqrt(0), np.sqrt(0), np.sqrt(0), np.sqrt(0), np.sqrt(0)], dtype=complex),
-                          EC=1.0, EJ_max=20.0, ng=0.0, nlevels=6,
+                          EC=1.0, EJ_max=20.0, ng=1.0, nlevels=6,
                           t=4.0, dt=0.01, outfile="statevector_evolution_cpb.pdf", style="panels"):
     H = cooper_pair_box_hamiltonian(EC, EJ_max, ng, nlevels)
     print(f"H:\n{H}")
@@ -99,4 +112,6 @@ def cpb_plot_evolve_state(psi0=np.array([np.sqrt(1), np.sqrt(0), np.sqrt(0), np.
 
 
 if __name__ == "__main__":
-    cpb_plot_evolve_state()
+    #plot_EJ_vs_flux(d = 0.0, flux_bias=np.linspace(0, 1.0, 100))
+    plot_energy_levels_vs_flux()
+    #cpb_plot_evolve_state()
