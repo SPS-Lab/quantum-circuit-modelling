@@ -46,16 +46,21 @@ def plot_energy_levels_vs_flux():
     duf_energies = duf.energy_levels(w_duffing, alpha, nlevels)
     duf_energies_relative = duf_energies - duf_energies[0]
 
-    # Plot CPB energies relative to ground
+    # Same color per excitation index: solid CPB vs flux, dashed Duffing reference
     for level in range(n_plot):
-        label = "CPB" if level == 0 else None
-        plt.plot(flux_bias, cpb_energies_relative[:, level], label=label)
-
-    # Draw a horizontal line for each Duffing level, also relative to ground
-    for i in range(n_plot):
-        E = duf_energies_relative[i]
-        label = 'Duffing' if i == 0 else None
-        plt.axhline(y=E, color='r', linestyle='--', label=label)
+        color = f"C{level % 10}"
+        plt.plot(
+            flux_bias,
+            cpb_energies_relative[:, level],
+            color=color,
+            label="CPB" if level == 0 else None,
+        )
+        plt.axhline(
+            y=duf_energies_relative[level],
+            color=color,
+            linestyle="--",
+            label="Duffing" if level == 0 else None,
+        )
 
     plt.xlabel('Flux bias ($\\Phi / \\Phi_0$) (for CPB)')
     plt.ylabel('Energy relative to ground (GHz)')
