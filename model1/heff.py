@@ -1,8 +1,17 @@
+import sys
+from pathlib import Path
+
 import numpy as np
 from scipy.linalg import expm
 import matplotlib.pyplot as plt
 from matplotlib.colors import hsv_to_rgb
-from helpers import px, py, pz, I2
+
+# Repo root (parent of model1/) so `toolkit.helpers` resolves when run from model1/
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+from toolkit.helpers import px, py, pz, I2
 
 
 def w_vs_flux(w_O, w_A, flux_bias):
@@ -74,7 +83,7 @@ def evolve_state(psi0, w1, w2, J, zeta, t_values):
 
     return psi_values
 
-def plot_evolve_state(psi0=np.array([np.sqrt(1/3), np.sqrt(0), np.sqrt(1/3), np.sqrt(1/3)], dtype=complex), w1=5.0, w2=5.2, J=1, zeta=0.002, dt=0.05, t=10):
+def plot_evolve_state(psi0=np.array([np.sqrt(1), np.sqrt(1), np.sqrt(0), np.sqrt(1)], dtype=complex), w1=5.0, w2=5.0, J=1.5, zeta=0.002, dt=0.05, t=10):
     t_values = np.linspace(0, t, int(t/dt))
     psi_t = evolve_state(psi0, w1, w2, J, zeta, t_values)
 
@@ -111,7 +120,7 @@ def plot_evolve_state(psi0=np.array([np.sqrt(1/3), np.sqrt(0), np.sqrt(1/3), np.
     phase_mappable.set_array([])
     cbar = fig.colorbar(phase_mappable, ax=ax)
     cbar.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
-    cbar.set_ticklabels(['-pi', '-0.5 pi', '0', '0.5 pi', 'pi'])
+    cbar.set_ticklabels(['$-\pi$', '-0.5 pi', '0', '0.5 pi', 'pi'])
     cbar.set_label('Phase')
 
     fig.tight_layout()
