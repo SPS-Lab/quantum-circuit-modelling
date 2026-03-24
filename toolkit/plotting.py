@@ -51,7 +51,7 @@ def plot_evolve_state(
     dt: float = 0.05,
     outfile: str = "statevector_evolution.pdf",
     style: str = "panels",
-    phase_amp_floor: float = 1e-12,
+    phase_prob_floor: float = 1e-12,
     basis_labels: Optional[Sequence[str]] = None,
     ylabel_basis: str = "Basis index",
     time_unit: str = "ns",
@@ -84,11 +84,11 @@ def plot_evolve_state(
         ``heatmap``: HSV image (hue=phase, brightness=|c_k|^2).
         ``line``: |c_k|^2 and phase mod 2pi vs time, all levels on two axes.
         ``panels``: one row per basis state (|0⟩ at bottom); twin y: |c_k|^2 and phase.
-    phase_amp_floor
-        For ``line`` and ``panels``, mask phase where |c_k| is below this value (not |c_k|²).
+    phase_prob_floor
+        For ``line`` and ``panels``, mask phase where |c_k|^2 is below this value.
 
-    Population axes (``line`` and ``panels``) use a fixed y-range ``[0, 1]`` for |c_k|² when
-    the state is normalized. The heatmap encodes |c_k|² in ``[0, 1]`` via clipping.
+    Probability axes (``line`` and ``panels``) use a fixed y-range ``[0, 1]`` for |c_k|^2 when
+    the state is normalized. The heatmap encodes |c_k|^2 in ``[0, 1]`` via clipping.
     """
     if style not in ("heatmap", "line", "panels"):
         raise ValueError('style must be "heatmap", "line", or "panels"')
@@ -113,8 +113,7 @@ def plot_evolve_state(
 
     # (dim, n_times)
     psi_arr = np.array(psi_t).T
-    amp = np.abs(psi_arr)
-    pop = amp**2  # population / probability |c_k|^2
+    prob = np.abs(psi_arr)**2  # probability |c_k|^2
     phase = np.angle(psi_arr)
 
     labels = (
@@ -132,7 +131,7 @@ def plot_evolve_state(
 
     if suptitle is None:
         suptitle = {
-            "heatmap": "Statevector evolution (hue=phase, brightness=|amplitude|)",
+            "heatmap": "Statevector evolution (hue=phase, brightness=|c_k|^2)",
             "line": "Statevector evolution",
             "panels": "Statevector evolution (one panel per basis state)",
         }[style]
@@ -155,14 +154,14 @@ def plot_evolve_state(
             ax = axes[dim - 1 - k]
             c = level_colors[k % len(level_colors)]
             lbl = labels[k]
-            ax.plot(t_values, pop[k], color=c, linestyle="-", label=r"$|c_k|^2$")
+            ax.plot(t_values, prob[k], color=c, linestyle="-", label=r"$|c_k|^2$")
             ax.set_ylabel(r"$|c_k|^2$", color=c)
             ax.tick_params(axis="y", labelcolor=c)
             ax.set_title(lbl, loc="left", fontsize="medium")
             ax.grid(True, alpha=0.3)
             ax.set_ylim(0.0, 1.0)
 
-            valid = amp[k] >= phase_amp_floor
+            valid = prob[k] >= phase_prob_floor
             ph_line = np.where(valid, np.mod(phase[k], 2 * np.pi), np.nan)
             ax2 = ax.twinx()
             ax2.plot(
@@ -192,27 +191,27 @@ def plot_evolve_state(
         return
 
     if style == "line":
-        fig, (ax_amp, ax_ph) = plt.subplots(
+        fig, (ax_prob, ax_ph) = plt.subplots(
             2, 1, figsize=(10, 7), sharex=True, gridspec_kw={"height_ratios": [1, 1]}
         )
         for k in range(dim):
             c = level_colors[k % len(level_colors)]
             lbl = labels[k]
-            ax_amp.plot(t_values, pop[k], label=lbl, color=c)
-            valid = amp[k] >= phase_amp_floor
+            ax_prob.plot(t_values, prob[k], label=lbl, color=c)
+            valid = prob[k] >= phase_prob_floor
             ph_line = np.where(valid, np.mod(phase[k], 2 * np.pi), np.nan)
             ax_ph.plot(t_values, ph_line, label=lbl, color=c)
 
-        ax_amp.set_ylabel(r"$|c_k(t)|^2$")
-        ax_amp.set_title("Population by basis component")
-        ax_amp.set_ylim(0.0, 1.0)
-        ax_amp.legend(loc="upper right", ncol=2, fontsize="small")
-        ax_amp.grid(True, alpha=0.3)
+        ax_prob.set_ylabel(r"$|c_k(t)|^2$")
+        ax_prob.set_title("Probability by basis component")
+        ax_prob.set_ylim(0.0, 1.0)
+        ax_prob.legend(loc="upper right", ncol=2, fontsize="small")
+        ax_prob.grid(True, alpha=0.3)
 
         ax_ph.set_xlabel(xlab)
         ax_ph.set_ylabel(r"Phase (rad, mod $2\pi$)")
         ax_ph.set_title(
-            r"Phase by basis component in $[0,\,2\pi)$ (omitted where $|c_k|$ below floor)"
+            r"Phase by basis component in $[0,\,2\pi)$ (omitted where $|c_k|^2$ below floor)"
         )
         ax_ph.set_ylim(0.0, 2 * np.pi)
         ax_ph.set_yticks(
@@ -229,7 +228,7 @@ def plot_evolve_state(
         return
 
     # --- heatmap ---
-    brightness = np.clip(pop, 0.0, 1.0)
+    brightness = np.clip(prob, 0.0, 1.0)
     hue = (phase + np.pi) / (2 * np.pi)
     saturation = np.ones_like(hue)
     value = brightness
