@@ -1,17 +1,10 @@
 """
-Spectral metrics for single-mode Hamiltonians.
+Single-mode Hamiltonian spectral metrics.
 
-**Not** everything uses ``eigh``. Diagonal ``H`` (e.g. Duffing in the number basis)
-takes level energies as ``diag(H)`` in **index order** (Fock level ``k`` at row
-``k``); that path never calls ``eigh``. Nondiagonal ``H`` (e.g. CPB in the charge
-basis) uses ``eigh`` so the physical vacuum is ``evals[0]``. See
-:func:`_eigensystem_single_mode` for this split.
+Diagonal ``H``: energies ``diag(H)`` in index order (Fock level ``k`` at row ``k``); no ``eigh``.
+Nondiagonal ``H``: ``eigh``; ground state ``evals[0]``. See :func:`_eigensystem_single_mode`.
 
-Included observables: qubit (0->1) transition frequency, transition matrix
-elements, anharmonicity, and overlaps between bare and eigen states (useful
-for identifying basis-leakage or convergence properties). Metrics involving
-two or more modes (e.g. ZZ interaction, exchange coupling, coupler
-participation) are not defined here.
+Outputs: SingleModeStaticMetrics.
 """
 
 from __future__ import annotations
@@ -51,7 +44,7 @@ def _eigensystem_single_mode(H: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     is not monotonic (e.g. truncated Duffing with ``alpha < 0``).
 
     If ``H`` has off-diagonal entries (e.g. CPB in the charge basis), use ``eigh`` with
-    ascending eigenvalues (physical vacuum = ``evals[0]``).
+    ascending eigenvalues (ground state = ``evals[0]``).
     """
     H = np.asarray(H)
     if _is_diagonal(H):
@@ -88,8 +81,8 @@ def single_mode_static_metrics(H: np.ndarray) -> SingleModeStaticMetrics:
     """Eigendecompose ``H`` and extract static metrics for a single-mode model.
 
     **Diagonal ``H`` (Duffing in number basis).** Eigenvalues are taken as
-    ``diag(H)[0], diag(H)[1], …`` in **basis order**, not sorted by magnitude, so
-    index ``k`` remains the ``k``-excitation Fock level.
+    ``diag(H)[0], diag(H)[1], ...`` in **basis order**, not sorted by magnitude, so
+    index ``k`` remains the ``k``-th excitation Fock level.
 
     **General ``H`` (e.g. CPB).** Uses ``eigh``; ``evals[0]`` is the physical ground
     state in the truncated Hilbert space.
@@ -98,7 +91,7 @@ def single_mode_static_metrics(H: np.ndarray) -> SingleModeStaticMetrics:
 
     **Transition frequencies.** ``omega_matrix[m, n] = E_n - E_m``.
 
-    **Anharmonicity.** ``alpha`` approximately ``omega_12 - omega_01`` when at least three levels exist.
+    **Anharmonicity.** ``alpha = omega_12 - omega_01`` when at least three levels exist.
 
     **Localization / overlap.** ``overlap_bare_eigen[i, k] = |<i|psi_k>|^2``.
 
