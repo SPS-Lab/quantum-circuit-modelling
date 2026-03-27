@@ -28,6 +28,7 @@ def harmonic_oscillator_hamiltonian(w, nlevels):
 
 
 
-H = harmonic_oscillator_hamiltonian(w=5.0, nlevels=3)
+H = harmonic_oscillator_hamiltonian(w=5.0, nlevels=4)
 print(H)
 
+plot_evolve_state_under_hamiltonian(H, psi0=np.array([0.5, 0.5, 0.5, 0.5]), t=10.0)
