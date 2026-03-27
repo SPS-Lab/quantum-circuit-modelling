@@ -50,7 +50,8 @@ def plot_energy_levels(w=5.0, alpha=-1, nlevels=6):
     plt.savefig("energy_levels_duffing.pdf", format="pdf")
 
 
-
+# w is usually 3-6 GHz and alpha -0.1 to -0.3 GHz (Krantz et al. 2019).
+# Here, alpha is -1 GHz for visualisation purposes.
 def duf_plot_evolve_state(psi0=np.array([np.sqrt(1), np.sqrt(1), np.sqrt(1), np.sqrt(1), np.sqrt(1), np.sqrt(1)], dtype=complex),
                           w=5.0,
                           alpha=-1.0,
