@@ -1,8 +1,13 @@
 import numpy as np
 
-def destroy(n):
-    a = np.zeros((n, n), dtype=complex)
-    for k in range(1, n):
+"""
+Create the annihilation operator, in the number basis.
+
+nlevels: number of levels
+"""
+def destroy(nlevels):
+    a = np.zeros((nlevels, nlevels), dtype=complex)
+    for k in range(1, nlevels):
         a[k-1, k] = np.sqrt(k)
     return a
 
