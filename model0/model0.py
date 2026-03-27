@@ -181,6 +181,8 @@ def plot_static_metrics_vs_nlevels():
     overlap_ne1_e1 = np.zeros(len(nlevels_vals))
     overlap_ne2_e2 = np.zeros(len(nlevels_vals))
 
+    m_32 = None  # Will hold metrics for nlevels = 32
+
     for i, nl in enumerate(nlevels_vals):
         H = cooper_pair_box_hamiltonian(EC, EJ, ng, nl)
         m = single_mode_static_metrics(H)
@@ -199,6 +201,9 @@ def plot_static_metrics_vs_nlevels():
         else:
             overlap_ne2_e2[i] = np.nan
 
+        if nl == 32:
+            m_32 = m  # Save metrics for nlevels=32
+
     H_duff_ref = duffing_single_mode(w_duffing, alpha, max(nlevels_max, 64))
     m_duff = single_mode_static_metrics(H_duff_ref)
     ref_omega_01 = m_duff.omega_01
@@ -206,6 +211,20 @@ def plot_static_metrics_vs_nlevels():
     ref_ol_g = float(m_duff.overlap_bare_eigen[n_ref, 0])
     ref_ol_e1 = float(m_duff.overlap_bare_eigen[n_exc, 1])
     ref_ol_e2 = float(m_duff.overlap_bare_eigen[n2, 2])
+
+    # Print metrics for nlevels=32 and their differences from duffing reference
+    if m_32 is not None:
+        print("=== CPB metrics for nlevels=32 ===")
+        print(f"omega_01 (CPB): {m_32.omega_01:.8f} GHz")
+        print(f"omega_01 (Duffing): {ref_omega_01:.8f} GHz")
+        print(f"Delta omega_01 (CPB - Duffing): {m_32.omega_01 - ref_omega_01:+.8f} GHz")
+        alpha_32 = m_32.alpha if m_32.alpha is not None else np.nan
+        print(f"alpha (CPB): {alpha_32:.8f} GHz")
+        print(f"alpha (Duffing): {ref_alpha:.8f} GHz")
+        print(f"Delta alpha (CPB - Duffing): {alpha_32 - ref_alpha:+.8f} GHz")
+        print(f"Overlap |<n={n_ref}|psi_0>|^2: {m_32.overlap_bare_eigen[_cpb_charge_basis_index(n_ref, ng, 32), 0]:.8f}")
+        print(f"Overlap |<n={n_exc}|psi_1>|^2: {m_32.overlap_bare_eigen[_cpb_charge_basis_index(n_exc, ng, 32), 1]:.8f}")
+        print(f"Overlap |<n={n2}|psi_2>|^2: {m_32.overlap_bare_eigen[_cpb_charge_basis_index(n2, ng, 32), 2]:.8f}")
 
     fig, axes = plt.subplots(3, 1, sharex=True, figsize=(7.0, 9.0))
 
