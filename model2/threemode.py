@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.linalg import expm
+from scipy.optimize import linear_sum_assignment
 import matplotlib.pyplot as plt
 from matplotlib.colors import hsv_to_rgb
 
@@ -13,7 +14,7 @@ if str(_ROOT) not in sys.path:
 
 from toolkit.helpers import destroy, I2
 
-def model2_hamiltonian(w_1, w_c, w_2, alpha_1, alpha_c, alpha_2, g_1c, g_2c, nlevels_qubit, nlevels_coupler):
+def three_mode_hamiltonian(w_1, w_c, w_2, alpha_1, alpha_c, alpha_2, g_1c, g_2c, nlevels_qubit, nlevels_coupler):
     """
     Constructs the three-mode Hamiltonian:
 
@@ -76,3 +77,26 @@ def model2_hamiltonian(w_1, w_c, w_2, alpha_1, alpha_c, alpha_2, g_1c, g_2c, nle
     )
 
     return H
+
+def reorder_by_overlap(prev_vecs, new_vecs): # Use this in model1 also?
+    overlap = np.abs(prev_vecs.conj().T @ new_vecs)**2
+    row_ind, col_ind = linear_sum_assignment(-overlap)
+    return new_vecs[:, col_ind], col_ind
+
+
+def propagate_piecewise(psi0, tlist, flux_values, params):
+    psi = psi0.copy()
+    states = [psi.copy()]
+    for k in range(len(tlist) - 1):
+        dt = tlist[k+1] - tlist[k]
+        wc = params["wc0"] + params["A"] * np.cos(2*np.pi*flux_values[k])
+        H = three_mode_hamiltonian(
+            params["w1"], wc, params["w2"],
+            params["a1"], params["ac"], params["a2"],
+            params["g1c"], params["g2c"],
+            params["n1"], params["nc"], params["n2"]
+        )
+        U = expm(-1j * H * dt)
+        psi = U @ psi
+        states.append(psi.copy())
+    return np.array(states)
