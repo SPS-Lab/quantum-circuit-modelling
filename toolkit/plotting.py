@@ -1,8 +1,10 @@
 """
-Reusable state-evolution plots for any finite-dimensional Hamiltonian H.
+Reusable plots for finite-dimensional Hamiltonians: spectrum ladders, energy vs flux,
+and state evolution.
 
-Pass H as a square ``ndarray`` or as a nullary callable ``() -> H`` (e.g. ``lambda:
-build_H(...)``). Model-specific parameters stay in the model module.
+Pass static ``H`` as a square ``ndarray`` or as a nullary callable ``() -> H`` (e.g.
+``lambda: build_H(...)``). Flux sweeps use ``plot_energy_levels_vs_flux(..., hamiltonian=...)``.
+Model-specific parameters stay in the model module.
 """
 
 from __future__ import annotations
@@ -14,8 +16,11 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import hsv_to_rgb
 from scipy.linalg import expm
 from toolkit.helpers import destroy
+from toolkit.spectrum import track_energy_levels_stack
 
 HamiltonianLike = Union[np.ndarray, Callable[[], np.ndarray]]
+# ``(flux_scalar_or_array,) -> (d,d)`` or, for a vectorized build, ``(flux_1d,) -> (n_flux,d,d)``.
+HamiltonianFluxLike = Callable[..., np.ndarray]
 
 
 def as_hamiltonian(hamiltonian: HamiltonianLike) -> np.ndarray:
@@ -130,6 +135,159 @@ def plot_energy_levels(
                 fontsize="small",
                 color="C0",
             )
+
+    fig.tight_layout()
+    plt.savefig(outfile, format="pdf")
+    plt.close(fig)
+    return evals_plot
+
+
+def _stack_hamiltonians_vs_flux(
+    flux_values: np.ndarray,
+    hamiltonian: HamiltonianFluxLike,
+) -> np.ndarray:
+    """Return ``H`` with shape ``(n_flux, d, d)`` from either batched or per-flux builds."""
+    flux_values = np.asarray(flux_values, dtype=float).ravel()
+    n_flux = int(flux_values.shape[0])
+    if n_flux == 0:
+        raise ValueError("flux_values must be non-empty")
+
+    try:
+        H_try = np.asarray(hamiltonian(flux_values), dtype=complex)
+        if H_try.ndim == 3 and H_try.shape[0] == n_flux:
+            if H_try.shape[1] != H_try.shape[2]:
+                raise ValueError(
+                    f"batched Hamiltonian must be square in last two dims, got {H_try.shape}"
+                )
+            return H_try
+    except TypeError:
+        pass
+
+    mats = [as_hamiltonian(hamiltonian(float(f))) for f in flux_values]
+    d0 = mats[0].shape[0]
+    for k, m in enumerate(mats):
+        if m.shape != (d0, d0):
+            raise ValueError(
+                f"Hilbert space dimension varies with flux: index 0 has {d0}, "
+                f"index {k} has {m.shape[0]}"
+            )
+    return np.stack(mats, axis=0)
+
+
+def plot_energy_levels_vs_flux(
+    flux_values: np.ndarray,
+    hamiltonian: HamiltonianFluxLike,
+    *,
+    n_show: Optional[int] = None,
+    track_by_overlap: bool = True,
+    subtract_ground: bool = False,
+    outfile: str = "energy_levels_vs_flux.pdf",
+    title: Optional[str] = None,
+    xlabel: str = r"Flux bias ($\Phi / \Phi_0$)",
+    ylabel: Optional[str] = None,
+    energy_unit: str = "GHz",
+    figsize: tuple[float, float] = (8.0, 5.0),
+    show_legend: bool = True,
+    legend_ncol: int = 2,
+) -> np.ndarray:
+    """Plot lowest eigenenergies vs flux (same idea as :func:`model1.heff.plot_energy_levels_vs_flux`).
+
+    Hamiltonians are stacked from ``hamiltonian`` (batched or per-flux). Eigenvalues use
+    ``eigvalsh`` on each slice, or :func:`toolkit.spectrum.track_energy_levels_stack` when
+    ``track_by_overlap`` is True so curves follow adiabatic levels through avoided crossings.
+
+    Parameters
+    ----------
+    flux_values
+        1D flux samples (e.g. ``np.linspace(0, 1, 100)``).
+    hamiltonian
+        ``H(f) -> (d,d)`` for scalar ``f``, or ``H(flux_1d) -> (len(flux), d, d)`` when batched.
+    n_show
+        Plot only the lowest ``n_show`` manifolds. ``None`` means all ``d`` levels.
+    track_by_overlap
+        If True (default), match eigenvectors between neighboring flux points via
+        :func:`toolkit.spectrum.reorder_by_overlap` so line colors follow continuous states.
+        If False, energies are sorted independently at each flux (may look jagged near crossings).
+    subtract_ground
+        If True, subtract ``E_0(\\Phi)`` at each flux so the ground manifold is a flat line.
+    outfile
+        Output PDF path.
+    title
+        Figure title.
+    xlabel, ylabel
+        Axis labels; default y-axis uses ``energy_unit`` and notes ground subtraction when used.
+    energy_unit
+        Used in the default y-label and legend entries.
+    figsize
+        Matplotlib figure size.
+    show_legend
+        Whether to draw the legend.
+    legend_ncol
+        Number of columns for the legend.
+
+    Returns
+    -------
+    evals_plot : ndarray, shape (n_flux, n_levels)
+        Energies at each flux, after optional truncation and ground subtraction.
+    """
+    flux_values = np.asarray(flux_values, dtype=float).ravel()
+    n_flux = flux_values.shape[0]
+
+    H_stack = _stack_hamiltonians_vs_flux(flux_values, hamiltonian)
+    dim = H_stack.shape[1]
+
+    n_track = int(n_show) if n_show is not None else dim
+
+    if track_by_overlap:
+        evals = track_energy_levels_stack(H_stack, n_track)
+    else:
+        evals = np.linalg.eigvalsh(H_stack)
+        evals = np.asarray(evals, dtype=float)
+        if n_show is not None:
+            evals = evals[:, : int(n_show)]
+    n_levels = evals.shape[1]
+
+    if subtract_ground:
+        evals_plot = evals - evals[:, 0:1]
+    else:
+        evals_plot = evals.copy()
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    if n_levels <= 10:
+        colors = plt.cm.tab10(np.linspace(0, 1, n_levels, endpoint=False))
+    else:
+        colors = plt.cm.tab20(np.linspace(0, 1, min(n_levels, 20), endpoint=False))
+
+    unit_suffix = f" ({energy_unit})" if energy_unit else ""
+    for i in range(n_levels):
+        c = colors[i % len(colors)]
+        ax.plot(
+            flux_values,
+            evals_plot[:, i],
+            color=c,
+            label=rf"$E_{{{i}}}${unit_suffix}",
+        )
+
+    ax.set_xlabel(xlabel)
+    if ylabel is None:
+        parts: list[str] = []
+        if energy_unit:
+            parts.append(energy_unit)
+        if subtract_ground:
+            parts.append("rel. ground at each flux")
+        ax.set_ylabel(
+            "Energy (" + ", ".join(parts) + ")" if parts else "Energy"
+        )
+    else:
+        ax.set_ylabel(ylabel)
+
+    if title is None:
+        title = f"Energy levels vs flux (lowest {n_levels} of {dim})"
+    ax.set_title(title)
+    ax.grid(True, alpha=0.3)
+    if show_legend:
+        ax.legend(loc="best", ncol=legend_ncol, fontsize="small")
 
     fig.tight_layout()
     plt.savefig(outfile, format="pdf")
