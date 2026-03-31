@@ -30,6 +30,113 @@ def as_hamiltonian(hamiltonian: HamiltonianLike) -> np.ndarray:
     return H
 
 
+def plot_energy_levels(
+    hamiltonian: HamiltonianLike,
+    *,
+    n_show: Optional[int] = None,
+    subtract_ground: bool = True,
+    outfile: str = "energy_levels.pdf",
+    title: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    energy_unit: str = "",
+    figsize: tuple[float, float] = (5.5, 7.0),
+    annotate_n: int = 0,
+) -> np.ndarray:
+    """Plot low-lying eigenenergies of a Hermitian Hamiltonian (horizontal ladder).
+
+    Eigenvalues are computed with ``numpy.linalg.eigvalsh``. By default energies are
+    shifted so the ground level is at zero.
+
+    Parameters
+    ----------
+    hamiltonian
+        Square Hermitian matrix or ``() -> ndarray`` (same convention as
+        :func:`plot_evolve_state`).
+    n_show
+        Plot only the lowest ``n_show`` levels. ``None`` means all (use caution for
+        large Hilbert spaces).
+    subtract_ground
+        If True, subtract ``E_0`` from all plotted energies.
+    outfile
+        Output PDF path.
+    title
+        Figure title; a default is used if omitted.
+    ylabel
+        Energy axis label. If ``None``, a default is built from ``energy_unit`` and
+        ``subtract_ground`` (e.g. ``Energy (GHz, rel. ground)``).
+    energy_unit
+        Appended to the default y-label, e.g. ``"GHz"`` -> ``Energy (GHz, rel. ground)``.
+    figsize
+        Matplotlib figure size.
+    annotate_n
+        Label the lowest ``annotate_n`` levels with their zero-based index (0, 1, …).
+
+    Returns
+    -------
+    evals_plot : ndarray
+        The energies actually plotted (same shape as the number of drawn levels),
+        after optional ground subtraction.
+    """
+    H = as_hamiltonian(hamiltonian)
+    dim = H.shape[0]
+    evals = np.linalg.eigvalsh(H)
+    evals = np.asarray(evals, dtype=float)
+
+    if n_show is not None:
+        evals = evals[: int(n_show)]
+    n = evals.shape[0]
+
+    if subtract_ground:
+        e0 = evals[0]
+        evals_plot = evals - e0
+    else:
+        evals_plot = evals.copy()
+
+    fig, ax = plt.subplots(figsize=figsize)
+    x0, x1 = 0.0, 1.0
+    for E in evals_plot:
+        ax.hlines(E, x0, x1, colors="C0", linewidth=1.2, alpha=0.9)
+
+    ax.set_xlim(x0, x1)
+    ax.set_xticks([])
+    ax.set_xmargin(0.02)
+
+    if ylabel is None:
+        parts: list[str] = []
+        if energy_unit:
+            parts.append(energy_unit)
+        if subtract_ground:
+            parts.append("rel. ground")
+        ax.set_ylabel(
+            "Energy (" + ", ".join(parts) + ")" if parts else "Energy"
+        )
+    else:
+        ax.set_ylabel(ylabel)
+
+    if title is None:
+        title = f"Energy levels (lowest {n} of {dim})"
+    ax.set_title(title)
+    ax.grid(True, axis="y", alpha=0.3)
+
+    if annotate_n > 0:
+        k_max = min(int(annotate_n), n)
+        for k in range(k_max):
+            ax.annotate(
+                rf"${k}$",
+                xy=(x1, evals_plot[k]),
+                xytext=(6, 0),
+                textcoords="offset points",
+                va="center",
+                fontsize="small",
+                color="C0",
+            )
+
+    fig.tight_layout()
+    plt.savefig(outfile, format="pdf")
+    plt.close(fig)
+    return evals_plot
+
+
 def evolve_state(psi0: np.ndarray, H: np.ndarray, t_values: np.ndarray) -> list[np.ndarray]:
     """Schrödinger evolution |psi(t)> = exp(-i H t) |psi0> for fixed H."""
     H = np.asarray(H, dtype=complex)
