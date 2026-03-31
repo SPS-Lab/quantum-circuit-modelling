@@ -2,7 +2,9 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.linalg import expm
+from scipy.optimize import linear_sum_assignment
 
 # Repo root (parent of model2/) so `toolkit` resolves when run from model2/
 _ROOT = Path(__file__).resolve().parents[1]
@@ -77,6 +79,139 @@ def three_mode_hamiltonian(w_1, w_c, w_2, alpha_1, alpha_c, alpha_2, g_1c, g_2c,
     )
 
     return H
+
+
+def computational_state_indices(
+    nlevels_qubit: int, nlevels_coupler: int
+) -> np.ndarray:
+    """Flat indices for bare ``|n_1, n_c, n_2⟩`` with ``n_c=0`` and ``n_1,n_2 ∈ {0,1}``.
+
+    Tensor layout matches :func:`three_mode_hamiltonian`: index
+    ``n_1 * (n_c n_q) + n_c * n_q + n_2``.
+    """
+    nq, nc = nlevels_qubit, nlevels_coupler
+    return np.array(
+        [
+            0 * (nc * nq) + 0 * nq + 0,
+            0 * (nc * nq) + 0 * nq + 1,
+            1 * (nc * nq) + 0 * nq + 0,
+            1 * (nc * nq) + 0 * nq + 1,
+        ],
+        dtype=int,
+    )
+
+
+def dressed_computational_energies(
+    H: np.ndarray,
+    nlevels_qubit: int,
+    nlevels_coupler: int,
+    *,
+    n_candidate_states: int = 16,
+) -> np.ndarray:
+    """Dressed energies ``(E_00, E_01, E_10, E_11)`` in GHz (same units as ``H``).
+
+    Lowest eigenstates are matched to the four bare computational kets (coupler in ``|0⟩``)
+    by maximum overlap (Hungarian assignment).
+    """
+    H = np.asarray(H, dtype=complex)
+    d = H.shape[0]
+    idx = computational_state_indices(nlevels_qubit, nlevels_coupler)
+    n_cand = max(4, min(int(n_candidate_states), d))
+
+    w, v = np.linalg.eigh(H)
+    v_c = v[:, :n_cand]
+    overlap = np.abs(v_c[idx, :]) ** 2
+    row_ind, col_ind = linear_sum_assignment(-overlap)
+    E = np.empty(4, dtype=float)
+    for k in range(4):
+        E[int(row_ind[k])] = float(w[int(col_ind[k])])
+    return E
+
+
+def exchange_splitting_bare_01_10(
+    H: np.ndarray, nlevels_qubit: int, nlevels_coupler: int
+) -> float:
+    """Splitting ``|λ_+ - λ_-|`` of the ``2×2`` block of ``H`` in the bare ``|01⟩,|10⟩`` subspace.
+
+    Includes both direct coupling and qubit detuning within that subspace (GHz units).
+    """
+    H = np.asarray(H, dtype=complex)
+    idx = computational_state_indices(nlevels_qubit, nlevels_coupler)
+    i01, i10 = int(idx[1]), int(idx[2])
+    h11 = H[i01, i01].real
+    h22 = H[i10, i10].real
+    h12 = H[i01, i10]
+    tr = h11 + h22
+    det = h11 * h22 - h12 * np.conj(h12)
+    disc = np.sqrt(max(0.0, 0.25 * tr**2 - det.real))
+    return float(2.0 * disc)
+
+
+def residual_zz_and_exchange(
+    H: np.ndarray, nlevels_qubit: int, nlevels_coupler: int, **dress_kw
+) -> tuple[float, float]:
+    """Return ``(ζ_ZZ, Δ_ex)`` with ``ζ_ZZ = E_11 - E_10 - E_01 + E_00`` (dressed) and bare-subspace splitting."""
+    E = dressed_computational_energies(
+        H, nlevels_qubit, nlevels_coupler, **dress_kw
+    )
+    zeta = float(E[3] - E[2] - E[1] + E[0])
+    dex = exchange_splitting_bare_01_10(H, nlevels_qubit, nlevels_coupler)
+    return zeta, dex
+
+
+def plot_three_mode_zz_exchange_vs_flux(
+    flux_values: np.ndarray,
+    *,
+    wc0: float,
+    A: float,
+    outfile: str = "three_mode_ZZ_exchange_vs_flux.pdf",
+    title: str | None = None,
+    dress_kw: dict | None = None,
+    **ham_kwargs,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Plot residual ZZ (dressed) and ``|01>-|10>`` bare-subspace splitting vs flux."""
+    flux_values = np.asarray(flux_values, dtype=float).ravel()
+    dress_kw = dress_kw or {}
+
+    zetas = np.empty_like(flux_values, dtype=float)
+    exchanges = np.empty_like(flux_values, dtype=float)
+
+    nq = int(ham_kwargs["nlevels_qubit"])
+    nc = int(ham_kwargs["nlevels_coupler"])
+
+    for k, phi in enumerate(flux_values):
+        wc = float(wc0 + A * np.cos(2 * np.pi * phi))
+        H = three_mode_hamiltonian(
+            ham_kwargs["w_1"],
+            wc,
+            ham_kwargs["w_2"],
+            ham_kwargs["alpha_1"],
+            ham_kwargs["alpha_c"],
+            ham_kwargs["alpha_2"],
+            ham_kwargs["g_1c"],
+            ham_kwargs["g_2c"],
+            nq,
+            nc,
+        )
+        zz, ex = residual_zz_and_exchange(H, nq, nc, **dress_kw)
+        zetas[k] = zz
+        exchanges[k] = ex
+
+    fig, (ax_z, ax_j) = plt.subplots(2, 1, figsize=(8.0, 6.5), sharex=True)
+    ax_z.plot(flux_values, zetas, color="C0")
+    ax_z.set_ylabel(r"Residual ZZ (GHz)")
+    ax_z.set_title(title or r"Three-mode: $\zeta = E_{11}-E_{10}-E_{01}+E_{00}$ (dressed)")
+    ax_z.grid(True, alpha=0.3)
+
+    ax_j.plot(flux_values, exchanges, color="C1")
+    ax_j.set_ylabel(r"Exchange bare $|01\rangle\!-\!|10\rangle$ splitting (GHz)")
+    ax_j.set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
+    ax_j.grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    plt.savefig(outfile, format="pdf")
+    plt.close(fig)
+    return zetas, exchanges
 
 
 def plot_three_mode_energy_levels(
@@ -214,5 +349,12 @@ if __name__ == "__main__":
         A=0.25,
         outfile=str(_dir / "three_mode_energy_levels_vs_flux.pdf"),
         n_show=16,
+        **_common,
+    )
+    plot_three_mode_zz_exchange_vs_flux(
+        flux,
+        wc0=5.2,
+        A=0.25,
+        outfile=str(_dir / "three_mode_ZZ_exchange_vs_flux.pdf"),
         **_common,
     )
