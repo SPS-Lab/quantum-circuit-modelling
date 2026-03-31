@@ -48,20 +48,20 @@ def model2_hamiltonian(w_1, w_c, w_2, alpha_1, alpha_c, alpha_2, g_1c, g_2c, nle
     id_ = eye(nlevels_qubit, dtype=complex)
 
     # Tensor product operators
-    def op3(o1, o2, o3):
+    def kron3(o1, o2, o3):
         return kron(kron(o1, o2), o3)
 
     # Annihilation/creation/number operators for each mode on the full Hilbert space
-    a1 = op3(a[0], id_, id_)
-    ac = op3(id_, a[1], id_)
-    a2 = op3(id_, id_, a[2])
-    adag1 = op3(adag[0], id_, id_)
-    adagc = op3(id_, adag[1], id_)
-    adag2 = op3(id_, id_, adag[2])
+    a1 = kron3(a[0], id_, id_)
+    ac = kron3(id_, a[1], id_)
+    a2 = kron3(id_, id_, a[2])
+    adag1 = kron3(adag[0], id_, id_)
+    adagc = kron3(id_, adag[1], id_)
+    adag2 = kron3(id_, id_, adag[2])
 
-    n1 = op3(n[0], id_, id_)
-    nc = op3(id_, n[1], id_)
-    n2 = op3(id_, id_, n[2])
+    n1 = kron3(n[0], id_, id_)
+    nc = kron3(id_, n[1], id_)
+    n2 = kron3(id_, id_, n[2])
 
     # Hamiltonian terms
     H = (
