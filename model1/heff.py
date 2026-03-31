@@ -55,14 +55,21 @@ def energy_levels_vs_flux(w_O, w_A, J_O, J_A, zeta_O, zeta_A, flux_bias):
     J = J_vs_flux(J_O, J_A, flux_bias)
     zeta = zeta_vs_flux(zeta_O, zeta_A, flux_bias)
     H = heff(w1, w2, J, zeta)  # (n_flux, 4, 4) when flux_bias is 1D
+    
+    print(f"H at initial flux:\n{H[0]}")
     evals, evecs = np.linalg.eigh(H)  # (n_flux, 4)
+
+    print(f"evals at initial flux: {evals[0]}")
+
+    print("First set of state vectors (eigenvectors) at initial flux value:")
+    print(evecs[0])
     return evals, evecs
 
 def plot_energy_levels_vs_flux(w_O=5.0, w_A=0.2, J_O=0.01, J_A=0.002, zeta_O=0.002, zeta_A=0.0002, flux_bias=np.linspace(0, 1, 100)):
     evals, evecs = energy_levels_vs_flux(w_O, w_A, J_O, J_A, zeta_O, zeta_A, flux_bias)
     from pprint import pprint
-    print("First set of state vectors (eigenvectors) at initial flux value:")
-    pprint(evecs[0])
+
+    
     for i in range(4):
         plt.plot(flux_bias, evals[:, i], label=rf"$E_{i}$ (GHz)")
     plt.xlabel('Flux bias ($\Phi / \Phi_0$)')

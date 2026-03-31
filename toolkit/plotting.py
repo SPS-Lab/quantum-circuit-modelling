@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import hsv_to_rgb
 from scipy.linalg import expm
+from toolkit.helpers import destroy
 
 HamiltonianLike = Union[np.ndarray, Callable[[], np.ndarray]]
 
