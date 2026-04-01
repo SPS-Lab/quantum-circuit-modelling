@@ -103,6 +103,6 @@ if __name__ == "__main__":
         subtract_ground=True,
         verbose=True,
         wc0=5.0,
-        A=0.0,
+        A=1.0,
         **_common,
     )

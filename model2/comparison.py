@@ -224,21 +224,26 @@ def plot_compare_model1_model2_vs_flux(
 
     for i in range(n_track):
         c = colors[i % len(colors)]
+        c_rgb = np.asarray(c[:3], dtype=float)
+        c_dash = tuple(np.clip(0.55 * c_rgb, 0.0, 1.0))
         ax.plot(
             flux_values,
             evals1[:, i],
             color=c,
             linestyle="-",
             linewidth=1.8,
+            alpha=0.9,
+            zorder=2,
             label=rf"model 1 $E_{{{i}}}$",
         )
         ax.plot(
             flux_values,
             evals2[:, i],
-            color=c,
+            color=c_dash,
             linestyle="--",
             linewidth=1.4,
-            alpha=0.9,
+            alpha=1.0,
+            zorder=3,
             label=rf"model 2 $E_{{{i}}}$",
         )
 
