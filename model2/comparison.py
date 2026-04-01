@@ -48,92 +48,43 @@ def heff_spin_to_lab_hamiltonian(H_eff: np.ndarray, w1, w2) -> np.ndarray:
     return H_eff + 0.5 * (w1_b + w2_b) * eye4 - w1_b * pz1 - w2_b * pz2
 
 
-def debug_model1_vs_model2(
+def _print_compact_debug_snapshot(
     *,
-    flux: float = 0.0,
-    w_O: float = 5.0,
-    w_A: float = 0.0,
-    J_O: float = 0.0,
-    J_A: float = 0.0,
-    zeta_O: float = 0.0,
-    zeta_A: float = 0.0,
-    wc0: float = 5.0,
-    A: float = 0.0,
-    **ham_kwargs,
+    flux0: float,
+    wc0: float,
+    A: float,
+    w_O: float,
+    w_A: float,
+    H1_0: np.ndarray,
+    H2_0: np.ndarray,
+    nlevels_qubit: int,
+    nlevels_coupler: int,
 ) -> None:
-    """Print diagnostics comparing model-1 ``H_eff`` and model-2 computational subspace."""
-    m1 = _import_model1_heff()
-    phi = float(flux)
-
-    w1_heff = m1.w_vs_flux(w_O, w_A, phi)
-    w2_heff = m1.w_vs_flux(w_O, w_A, phi)
-    Jv = m1.J_vs_flux(J_O, J_A, phi)
-    zv = m1.zeta_vs_flux(zeta_O, zeta_A, phi)
-    H1 = np.asarray(m1.heff(w1_heff, w2_heff, Jv, zv), dtype=complex)
-    while H1.ndim > 2:
-        H1 = H1[0]
-    H1 = heff_spin_to_lab_hamiltonian(H1, w1_heff, w2_heff)
-
-    nq = int(ham_kwargs["nlevels_qubit"])
-    nc = int(ham_kwargs["nlevels_coupler"])
-    wc = float(coupler_frequency(wc0, A, phi))
-    H2 = three_mode_hamiltonian(
-        ham_kwargs["w_1"],
-        wc,
-        ham_kwargs["w_2"],
-        ham_kwargs["alpha_1"],
-        ham_kwargs["alpha_c"],
-        ham_kwargs["alpha_2"],
-        ham_kwargs["g_1c"],
-        ham_kwargs["g_2c"],
-        nq,
-        nc,
-    )
-    idx = computational_state_indices(nq, nc)
-    H_comp = H2[np.ix_(idx, idx)]
+    """Print a short first-flux comparison snapshot."""
+    idx = computational_state_indices(nlevels_qubit, nlevels_coupler)
+    H_comp = H2_0[np.ix_(idx, idx)]
     H_comp_h = 0.5 * (H_comp + H_comp.conj().T)
+    fro = np.linalg.norm(H_comp - H1_0, ord="fro")
 
-    e1 = np.linalg.eigvalsh(H1.real)
-    e_comp = np.linalg.eigvalsh(H_comp_h.real)
-    e2_full = np.linalg.eigvalsh(np.real(H2))
-    fro = np.linalg.norm(H_comp - H1, ord="fro")
+    e1 = np.linalg.eigvalsh(H1_0.real)
+    e2_full = np.linalg.eigvalsh(H2_0.real)
+    e2_comp = np.linalg.eigvalsh(H_comp_h.real)
+    wc_flux0 = float(coupler_frequency(wc0, A, flux0))
+    wq_flux0 = float(w_O + w_A * np.cos(2 * np.pi * flux0))
 
-    print("\n=== model1 vs model2 mismatch (debug) ===\n")
     print(
-        "1) Independent parameters: heff uses (w_O,w_A,J_O,J_A,zeta_O,zeta_A); "
-        "three-mode uses (w_1,w_2,w_c,alpha_*,g_1c,g_2c,nlevels_*). "
-        "They are not converted into each other here.\n"
+        "[plot_compare_model1_model2_vs_flux] snapshot "
+        f"phi0={flux0:.6g}: wq={wq_flux0:.6g} GHz, wc={wc_flux0:.6g} GHz, "
+        f"||H_comp-H_eff||_F={fro:.6g}",
+        flush=True,
     )
     print(
-        f"2) Hilbert space: H_eff is 4x4; three-mode is {H2.shape[0]}x{H2.shape[0]} "
-        f"({nq}x{nc}x{nq}). Comparing lowest four eigenvalues of the full three-mode H "
-        "mixes coupler excitations with the qubit manifold; the 4x4 block is only the "
-        "bare |n_1,0_c,n_2> corner.\n"
+        "[plot_compare_model1_model2_vs_flux] "
+        f"E_model1={np.array2string(np.round(e1, 6), separator=', ')} "
+        f"E_model2_comp={np.array2string(np.round(e2_comp, 6), separator=', ')} "
+        f"E_model2_full_low4={np.array2string(np.round(e2_full[:4], 6), separator=', ')}",
+        flush=True,
     )
-    print(f"3) At flux phi={phi}: w_c(three-mode)={wc:.6g} GHz (wc0={wc0}, A={A}).")
-    print(
-        f"   heff scalar freqs: w1=w2={float(np.asarray(w1_heff).reshape(())):.6g} GHz "
-        f"(w_O={w_O}, w_A={w_A}); J={float(np.asarray(Jv).reshape(())):.6g}, "
-        f"zeta={float(np.asarray(zv).reshape(())):.6g}.\n"
-    )
-    print("4) H_eff -> lab w*n convention (real part, GHz):")
-    print(np.array2string(np.round(H1.real, 6), prefix="   "))
-    print("\n5) Three-mode H on computational {|00>,|01>,|10>,|11>} subspace (n_c=0), GHz:")
-    print(np.array2string(np.round(H_comp_h.real, 6), prefix="   "))
-    print(f"\n6) Frobenius ||H_comp - H_eff(lab)||_F = {fro:.6g} GHz (same basis |q1 q2> order).\n")
-    print(f"7) Energy levels at phi={phi} (GHz, ascending):")
-    print("   model 1 - H_eff lab frame (all 4):")
-    print(f"      E = {np.array2string(np.round(e1, 6), separator=', ')}")
-    print(f"      rel. ground = {np.array2string(np.round(e1 - e1[0], 6), separator=', ')}")
-    print("   model 2 - full three-mode spectrum:")
-    print(f"      E = {np.array2string(np.round(e2_full, 6), separator=', ')}")
-    print(f"      rel. ground = {np.array2string(np.round(e2_full - e2_full[0], 6), separator=', ')}")
-    print("   model 2 - {|00>,|01>,|10>,|11>} block only (n_c=0):")
-    print(f"      E = {np.array2string(np.round(e_comp, 6), separator=', ')}")
-    print(f"      rel. ground = {np.array2string(np.round(e_comp - e_comp[0], 6), separator=', ')}")
-    print("   lowest 4 eigenvalues of full H2 (same as first four in list above):")
-    print(f"      E = {np.array2string(np.round(e2_full[:4], 6), separator=', ')}")
-    print("   (Comparison plot uses tracked lowest-4 of full H2 vs all H_eff levels.)\n")
 
 
 def plot_compare_model1_model2_vs_flux(
@@ -154,7 +105,10 @@ def plot_compare_model1_model2_vs_flux(
     A: float = 0.0,
     **ham_kwargs,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Overlay tracked low-energy levels: model-1 ``H_eff`` vs model-2 three-mode."""
+    """Overlay tracked low-energy levels: model-1 ``H_eff`` vs model-2 three-mode.
+
+    When ``verbose=True``, prints compact setup details and a first-flux mismatch snapshot.
+    """
     flux_values = np.asarray(flux_values, dtype=float).ravel()
     m1 = _import_model1_heff()
 
@@ -216,6 +170,19 @@ def plot_compare_model1_model2_vs_flux(
     ]
     H2 = np.stack(mats, axis=0)
     evals2 = track_energy_levels_stack(H2, n_track)
+
+    if verbose and flux_values.size > 0:
+        _print_compact_debug_snapshot(
+            flux0=float(flux_values[0]),
+            wc0=wc0,
+            A=A,
+            w_O=w_O,
+            w_A=w_A,
+            H1_0=H1[0],
+            H2_0=H2[0],
+            nlevels_qubit=nq,
+            nlevels_coupler=nc,
+        )
 
     if subtract_ground:
         evals1 = evals1 - evals1[:, :1]

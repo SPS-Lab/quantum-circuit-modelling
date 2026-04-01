@@ -28,7 +28,6 @@ from model2.analysis import (
 )
 from model2.comparison import (
     _import_model1_heff,
-    debug_model1_vs_model2,
     heff_spin_to_lab_hamiltonian,
     plot_compare_model1_model2_vs_flux,
 )
@@ -52,7 +51,6 @@ __all__ = [
     "plot_three_mode_zz_exchange_vs_flux",
     "plot_three_mode_energy_levels",
     "plot_three_mode_energy_levels_vs_flux",
-    "debug_model1_vs_model2",
     "plot_compare_model1_model2_vs_flux",
     "propagate_piecewise",
 ]
@@ -71,34 +69,28 @@ if __name__ == "__main__":
         nlevels_qubit=2,
         nlevels_coupler=2,
     )
-    plot_three_mode_energy_levels(
-        outfile=str(_dir / "three_mode_energy_levels.pdf"),
-        w_c=5.2,
-        **_common,
-    )
+#    plot_three_mode_energy_levels(
+#        outfile=str(_dir / "three_mode_energy_levels.pdf"),
+#        w_c=5.2,
+#        **_common,
+#    )
+#    flux = np.linspace(0.0, 1.0, 80)
+#    plot_three_mode_energy_levels_vs_flux(
+#        flux,
+#        wc0=5.2,
+#        A=0.25,
+#        outfile=str(_dir / "three_mode_energy_levels_vs_flux.pdf"),
+#        n_show=16,
+#        **_common,
+#    )
+#    plot_three_mode_zz_exchange_vs_flux(
+#        flux,
+#        wc0=5.2,
+#        A=0.25,
+#        outfile=str(_dir / "three_mode_ZZ_exchange_vs_flux.pdf"),
+#        **_common,
+#    )
     flux = np.linspace(0.0, 1.0, 80)
-    plot_three_mode_energy_levels_vs_flux(
-        flux,
-        wc0=5.2,
-        A=0.25,
-        outfile=str(_dir / "three_mode_energy_levels_vs_flux.pdf"),
-        n_show=16,
-        **_common,
-    )
-    plot_three_mode_zz_exchange_vs_flux(
-        flux,
-        wc0=5.2,
-        A=0.25,
-        outfile=str(_dir / "three_mode_ZZ_exchange_vs_flux.pdf"),
-        **_common,
-    )
-    debug_model1_vs_model2(
-        flux=0.0,
-        w_O=5.0,
-        wc0=5.0,
-        A=0.0,
-        **_common,
-    )
     plot_compare_model1_model2_vs_flux(
         flux,
         outfile=str(_dir / "model1_vs_model2_energy_vs_flux.pdf"),
