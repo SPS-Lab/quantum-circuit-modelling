@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
+from typing import Unpack
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,6 +20,7 @@ from model2.core import (
     coupler_frequency,
     three_mode_hamiltonian_stack_vs_flux,
 )
+from model2.hamiltonian_types import ThreeModeHamiltonianCommonKwargs
 
 # Repo root (parent of model2/) so `toolkit` / `model1` resolve when run from model2/.
 _ROOT = Path(__file__).resolve().parents[1]
@@ -115,7 +117,7 @@ def plot_compare_model1_model2_vs_flux(
     n_candidate_states: int = 16,
     wc0: float = 5.0,
     A: float = 0.0,
-    **ham_kwargs,
+    **ham_kwargs: Unpack[ThreeModeHamiltonianCommonKwargs],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Overlay tracked levels: model-1 ``H_eff`` vs a dressed model-2 computational effective ``4x4``.
 

@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import TypedDict
 
 import numpy as np
 
@@ -43,8 +42,11 @@ from model2.plots import (
     plot_three_mode_energy_levels_vs_flux,
     plot_three_mode_zz_exchange_vs_flux,
 )
+from model2.hamiltonian_types import ThreeModeHamiltonianCommonKwargs, ThreeModeHamiltonianKwargs
 
 __all__ = [
+    "ThreeModeHamiltonianCommonKwargs",
+    "ThreeModeHamiltonianKwargs",
     "three_mode_hamiltonian",
     "three_mode_hamiltonian_from_kwargs",
     "three_mode_hamiltonian_stack_vs_flux",
@@ -62,21 +64,12 @@ __all__ = [
 ]
 
 
-class _ThreeModeHamiltonianKwargs(TypedDict):
-    w_1: float
-    w_2: float
-    alpha_1: float
-    alpha_c: float
-    alpha_2: float
-    g_1c: float
-    g_2c: float
-    nlevels_qubit: int
-    nlevels_coupler: int
+_ThreeModeHamiltonianKwargs = ThreeModeHamiltonianCommonKwargs
 
 
 if __name__ == "__main__":
     _dir = Path(__file__).resolve().parent
-    _common: _ThreeModeHamiltonianKwargs = {
+    _common: ThreeModeHamiltonianCommonKwargs = {
         "w_1": 5.0,
         "w_2": 5.0,
         "alpha_1": -0.5,

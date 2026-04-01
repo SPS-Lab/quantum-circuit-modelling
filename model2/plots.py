@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import matplotlib.pyplot as plt
 import numpy as np
+from typing import Unpack
 
 from toolkit.plotting import plot_energy_levels, plot_energy_levels_vs_flux
 
@@ -15,6 +16,7 @@ from model2.core import (
     three_mode_hamiltonian_from_kwargs,
     three_mode_hamiltonian_stack_vs_flux,
 )
+from model2.hamiltonian_types import ThreeModeHamiltonianCommonKwargs, ThreeModeHamiltonianKwargs
 
 
 def plot_three_mode_zz_exchange_vs_flux(
@@ -25,7 +27,7 @@ def plot_three_mode_zz_exchange_vs_flux(
     outfile: str = "three_mode_ZZ_exchange_vs_flux.pdf",
     title: str | None = None,
     dress_kw: dict | None = None,
-    **ham_kwargs,
+    **ham_kwargs: Unpack[ThreeModeHamiltonianCommonKwargs],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Plot residual ZZ (dressed) and bare ``|01>-|10>`` splitting vs flux."""
     flux_values = np.asarray(flux_values, dtype=float).ravel()
@@ -78,7 +80,7 @@ def plot_three_mode_energy_levels(
     n_show: int = 48,
     annotate_n: int = 10,
     title: str | None = "Three-mode spectrum (qubit-coupler-qubit)",
-    **ham_kwargs,
+    **ham_kwargs: Unpack[ThreeModeHamiltonianKwargs],
 ) -> np.ndarray:
     """Diagonalize ``three_mode_hamiltonian`` and plot the lowest ``n_show`` energies."""
     H = three_mode_hamiltonian(**ham_kwargs)
@@ -102,7 +104,7 @@ def plot_three_mode_energy_levels_vs_flux(
     track_by_overlap: bool = True,
     subtract_ground: bool = False,
     title: str | None = None,
-    **ham_kwargs,
+    **ham_kwargs: Unpack[ThreeModeHamiltonianCommonKwargs],
 ) -> np.ndarray:
     """Plot the three-mode spectrum vs flux with ``w_c = wc0 + A cos(2π phi)``."""
     flux_values = np.asarray(flux_values, dtype=float)

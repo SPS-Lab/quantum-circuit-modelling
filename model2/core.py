@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import numpy as np
-from typing import Mapping
 
 from toolkit.helpers import destroy
+
+from model2.hamiltonian_types import ThreeModeHamiltonianCommonKwargs
 
 
 def coupler_frequency(wc0: float, A: float, flux: np.ndarray | float) -> np.ndarray:
@@ -83,7 +84,7 @@ def computational_state_indices(
 
 
 def three_mode_hamiltonian_from_kwargs(
-    ham_kwargs: Mapping[str, float | int],
+    ham_kwargs: ThreeModeHamiltonianCommonKwargs,
     *,
     w_c: float,
 ) -> np.ndarray:
@@ -107,7 +108,7 @@ def three_mode_hamiltonian_stack_vs_flux(
     *,
     wc0: float,
     A: float,
-    ham_kwargs: Mapping[str, float | int],
+    ham_kwargs: ThreeModeHamiltonianCommonKwargs,
 ) -> np.ndarray:
     """Return ``(n_flux, d, d)`` three-mode Hamiltonian stack for a flux sweep."""
     flux_values = np.asarray(flux_values, dtype=float).ravel()

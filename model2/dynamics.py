@@ -6,6 +6,7 @@ import numpy as np
 from scipy.linalg import expm
 
 from model2.core import coupler_frequency, three_mode_hamiltonian_from_kwargs
+from model2.hamiltonian_types import ThreeModeHamiltonianCommonKwargs
 
 
 def propagate_piecewise(
@@ -15,7 +16,7 @@ def propagate_piecewise(
     params: dict,
 ) -> np.ndarray:
     """Piecewise-constant time evolution using per-step flux values."""
-    ham_kwargs = {
+    ham_kwargs: ThreeModeHamiltonianCommonKwargs = {
         "w_1": params["w1"],
         "w_2": params["w2"],
         "alpha_1": params["a1"],
