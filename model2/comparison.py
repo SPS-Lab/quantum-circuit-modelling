@@ -77,10 +77,10 @@ def _print_compact_debug_snapshot(
     )
     fro = np.linalg.norm(H2_eff_0 - H1_0, ord="fro")
 
-    e1 = np.linalg.eigvalsh(H1_0.real)
-    e2_eff = np.linalg.eigvalsh(H2_eff_0.real)
-    e2_full = np.linalg.eigvalsh(H2_0.real)
-    e2_comp = np.linalg.eigvalsh(H_comp_h.real)
+    e1 = np.linalg.eigvalsh(np.real(H1_0))
+    e2_eff = np.linalg.eigvalsh(np.real(H2_eff_0))
+    e2_full = np.linalg.eigvalsh(np.real(H2_0))
+    e2_comp = np.linalg.eigvalsh(np.real(H_comp_h))
     wc_flux0 = float(coupler_frequency(wc0, A, flux0))
 
     print(
@@ -175,16 +175,16 @@ def plot_compare_model1_model2_vs_flux(
 
     evals2 = track_energy_levels_stack(H2_eff, n_track)
 
-    d00 = H2_eff[:, 0, 0].real
-    d01 = H2_eff[:, 1, 1].real
-    d10 = H2_eff[:, 2, 2].real
-    d11 = H2_eff[:, 3, 3].real
+    d00 = np.real(H2_eff[:, 0, 0])
+    d01 = np.real(H2_eff[:, 1, 1])
+    d10 = np.real(H2_eff[:, 2, 2])
+    d11 = np.real(H2_eff[:, 3, 3])
     zeta = d11 - d10 - d01 + d00
     w1f = d10 - d00 + 0.5 * zeta
     w2f = d01 - d00 + 0.5 * zeta
-    jf = 0.5 * H2_eff[:, 1, 2].real
+    jf = 0.5 * np.real(H2_eff[:, 1, 2])
 
-    max_j_imag = float(np.max(np.abs(H2_eff[:, 1, 2].imag)))
+    max_j_imag = float(np.max(np.abs(np.imag(H2_eff[:, 1, 2]))))
     if verbose:
         print(
             "[plot_compare_model1_model2_vs_flux] "
@@ -218,9 +218,11 @@ def plot_compare_model1_model2_vs_flux(
 
     fig, ax = plt.subplots(figsize=(9.0, 5.5))
     if n_track <= 10:
-        colors = plt.cm.tab10(np.linspace(0, 1, n_track, endpoint=False))
+        cmap = plt.get_cmap("tab10")
+        colors = cmap(np.linspace(0, 1, n_track, endpoint=False))
     else:
-        colors = plt.cm.tab20(np.linspace(0, 1, min(n_track, 20), endpoint=False))
+        cmap = plt.get_cmap("tab20")
+        colors = cmap(np.linspace(0, 1, min(n_track, 20), endpoint=False))
 
     for i in range(n_track):
         c = colors[i % len(colors)]

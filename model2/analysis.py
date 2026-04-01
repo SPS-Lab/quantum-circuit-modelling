@@ -44,20 +44,22 @@ def exchange_and_zz_from_4x4_eigenvalues(
     if H_stack.ndim != 3 or H_stack.shape[1:] != (4, 4):
         raise ValueError(f"H_stack must be (n,4,4) or (4,4), got {H_stack.shape}")
 
-    w1 = np.asarray(w1, dtype=float).reshape(-1)
-    w2 = np.asarray(w2, dtype=float).reshape(-1)
+    w1_arr = np.asarray(w1, dtype=float).reshape(-1)
+    w2_arr = np.asarray(w2, dtype=float).reshape(-1)
     n_flux = H_stack.shape[0]
-    if w1.size == 1:
-        w1 = np.full(n_flux, float(w1[0]))
-    if w2.size == 1:
-        w2 = np.full(n_flux, float(w2[0]))
-    if w1.size != n_flux or w2.size != n_flux:
-        raise ValueError(f"w1/w2 lengths must match n_flux={n_flux}, got {w1.size}/{w2.size}")
+    if w1_arr.size == 1:
+        w1_arr = np.full(n_flux, float(w1_arr[0]))
+    if w2_arr.size == 1:
+        w2_arr = np.full(n_flux, float(w2_arr[0]))
+    if w1_arr.size != n_flux or w2_arr.size != n_flux:
+        raise ValueError(
+            f"w1/w2 lengths must match n_flux={n_flux}, got {w1_arr.size}/{w2_arr.size}"
+        )
 
     evals = np.linalg.eigvalsh(H_stack)
     zeta = evals[:, 3] - evals[:, 2] - evals[:, 1] + evals[:, 0]
     delta = evals[:, 2] - evals[:, 1]
-    detuning = w1 - w2
+    detuning = w1_arr - w2_arr
     rad = np.maximum(delta * delta - detuning * detuning, 0.0)
     j_abs = 0.25 * np.sqrt(rad)
     return j_abs.astype(float), zeta.astype(float)

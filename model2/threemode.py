@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import TypedDict
 
 import numpy as np
 
@@ -25,7 +26,6 @@ from model2.analysis import (
     exchange_and_zz_from_4x4_eigenvalues,
 )
 from model2.comparison import (
-    _import_model1_heff,
     heff_spin_to_lab_hamiltonian,
     plot_compare_model1_model2_vs_flux,
 )
@@ -62,19 +62,31 @@ __all__ = [
 ]
 
 
+class _ThreeModeHamiltonianKwargs(TypedDict):
+    w_1: float
+    w_2: float
+    alpha_1: float
+    alpha_c: float
+    alpha_2: float
+    g_1c: float
+    g_2c: float
+    nlevels_qubit: int
+    nlevels_coupler: int
+
+
 if __name__ == "__main__":
     _dir = Path(__file__).resolve().parent
-    _common = dict(
-        w_1=5.0,
-        w_2=5.0,
-        alpha_1=-0.5,
-        alpha_c=-0.0,
-        alpha_2=-0.5,
-        g_1c=0.50,
-        g_2c=0.50,
-        nlevels_qubit=2,
-        nlevels_coupler=2,
-    )
+    _common: _ThreeModeHamiltonianKwargs = {
+        "w_1": 5.0,
+        "w_2": 5.0,
+        "alpha_1": -0.5,
+        "alpha_c": -0.0,
+        "alpha_2": -0.5,
+        "g_1c": 0.50,
+        "g_2c": 0.50,
+        "nlevels_qubit": 2,
+        "nlevels_coupler": 2,
+    }
 #    plot_three_mode_energy_levels(
 #        outfile=str(_dir / "three_mode_energy_levels.pdf"),
 #        w_c=5.2,
