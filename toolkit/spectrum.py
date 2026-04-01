@@ -70,6 +70,12 @@ def track_energy_levels_stack(H_stack: np.ndarray, n_track: int) -> np.ndarray:
     if n_track < 1 or n_track > d:
         raise ValueError(f"n_track must be in [1, d], d={d}, got {n_track}")
 
+    # If every slice is the same (no parameter variation), overlap tracking is ill-defined:
+    # `eigh` can rotate degenerate subspaces and the Hungarian step permutes labels vs index.
+    if n_flux > 1 and np.allclose(H_stack, H_stack[0], rtol=0.0, atol=1e-13):
+        w = np.linalg.eigvalsh(H_stack[0])
+        return np.broadcast_to(w[:n_track], (n_flux, n_track)).copy()
+
     w, v = np.linalg.eigh(H_stack[0])
     evecs_prev = v[:, :n_track].copy()
     evals_out = np.zeros((n_flux, n_track), dtype=float)
