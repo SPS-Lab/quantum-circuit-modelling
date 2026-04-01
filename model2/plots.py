@@ -7,8 +7,8 @@ import numpy as np
 
 from toolkit.plotting import plot_energy_levels, plot_energy_levels_vs_flux
 
-from model2.analysis import residual_zz_and_exchange
-from model2.core import coupler_frequency, three_mode_hamiltonian
+from model2.analysis import dressed_computational_energies
+from model2.core import computational_state_indices, coupler_frequency, three_mode_hamiltonian
 
 
 def plot_three_mode_zz_exchange_vs_flux(
@@ -30,6 +30,7 @@ def plot_three_mode_zz_exchange_vs_flux(
 
     nq = int(ham_kwargs["nlevels_qubit"])
     nc = int(ham_kwargs["nlevels_coupler"])
+    i01, i10 = computational_state_indices(nq, nc)[1:3]
 
     for k, phi in enumerate(flux_values):
         wc = float(coupler_frequency(wc0, A, phi))
@@ -45,7 +46,16 @@ def plot_three_mode_zz_exchange_vs_flux(
             nq,
             nc,
         )
-        zetas[k], exchanges[k] = residual_zz_and_exchange(H, nq, nc, **dress_kw)
+        E = dressed_computational_energies(H, nq, nc, **dress_kw)
+        zetas[k] = E[3] - E[2] - E[1] + E[0]
+
+        h11 = H[i01, i01].real
+        h22 = H[i10, i10].real
+        h12 = H[i01, i10]
+        tr = h11 + h22
+        det = h11 * h22 - h12 * np.conj(h12)
+        disc = np.sqrt(max(0.0, 0.25 * tr**2 - det.real))
+        exchanges[k] = 2.0 * disc
 
     fig, (ax_z, ax_j) = plt.subplots(2, 1, figsize=(8.0, 6.5), sharex=True)
     ax_z.plot(flux_values, zetas, color="C0")

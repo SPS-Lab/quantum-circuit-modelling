@@ -32,53 +32,17 @@ def dressed_computational_energies(
     return energies
 
 
-def exchange_splitting_bare_01_10(
-    H: np.ndarray,
-    nlevels_qubit: int,
-    nlevels_coupler: int,
-) -> float:
-    """Return ``|lambda_+ - lambda_-|`` in the bare ``|01>,|10>`` subspace."""
-    H = np.asarray(H, dtype=complex)
-    idx = computational_state_indices(nlevels_qubit, nlevels_coupler)
-    i01, i10 = int(idx[1]), int(idx[2])
-    h11 = H[i01, i01].real
-    h22 = H[i10, i10].real
-    h12 = H[i01, i10]
-    tr = h11 + h22
-    det = h11 * h22 - h12 * np.conj(h12)
-    disc = np.sqrt(max(0.0, 0.25 * tr**2 - det.real))
-    return float(2.0 * disc)
-
-
-def residual_zz_and_exchange(
-    H: np.ndarray,
-    nlevels_qubit: int,
-    nlevels_coupler: int,
-    **dress_kw,
-) -> tuple[float, float]:
-    """Return ``(zeta_zz, delta_ex)`` from dressed energies and bare ``|01>-|10|`` splitting."""
-    E = dressed_computational_energies(
-        H,
-        nlevels_qubit,
-        nlevels_coupler,
-        **dress_kw,
-    )
-    zeta = float(E[3] - E[2] - E[1] + E[0])
-    delta_ex = exchange_splitting_bare_01_10(H, nlevels_qubit, nlevels_coupler)
-    return zeta, delta_ex
-
-
-def model1_exchange_and_zz_from_eigenvalues(
+def exchange_and_zz_from_4x4_eigenvalues(
     H_stack: np.ndarray,
     w1: np.ndarray | float,
     w2: np.ndarray | float,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Extract ``|J|`` and ``zeta`` from model-1 eigenvalues."""
+    """Extract effective ``|J|`` and ``zeta`` from a ``4x4`` eigenvalue stack."""
     H_stack = np.asarray(H_stack, dtype=complex)
     if H_stack.ndim == 2:
         H_stack = H_stack[np.newaxis, ...]
     if H_stack.ndim != 3 or H_stack.shape[1:] != (4, 4):
-        raise ValueError(f"model1 H_stack must be (n,4,4) or (4,4), got {H_stack.shape}")
+        raise ValueError(f"H_stack must be (n,4,4) or (4,4), got {H_stack.shape}")
 
     w1 = np.asarray(w1, dtype=float).reshape(-1)
     w2 = np.asarray(w2, dtype=float).reshape(-1)

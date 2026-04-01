@@ -22,9 +22,7 @@ if str(_ROOT) not in sys.path:
 
 from model2.analysis import (
     dressed_computational_energies,
-    exchange_splitting_bare_01_10,
-    model1_exchange_and_zz_from_eigenvalues,
-    residual_zz_and_exchange,
+    exchange_and_zz_from_4x4_eigenvalues,
 )
 from model2.comparison import (
     _import_model1_heff,
@@ -44,9 +42,7 @@ __all__ = [
     "coupler_frequency",
     "computational_state_indices",
     "dressed_computational_energies",
-    "exchange_splitting_bare_01_10",
-    "residual_zz_and_exchange",
-    "model1_exchange_and_zz_from_eigenvalues",
+    "exchange_and_zz_from_4x4_eigenvalues",
     "heff_spin_to_lab_hamiltonian",
     "plot_three_mode_zz_exchange_vs_flux",
     "plot_three_mode_energy_levels",
@@ -64,8 +60,8 @@ if __name__ == "__main__":
         alpha_1=-0.5,
         alpha_c=-0.0,
         alpha_2=-0.5,
-        g_1c=0.00,
-        g_2c=0.00,
+        g_1c=0.50,
+        g_2c=0.50,
         nlevels_qubit=2,
         nlevels_coupler=2,
     )
@@ -74,7 +70,7 @@ if __name__ == "__main__":
 #        w_c=5.2,
 #        **_common,
 #    )
-#    flux = np.linspace(0.0, 1.0, 80)
+    flux = np.linspace(0.0, 1.0, 80)
 #    plot_three_mode_energy_levels_vs_flux(
 #        flux,
 #        wc0=5.2,
@@ -83,20 +79,19 @@ if __name__ == "__main__":
 #        n_show=16,
 #        **_common,
 #    )
-#    plot_three_mode_zz_exchange_vs_flux(
-#        flux,
-#        wc0=5.2,
-#        A=0.25,
-#        outfile=str(_dir / "three_mode_ZZ_exchange_vs_flux.pdf"),
-#        **_common,
-#    )
+    plot_three_mode_zz_exchange_vs_flux(
+        flux,
+        wc0=5.2,
+        A=0.25,
+        outfile=str(_dir / "three_mode_ZZ_exchange_vs_flux.pdf"),
+        **_common,
+    )
     flux = np.linspace(0.0, 1.0, 80)
     plot_compare_model1_model2_vs_flux(
         flux,
         outfile=str(_dir / "model1_vs_model2_energy_vs_flux.pdf"),
         subtract_ground=True,
         verbose=True,
-        w_O=5.0,
         wc0=5.0,
         A=0.0,
         **_common,
