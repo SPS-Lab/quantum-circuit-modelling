@@ -13,22 +13,14 @@ def propagate_piecewise(
     psi0: np.ndarray,
     tlist: np.ndarray,
     flux_values: np.ndarray,
-    params: dict,
+    *,
+    wc0: float,
+    A: float,
+    ham_kwargs: ThreeModeHamiltonianCommonKwargs,
 ) -> np.ndarray:
     """Piecewise-constant time evolution using per-step flux values."""
-    ham_kwargs: ThreeModeHamiltonianCommonKwargs = {
-        "w_1": params["w1"],
-        "w_2": params["w2"],
-        "alpha_1": params["a1"],
-        "alpha_c": params["ac"],
-        "alpha_2": params["a2"],
-        "g_1c": params["g1c"],
-        "g_2c": params["g2c"],
-        "nlevels_qubit": params["n1"],
-        "nlevels_coupler": params["nc"],
-    }
     wc_arr = np.asarray(
-        coupler_frequency(params["wc0"], params["A"], flux_values[:-1]),
+        coupler_frequency(wc0, A, flux_values[:-1]),
         dtype=float,
     ).ravel()
 
