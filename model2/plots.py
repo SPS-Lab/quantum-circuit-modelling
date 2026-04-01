@@ -8,7 +8,13 @@ import numpy as np
 from toolkit.plotting import plot_energy_levels, plot_energy_levels_vs_flux
 
 from model2.analysis import dressed_computational_energies
-from model2.core import computational_state_indices, coupler_frequency, three_mode_hamiltonian
+from model2.core import (
+    computational_subspace_block,
+    coupler_frequency,
+    three_mode_hamiltonian,
+    three_mode_hamiltonian_from_kwargs,
+    three_mode_hamiltonian_stack_vs_flux,
+)
 
 
 def plot_three_mode_zz_exchange_vs_flux(
@@ -30,28 +36,21 @@ def plot_three_mode_zz_exchange_vs_flux(
 
     nq = int(ham_kwargs["nlevels_qubit"])
     nc = int(ham_kwargs["nlevels_coupler"])
-    i01, i10 = computational_state_indices(nq, nc)[1:3]
+    H_stack = three_mode_hamiltonian_stack_vs_flux(
+        flux_values,
+        wc0=wc0,
+        A=A,
+        ham_kwargs=ham_kwargs,
+    )
 
-    for k, phi in enumerate(flux_values):
-        wc = float(coupler_frequency(wc0, A, phi))
-        H = three_mode_hamiltonian(
-            ham_kwargs["w_1"],
-            wc,
-            ham_kwargs["w_2"],
-            ham_kwargs["alpha_1"],
-            ham_kwargs["alpha_c"],
-            ham_kwargs["alpha_2"],
-            ham_kwargs["g_1c"],
-            ham_kwargs["g_2c"],
-            nq,
-            nc,
-        )
+    for k, H in enumerate(H_stack):
         E = dressed_computational_energies(H, nq, nc, **dress_kw)
         zetas[k] = E[3] - E[2] - E[1] + E[0]
 
-        h11 = H[i01, i01].real
-        h22 = H[i10, i10].real
-        h12 = H[i01, i10]
+        H_comp = computational_subspace_block(H, nq, nc, hermitianize=True)
+        h11 = H_comp[1, 1].real
+        h22 = H_comp[2, 2].real
+        h12 = H_comp[1, 2]
         tr = h11 + h22
         det = h11 * h22 - h12 * np.conj(h12)
         disc = np.sqrt(max(0.0, 0.25 * tr**2 - det.real))
@@ -110,40 +109,20 @@ def plot_three_mode_energy_levels_vs_flux(
 
     def hamiltonian_at_flux(phi: np.ndarray | float) -> np.ndarray:
         phi_arr = np.asarray(phi, dtype=float)
-        wc_arr = coupler_frequency(wc0, A, phi_arr)
 
         if phi_arr.ndim == 0:
-            return three_mode_hamiltonian(
-                ham_kwargs["w_1"],
-                float(wc_arr),
-                ham_kwargs["w_2"],
-                ham_kwargs["alpha_1"],
-                ham_kwargs["alpha_c"],
-                ham_kwargs["alpha_2"],
-                ham_kwargs["g_1c"],
-                ham_kwargs["g_2c"],
-                ham_kwargs["nlevels_qubit"],
-                ham_kwargs["nlevels_coupler"],
+            wc = float(coupler_frequency(wc0, A, phi_arr))
+            return three_mode_hamiltonian_from_kwargs(
+                ham_kwargs,
+                w_c=wc,
             )
 
-        phi_arr = phi_arr.ravel()
-        wc_arr = np.asarray(wc_arr, dtype=float).ravel()
-        mats = [
-            three_mode_hamiltonian(
-                ham_kwargs["w_1"],
-                float(wc_arr[i]),
-                ham_kwargs["w_2"],
-                ham_kwargs["alpha_1"],
-                ham_kwargs["alpha_c"],
-                ham_kwargs["alpha_2"],
-                ham_kwargs["g_1c"],
-                ham_kwargs["g_2c"],
-                ham_kwargs["nlevels_qubit"],
-                ham_kwargs["nlevels_coupler"],
-            )
-            for i in range(phi_arr.shape[0])
-        ]
-        return np.stack(mats, axis=0)
+        return three_mode_hamiltonian_stack_vs_flux(
+            phi_arr,
+            wc0=wc0,
+            A=A,
+            ham_kwargs=ham_kwargs,
+        )
 
     if title is None:
         title = "Three-mode spectrum vs flux (coupler modulation)"

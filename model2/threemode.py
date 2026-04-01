@@ -29,7 +29,14 @@ from model2.comparison import (
     heff_spin_to_lab_hamiltonian,
     plot_compare_model1_model2_vs_flux,
 )
-from model2.core import computational_state_indices, coupler_frequency, three_mode_hamiltonian
+from model2.core import (
+    computational_state_indices,
+    computational_subspace_block,
+    coupler_frequency,
+    three_mode_hamiltonian,
+    three_mode_hamiltonian_from_kwargs,
+    three_mode_hamiltonian_stack_vs_flux,
+)
 from model2.dynamics import propagate_piecewise
 from model2.plots import (
     plot_three_mode_energy_levels,
@@ -39,8 +46,11 @@ from model2.plots import (
 
 __all__ = [
     "three_mode_hamiltonian",
+    "three_mode_hamiltonian_from_kwargs",
+    "three_mode_hamiltonian_stack_vs_flux",
     "coupler_frequency",
     "computational_state_indices",
+    "computational_subspace_block",
     "dressed_computational_energies",
     "exchange_and_zz_from_4x4_eigenvalues",
     "heff_spin_to_lab_hamiltonian",

@@ -13,7 +13,12 @@ from scipy.optimize import linear_sum_assignment
 from toolkit.helpers import I2, pz
 from toolkit.spectrum import track_energy_levels_stack
 
-from model2.core import coupler_frequency, computational_state_indices, three_mode_hamiltonian
+from model2.core import (
+    computational_state_indices,
+    computational_subspace_block,
+    coupler_frequency,
+    three_mode_hamiltonian_stack_vs_flux,
+)
 
 # Repo root (parent of model2/) so `toolkit` / `model1` resolve when run from model2/.
 _ROOT = Path(__file__).resolve().parents[1]
@@ -64,9 +69,12 @@ def _print_compact_debug_snapshot(
     nlevels_coupler: int,
 ) -> None:
     """Print a short first-flux comparison snapshot."""
-    idx = computational_state_indices(nlevels_qubit, nlevels_coupler)
-    H_comp = H2_0[np.ix_(idx, idx)]
-    H_comp_h = 0.5 * (H_comp + H_comp.conj().T)
+    H_comp_h = computational_subspace_block(
+        H2_0,
+        nlevels_qubit,
+        nlevels_coupler,
+        hermitianize=True,
+    )
     fro = np.linalg.norm(H2_eff_0 - H1_0, ord="fro")
 
     e1 = np.linalg.eigvalsh(H1_0.real)
@@ -133,23 +141,12 @@ def plot_compare_model1_model2_vs_flux(
             flush=True,
         )
 
-    wc_arr = coupler_frequency(wc0, A, flux_values)
-    mats = [
-        three_mode_hamiltonian(
-            ham_kwargs["w_1"],
-            float(wc_arr[i]),
-            ham_kwargs["w_2"],
-            ham_kwargs["alpha_1"],
-            ham_kwargs["alpha_c"],
-            ham_kwargs["alpha_2"],
-            ham_kwargs["g_1c"],
-            ham_kwargs["g_2c"],
-            nq,
-            nc,
-        )
-        for i in range(flux_values.shape[0])
-    ]
-    H2 = np.stack(mats, axis=0)
+    H2 = three_mode_hamiltonian_stack_vs_flux(
+        flux_values,
+        wc0=wc0,
+        A=A,
+        ham_kwargs=ham_kwargs,
+    )
 
     comp_idx = computational_state_indices(nq, nc)
     d_full = H2.shape[1]
