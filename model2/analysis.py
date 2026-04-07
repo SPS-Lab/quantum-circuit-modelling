@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy.optimize import linear_sum_assignment
+from toolkit.spectrum import overlap_row_to_col_assignment
 
 from model2.core import computational_state_indices
 
@@ -24,11 +24,8 @@ def dressed_computational_energies(
     evals, evecs = np.linalg.eigh(H)
     evecs_c = evecs[:, :n_cand]
     overlap = np.abs(evecs_c[idx, :]) ** 2
-    row_ind, col_ind = linear_sum_assignment(-overlap)
-
-    energies = np.empty(4, dtype=float)
-    for k in range(4):
-        energies[int(row_ind[k])] = float(evals[int(col_ind[k])])
+    col_ind = overlap_row_to_col_assignment(overlap)
+    energies = np.asarray(evals[col_ind], dtype=float)
     return energies
 
 

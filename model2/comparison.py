@@ -9,10 +9,9 @@ from typing import Unpack
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.optimize import linear_sum_assignment
 
 from toolkit.helpers import I2, pz
-from toolkit.spectrum import track_energy_levels_stack
+from toolkit.spectrum import overlap_row_to_col_assignment, track_energy_levels_stack
 
 from model2.core import (
     computational_state_indices,
@@ -157,15 +156,9 @@ def plot_compare_model1_model2_vs_flux(
     for k in range(flux_values.shape[0]):
         evals_full, evecs_full = np.linalg.eigh(H2[k])
         overlap = np.abs(evecs_full[comp_idx, :n_cand]) ** 2
-        row_ind, col_ind = linear_sum_assignment(-overlap)
-
-        evals_comp = np.empty(4, dtype=float)
-        comp_components = np.empty((4, 4), dtype=complex)
-        for t in range(4):
-            r = int(row_ind[t])
-            c = int(col_ind[t])
-            evals_comp[r] = float(evals_full[c])
-            comp_components[:, r] = evecs_full[comp_idx, c]
+        col_ind = overlap_row_to_col_assignment(overlap)
+        evals_comp = np.asarray(evals_full[col_ind], dtype=float)
+        comp_components = np.asarray(evecs_full[comp_idx][:, col_ind], dtype=complex)
 
         gram = comp_components.conj().T @ comp_components
         gram_evals, gram_vecs = np.linalg.eigh(gram)

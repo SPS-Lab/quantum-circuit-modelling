@@ -6,6 +6,35 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 
+def overlap_row_to_col_assignment(overlap: np.ndarray) -> np.ndarray:
+    """Return column indices per row maximizing total overlap (Hungarian on ``-overlap``).
+
+    Parameters
+    ----------
+    overlap
+        Score matrix of shape ``(n_rows, n_cols)`` with ``n_cols >= n_rows``.
+
+    Returns
+    -------
+    row_to_col : ndarray, shape ``(n_rows,)``, int
+        ``row_to_col[r]`` gives the assigned column for row ``r``.
+    """
+    overlap = np.asarray(overlap, dtype=float)
+    if overlap.ndim != 2:
+        raise ValueError(f"overlap must be 2D, got shape {overlap.shape}")
+    n_rows, n_cols = overlap.shape
+    if n_rows > n_cols:
+        raise ValueError(
+            f"need at least as many columns as rows for assignment: {n_rows}>{n_cols}"
+        )
+
+    row_ind, col_ind = linear_sum_assignment(-overlap)
+    row_to_col = np.empty(n_rows, dtype=int)
+    for k in range(len(row_ind)):
+        row_to_col[int(row_ind[k])] = int(col_ind[k])
+    return row_to_col
+
+
 def reorder_by_overlap(
     prev_vecs: np.ndarray,
     new_vecs: np.ndarray,
@@ -36,14 +65,8 @@ def reorder_by_overlap(
         raise ValueError(f"need at least as many new vectors as prev columns: m={m}, n={n}")
 
     overlap = np.abs(prev_vecs.conj().T @ new_vecs) ** 2
-    row_ind, col_ind = linear_sum_assignment(-overlap)
-
-    matched = np.zeros((d, m), dtype=complex)
-    col_indices = np.empty(m, dtype=int)
-    for k in range(len(row_ind)):
-        r, c = int(row_ind[k]), int(col_ind[k])
-        matched[:, r] = new_vecs[:, c]
-        col_indices[r] = c
+    col_indices = overlap_row_to_col_assignment(overlap)
+    matched = new_vecs[:, col_indices]
     return matched, col_indices
 
 
