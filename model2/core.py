@@ -71,13 +71,13 @@ def computational_state_indices(
     nlevels_coupler: int,
 ) -> np.ndarray:
     """Flat indices of bare ``|n_1,0_c,n_2>`` with ``n_1,n_2 in {0,1}``."""
-    nq, nc = nlevels_qubit, nlevels_coupler
+    n_1_significance = nlevels_qubit * nlevels_coupler
     return np.array(
         [
-            0 * (nc * nq) + 0 * nq + 0,
-            0 * (nc * nq) + 0 * nq + 1,
-            1 * (nc * nq) + 0 * nq + 0,
-            1 * (nc * nq) + 0 * nq + 1,
+            0,
+            1,
+            n_1_significance + 0,
+            n_1_significance + 1,
         ],
         dtype=int,
     )
@@ -88,7 +88,8 @@ def three_mode_hamiltonian_from_kwargs(
     *,
     w_c: float,
 ) -> np.ndarray:
-    """Build ``three_mode_hamiltonian`` from the common ``ham_kwargs`` dict."""
+    """Build ``three_mode_hamiltonian`` from the common ``ham_kwargs`` dict
+    and coupler frequency."""
     return three_mode_hamiltonian(
         float(ham_kwargs["w_1"]),
         float(w_c),
