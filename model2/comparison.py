@@ -13,6 +13,7 @@ import numpy as np
 from toolkit.helpers import I2, pz
 from toolkit.spectrum import overlap_row_to_col_assignment, track_energy_levels_stack
 
+from model2.analysis import lowdin_orthonormalize_columns
 from model2.core import (
     computational_state_indices,
     computational_subspace_block,
@@ -159,12 +160,7 @@ def plot_compare_model1_model2_vs_flux(
         col_ind = overlap_row_to_col_assignment(overlap)
         evals_comp = np.asarray(evals_full[col_ind], dtype=float)
         comp_components = np.asarray(evecs_full[comp_idx][:, col_ind], dtype=complex)
-
-        gram = comp_components.conj().T @ comp_components
-        gram_evals, gram_vecs = np.linalg.eigh(gram)
-        gram_evals = np.clip(gram_evals, 1e-15, None)
-        gram_inv_sqrt = gram_vecs @ np.diag(1.0 / np.sqrt(gram_evals)) @ gram_vecs.conj().T
-        dressed_basis = comp_components @ gram_inv_sqrt
+        dressed_basis = lowdin_orthonormalize_columns(comp_components)
         heff2 = dressed_basis @ np.diag(evals_comp) @ dressed_basis.conj().T
         H2_eff[k] = 0.5 * (heff2 + heff2.conj().T)
 

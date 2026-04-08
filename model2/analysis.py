@@ -8,6 +8,19 @@ from toolkit.spectrum import overlap_row_to_col_assignment
 from model2.core import computational_state_indices
 
 
+def lowdin_orthonormalize_columns(
+    vectors: np.ndarray,
+    *,
+    min_eigval: float = 1e-15,
+) -> np.ndarray:
+    """Return Löwdin-orthonormalized columns for a column-stack ``vectors``."""
+    vectors = np.asarray(vectors, dtype=complex)
+    gram = vectors.conj().T @ vectors
+    gram_evals, gram_vecs = np.linalg.eigh(gram)
+    gram_evals = np.clip(gram_evals, float(min_eigval), None)
+    gram_inv_sqrt = gram_vecs @ np.diag(1.0 / np.sqrt(gram_evals)) @ gram_vecs.conj().T
+    return vectors @ gram_inv_sqrt
+
 def dressed_computational_energies(
     H: np.ndarray,
     nlevels_qubit: int,
