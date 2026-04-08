@@ -136,9 +136,9 @@ def plot_compare_model1_model2_vs_flux(
     if verbose:
         print(
             "[plot_compare_model1_model2_vs_flux] "
-            f"n_track={n_track} "
-            f"(model1 dim={dim_heff} [H_eff is 4x4], "
-            f"model2 dim={dim_three} [= {nq}x{nc}x{nq}])",
+            f"{n_track=} "
+            f"(model1 {dim_heff=} [H_eff is 4x4], "
+            f"model2 {dim_three=} [= {nq}x{nc}x{nq}])",
             f"alpha_1={ham_kwargs['alpha_1']}, alpha_c={ham_kwargs['alpha_c']}, alpha_2={ham_kwargs['alpha_2']}",
             flush=True,
         )
@@ -152,8 +152,8 @@ def plot_compare_model1_model2_vs_flux(
 
     comp_idx = computational_state_indices(nq, nc)
     d_full = H2.shape[1]
-    n_cand = max(4, min(int(n_candidate_states), d_full))
-    H2_eff = np.empty((flux_values.shape[0], 4, 4), dtype=complex)
+    n_cand = max(dim_heff, min(int(n_candidate_states), d_full))
+    H2_eff = np.empty((flux_values.shape[0], dim_heff, dim_heff), dtype=complex)
     for k in range(flux_values.shape[0]):
         evals_full, evecs_full = np.linalg.eigh(H2[k])
         overlap = np.abs(evecs_full[comp_idx, :n_cand]) ** 2
@@ -188,17 +188,18 @@ def plot_compare_model1_model2_vs_flux(
     evals1 = track_energy_levels_stack(H1, n_track)
 
     if verbose and flux_values.size > 0:
+        flux_ind = 0
         _print_compact_debug_snapshot(
-            flux0=float(flux_values[0]),
+            flux0=float(flux_values[flux_ind]),
             wc0=wc0,
             A=A,
-            w1_0=float(w1f[0]),
-            w2_0=float(w2f[0]),
-            j_0=float(jf[0]),
-            zeta_0=float(zeta[0]),
-            H1_0=H1[0],
-            H2_eff_0=H2_eff[0],
-            H2_0=H2[0],
+            w1_0=float(w1f[flux_ind]),
+            w2_0=float(w2f[flux_ind]),
+            j_0=float(jf[flux_ind]),
+            zeta_0=float(zeta[flux_ind]),
+            H1_0=H1[flux_ind],
+            H2_eff_0=H2_eff[flux_ind],
+            H2_0=H2[flux_ind],
             nlevels_qubit=nq,
             nlevels_coupler=nc,
         )
