@@ -204,6 +204,7 @@ def plot_energy_levels_vs_flux(
         ``H(f) -> (d,d)`` for scalar ``f``, or ``H(flux_1d) -> (len(flux), d, d)`` when batched.
     n_show
         Plot only the lowest ``n_show`` manifolds. ``None`` means all ``d`` levels.
+        Values larger than the Hilbert dimension ``d`` are clamped to ``d``.
     track_by_overlap
         If True (default), match eigenvectors between neighboring flux points via
         :func:`toolkit.spectrum.reorder_by_overlap` so line colors follow continuous states.
@@ -237,14 +238,14 @@ def plot_energy_levels_vs_flux(
     dim = H_stack.shape[1]
 
     n_track = int(n_show) if n_show is not None else dim
+    n_track = min(max(n_track, 1), dim)
 
     if track_by_overlap:
         evals = track_energy_levels_stack(H_stack, n_track)
     else:
         evals = np.linalg.eigvalsh(H_stack)
         evals = np.asarray(evals, dtype=float)
-        if n_show is not None:
-            evals = evals[:, : int(n_show)]
+        evals = evals[:, :n_track]
     n_levels = evals.shape[1]
 
     if subtract_ground:

@@ -6,6 +6,35 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 
+def overlap_row_to_col_assignment(overlap: np.ndarray) -> np.ndarray:
+    """Return column indices per row maximizing total overlap (Hungarian on ``-overlap``).
+
+    Parameters
+    ----------
+    overlap
+        Score matrix of shape ``(n_rows, n_cols)`` with ``n_cols >= n_rows``.
+
+    Returns
+    -------
+    row_to_col : ndarray, shape ``(n_rows,)``, int
+        ``row_to_col[r]`` gives the assigned column for row ``r``.
+    """
+    overlap = np.asarray(overlap, dtype=float)
+    if overlap.ndim != 2:
+        raise ValueError(f"overlap must be 2D, got shape {overlap.shape}")
+    n_rows, n_cols = overlap.shape
+    if n_rows > n_cols:
+        raise ValueError(
+            f"need at least as many columns as rows for assignment: {n_rows}>{n_cols}"
+        )
+
+    row_ind, col_ind = linear_sum_assignment(-overlap)
+    row_to_col = np.empty(n_rows, dtype=int)
+    for k in range(len(row_ind)):
+        row_to_col[int(row_ind[k])] = int(col_ind[k])
+    return row_to_col
+
+
 def reorder_by_overlap(
     prev_vecs: np.ndarray,
     new_vecs: np.ndarray,
@@ -15,7 +44,7 @@ def reorder_by_overlap(
     Parameters
     ----------
     prev_vecs
-        Previous orthonormal columns, shape ``(d, m)``.
+        Previous orthonormal columns, shape ``(d, m)``, where typically ``m`` is the number of eigenvectors being tracked.
     new_vecs
         New orthonormal columns (typically all eigenvectors), shape ``(d, n)`` with ``n ≥ m``.
 
@@ -36,14 +65,8 @@ def reorder_by_overlap(
         raise ValueError(f"need at least as many new vectors as prev columns: m={m}, n={n}")
 
     overlap = np.abs(prev_vecs.conj().T @ new_vecs) ** 2
-    row_ind, col_ind = linear_sum_assignment(-overlap)
-
-    matched = np.zeros((d, m), dtype=complex)
-    col_indices = np.empty(m, dtype=int)
-    for k in range(len(row_ind)):
-        r, c = int(row_ind[k]), int(col_ind[k])
-        matched[:, r] = new_vecs[:, c]
-        col_indices[r] = c
+    col_indices = overlap_row_to_col_assignment(overlap)
+    matched = new_vecs[:, col_indices]
     return matched, col_indices
 
 
@@ -69,6 +92,12 @@ def track_energy_levels_stack(H_stack: np.ndarray, n_track: int) -> np.ndarray:
     n_track = int(n_track)
     if n_track < 1 or n_track > d:
         raise ValueError(f"n_track must be in [1, d], d={d}, got {n_track}")
+
+    # If every slice is the same (no parameter variation), overlap tracking is ill-defined:
+    # `eigh` can rotate degenerate subspaces and the Hungarian step permutes labels vs index.
+    if n_flux > 1 and np.allclose(H_stack, H_stack[0], rtol=0.0, atol=1e-13):
+        w = np.linalg.eigvalsh(H_stack[0])
+        return np.broadcast_to(w[:n_track], (n_flux, n_track)).copy()
 
     w, v = np.linalg.eigh(H_stack[0])
     evecs_prev = v[:, :n_track].copy()
