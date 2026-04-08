@@ -44,7 +44,7 @@ def reorder_by_overlap(
     Parameters
     ----------
     prev_vecs
-        Previous orthonormal columns, shape ``(d, m)``.
+        Previous orthonormal columns, shape ``(d, m)``, where typically ``m`` is the number of eigenvectors being tracked.
     new_vecs
         New orthonormal columns (typically all eigenvectors), shape ``(d, n)`` with ``n ≥ m``.
 
