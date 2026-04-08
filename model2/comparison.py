@@ -86,6 +86,11 @@ def _print_compact_debug_snapshot(
     wc_flux0 = float(coupler_frequency(wc0, A, flux0))
 
     print(
+        "[plot_compare_model1_model2_vs_flux] full model2 at phi0:\n"
+        f"{np.round(H2_0, 6)}",
+        flush=True,
+    )
+    print(
         "[plot_compare_model1_model2_vs_flux] model2 computational 4x4 block at phi0:\n"
         f"{np.array2string(np.round(H_comp_h, 6), separator=', ')}",
         flush=True,
@@ -117,6 +122,9 @@ def plot_compare_model1_model2_vs_flux(
     n_candidate_states: int = 16,
     wc0: float = 5.0,
     A: float = 0.0,
+    plot_eff2_levels: bool = True,
+    n_model2_levels: int | None = None,
+    dressed_selection_mode: str = "continuous",
     **ham_kwargs: Unpack[ThreeModeHamiltonianCommonKwargs],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Overlay tracked levels: model-1 ``H_eff`` vs a dressed model-2 computational effective ``4x4``.
@@ -124,21 +132,34 @@ def plot_compare_model1_model2_vs_flux(
     At each flux, this diagonalizes full model-2 ``H`` and overlap-matches dressed states to
     ``|00>``, ``|01>``, ``|10>``, ``|11>``. A Löwdin-orthonormalized effective ``4x4`` is formed
     from those dressed eigenpairs, then ``(w1, w2, J, zeta)`` are extracted and fed to model 1.
+    Optionally, additional model-2-only levels can be plotted from the full three-mode Hamiltonian.
+    ``dressed_selection_mode`` controls dressed-state selection:
+    - ``"continuous"``: continue labels by overlap with previous flux step (stable along sweep)
+    - ``"bare"``: match independently at each flux to bare computational states
     """
     flux_values = np.asarray(flux_values, dtype=float).ravel()
     m1 = _import_model1_heff()
+    dressed_selection_mode = str(dressed_selection_mode).strip().lower()
+    if dressed_selection_mode not in {"continuous", "bare"}:
+        raise ValueError(
+            "dressed_selection_mode must be one of {'continuous', 'bare'}, "
+            f"got {dressed_selection_mode!r}"
+        )
 
     dim_heff = 4
     nq = int(ham_kwargs["nlevels_qubit"])
     nc = int(ham_kwargs["nlevels_coupler"])
     dim_three = nq * nc * nq
     n_track = min(dim_heff, dim_three)
+    n_model2_plot = dim_three if n_model2_levels is None else int(n_model2_levels)
+    n_model2_plot = max(n_track, min(n_model2_plot, dim_three))
     if verbose:
         print(
             "[plot_compare_model1_model2_vs_flux] "
-            f"{n_track=} "
-            f"(model1 {dim_heff=} [H_eff is 4x4], "
+            f"{n_track=} {n_model2_plot=} "
+            f"(model1 {dim_heff=} [H_eff is {dim_heff}x{dim_heff}], "
             f"model2 {dim_three=} [= {nq}x{nc}x{nq}])",
+            f"{dressed_selection_mode=}",
             f"alpha_1={ham_kwargs['alpha_1']}, alpha_c={ham_kwargs['alpha_c']}, alpha_2={ham_kwargs['alpha_2']}",
             flush=True,
         )
@@ -150,21 +171,41 @@ def plot_compare_model1_model2_vs_flux(
         ham_kwargs=ham_kwargs,
     )
 
+    
+    # Construct dressed effective 4x4 for each flux.
+    # "continuous": initialize by bare match, then continue by overlap with prior selected states.
+    # "bare": match independently at each flux to bare computational states.
     comp_idx = computational_state_indices(nq, nc)
     d_full = H2.shape[1]
     n_cand = max(dim_heff, min(int(n_candidate_states), d_full))
     H2_eff = np.empty((flux_values.shape[0], dim_heff, dim_heff), dtype=complex)
+    prev_selected_full: np.ndarray | None = None
     for k in range(flux_values.shape[0]):
         evals_full, evecs_full = np.linalg.eigh(H2[k])
-        overlap = np.abs(evecs_full[comp_idx, :n_cand]) ** 2
+        evecs_cand = evecs_full[:, :n_cand]
+
+        if dressed_selection_mode == "bare" or prev_selected_full is None:
+            overlap = np.abs(evecs_cand[comp_idx, :]) ** 2
+        else:
+            overlap = np.abs(prev_selected_full.conj().T @ evecs_cand) ** 2
+
         col_ind = overlap_row_to_col_assignment(overlap)
         evals_comp = np.asarray(evals_full[col_ind], dtype=float)
-        comp_components = np.asarray(evecs_full[comp_idx][:, col_ind], dtype=complex)
+        selected_full = np.asarray(evecs_cand[:, col_ind], dtype=complex)
+        if dressed_selection_mode == "continuous":
+            prev_selected_full = selected_full
+
+        comp_components = np.asarray(selected_full[comp_idx, :], dtype=complex)
         dressed_basis = lowdin_orthonormalize_columns(comp_components)
         heff2 = dressed_basis @ np.diag(evals_comp) @ dressed_basis.conj().T
         H2_eff[k] = 0.5 * (heff2 + heff2.conj().T)
 
-    evals2 = track_energy_levels_stack(H2_eff, n_track)
+    
+    if plot_eff2_levels:
+        evals2 = track_energy_levels_stack(H2_eff, n_track)
+    else:
+        evals2 = track_energy_levels_stack(H2, n_track)
+    evals2_full_plot = track_energy_levels_stack(H2, n_model2_plot)
 
     d00 = np.real(H2_eff[:, 0, 0])
     d01 = np.real(H2_eff[:, 1, 1])
@@ -189,32 +230,47 @@ def plot_compare_model1_model2_vs_flux(
 
     if verbose and flux_values.size > 0:
         flux_ind = 0
-        _print_compact_debug_snapshot(
-            flux0=float(flux_values[flux_ind]),
-            wc0=wc0,
-            A=A,
-            w1_0=float(w1f[flux_ind]),
-            w2_0=float(w2f[flux_ind]),
-            j_0=float(jf[flux_ind]),
-            zeta_0=float(zeta[flux_ind]),
-            H1_0=H1[flux_ind],
-            H2_eff_0=H2_eff[flux_ind],
-            H2_0=H2[flux_ind],
-            nlevels_qubit=nq,
-            nlevels_coupler=nc,
+        print(
+            "[plot_compare_model1_model2_vs_flux] snapshot at first flux point "
+            f"phi0={flux_values[flux_ind]:.6g}:",
         )
+        print(            "[plot_compare_model1_model2_vs_flux] model1 H_eff:\n"
+            f"{np.round(H1[flux_ind], 6)}",
+            flush=True,
+        )
+        print(
+            "[plot_compare_model1_model2_vs_flux] model2 dressed effective H at phi0:\n"
+            f"{np.round(H2_eff[flux_ind], 6)}",
+            flush=True,
+        )
+        #_print_compact_debug_snapshot(
+        #    flux0=float(flux_values[flux_ind]),
+        #    wc0=wc0,
+        #    A=A,
+        #    w1_0=float(w1f[flux_ind]),
+        #    w2_0=float(w2f[flux_ind]),
+        #    j_0=float(jf[flux_ind]),
+        #    zeta_0=float(zeta[flux_ind]),
+        #    H1_0=H1[flux_ind],
+        #    H2_eff_0=H2_eff[flux_ind],
+        #    H2_0=H2[flux_ind],
+        #    nlevels_qubit=nq,
+        #    nlevels_coupler=nc,
+        #)
 
     if subtract_ground:
         evals1 = evals1 - evals1[:, :1]
         evals2 = evals2 - evals2[:, :1]
+        evals2_full_plot = evals2_full_plot - evals2_full_plot[:, :1]
 
     fig, ax = plt.subplots(figsize=(9.0, 5.5))
-    if n_track <= 10:
+    n_colors = n_model2_plot
+    if n_colors <= 10:
         cmap = plt.get_cmap("tab10")
-        colors = cmap(np.linspace(0, 1, n_track, endpoint=False))
+        colors = cmap(np.linspace(0, 1, n_colors, endpoint=False))
     else:
         cmap = plt.get_cmap("tab20")
-        colors = cmap(np.linspace(0, 1, min(n_track, 20), endpoint=False))
+        colors = cmap(np.linspace(0, 1, min(n_colors, 20), endpoint=False))
 
     for i in range(n_track):
         c = colors[i % len(colors)]
@@ -240,12 +296,25 @@ def plot_compare_model1_model2_vs_flux(
             zorder=3,
             label=rf"model 2 $E_{{{i}}}$",
         )
+    for i in range(n_track, n_model2_plot):
+        c = colors[i % len(colors)]
+        ax.plot(
+            flux_values,
+            evals2_full_plot[:, i],
+            color=c,
+            linestyle=":",
+            linewidth=1.1,
+            alpha=0.65,
+            zorder=1,
+            label=(rf"model 2 extra $E_{{{i}}}$" if i == n_track else None),
+        )
 
     ax.set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
     ax.set_ylabel(r"Energy (GHz, rel. ground)" if subtract_ground else "Energy (GHz)")
     ax.set_title(
         title
-        or rf"Lowest {n_track} levels: $H_\mathrm{{eff}}$ (solid) vs three-mode (dashed)"
+        or rf"Lowest {n_track} levels: $H_\mathrm{{eff}}$ (solid) vs three-mode{'-eff' if plot_eff2_levels else '-full'} (dashed); "
+        rf"model-2 shown up to level {n_model2_plot - 1}"
     )
     ax.grid(True, alpha=0.3)
     ax.legend(loc="upper right", ncol=2, fontsize="small")
