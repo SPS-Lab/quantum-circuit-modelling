@@ -111,3 +111,14 @@ if __name__ == "__main__":
         A=1.0,
         **_common,
     )
+
+
+    # Test 3-dim H
+    nlevels_qubit = 2
+    nlevels_coupler = 2
+    N = nlevels_qubit ** 2 * nlevels_coupler
+    n_fluxes = 3
+    H = np.arange(n_fluxes * 2**N * 2**N).reshape(n_fluxes, 2**N, 2**N)
+    print(f"{H.shape=}")
+
+    block = computational_subspace_block(H, nlevels_qubit, nlevels_coupler)
