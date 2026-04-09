@@ -38,6 +38,7 @@ from model2.core import (
 )
 from model2.dynamics import propagate_piecewise
 from model2.plots import (
+    plot_three_mode_cz_phase_accumulation,
     plot_three_mode_energy_levels,
     plot_three_mode_energy_levels_vs_flux,
     plot_three_mode_zz_exchange_vs_flux,
@@ -56,6 +57,7 @@ __all__ = [
     "dressed_computational_energies",
     "exchange_and_zz_from_4x4_eigenvalues",
     "heff_spin_to_lab_hamiltonian",
+    "plot_three_mode_cz_phase_accumulation",
     "plot_three_mode_zz_exchange_vs_flux",
     "plot_three_mode_energy_levels",
     "plot_three_mode_energy_levels_vs_flux",
@@ -85,7 +87,9 @@ if __name__ == "__main__":
 #        w_c=5.2,
 #        **_common,
 #    )
-    flux = np.linspace(0.0, 1.0, 80)
+    from_flux = 0.0
+    to_flux = 1.0
+    flux = np.linspace(from_flux, to_flux, 41)
 #    plot_three_mode_energy_levels_vs_flux(
 #        flux,
 #        wc0=5.2,
@@ -94,31 +98,46 @@ if __name__ == "__main__":
 #        n_show=16,
 #        **_common,
 #    )
-    plot_three_mode_zz_exchange_vs_flux(
-        flux,
-        wc0=5.2,
-        A=0.25,
-        outfile=str(_dir / "three_mode_ZZ_exchange_vs_flux.pdf"),
-        **_common,
-    )
-    flux = np.linspace(0.0, 1.0, 80)
+#    plot_three_mode_zz_exchange_vs_flux(
+#        flux,
+#        wc0=5.2,
+#        A=0.25,
+#        outfile=str(_dir / "three_mode_ZZ_exchange_vs_flux.pdf"),
+#        **_common,
+#    )
+#    flux = np.linspace(0.0, 1.0, 80)
     plot_compare_model1_model2_vs_flux(
         flux,
-        outfile=str(_dir / "model1_vs_model2_energy_vs_flux.pdf"),
+        outfile=str(_dir / f"model1_vs_eff_model2_energy_vs_flux_{from_flux}to{to_flux}.pdf"),
         subtract_ground=True,
         verbose=True,
         wc0=5.0,
         A=1.0,
+        plot_eff2_levels=True,
+        n_model2_levels=8,
+        dressed_selection_mode="continuous",
         **_common,
+    )
+    
+    plot_three_mode_cz_phase_accumulation(
+        flux=0.4667, wc0=6.0, A=1.0,
+        w_1=5.0, w_2=5.2,
+        alpha_1=-0.3, alpha_c=-0.25, alpha_2=-0.32,
+        g_1c=0.08, g_2c=0.075,
+        nlevels_qubit=3, nlevels_coupler=3,
+        outfile="three_mode_cz_phase_accumulation.pdf",
     )
 
 
     # Test 3-dim H
-    nlevels_qubit = 2
-    nlevels_coupler = 2
-    N = nlevels_qubit ** 2 * nlevels_coupler
-    n_fluxes = 3
-    H = np.arange(n_fluxes * 2**N * 2**N).reshape(n_fluxes, 2**N, 2**N)
-    print(f"{H.shape=}")
-
-    block = computational_subspace_block(H, nlevels_qubit, nlevels_coupler)
+    #nlevels_qubit = 2
+    #nlevels_coupler = 2
+    #N = nlevels_qubit ** 2 * nlevels_coupler
+    #n_fluxes = 3
+    #H = np.arange(n_fluxes * 2**N * 2**N).reshape(n_fluxes, 2**N, 2**N)
+    #print(f"{H.shape=}")
+#
+    #block = computational_subspace_block(H, nlevels_qubit, nlevels_coupler)
+    
+    
+    

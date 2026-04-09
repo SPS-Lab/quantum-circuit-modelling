@@ -139,3 +139,94 @@ def plot_three_mode_energy_levels_vs_flux(
         title=title,
         energy_unit="GHz",
     )
+
+
+def plot_three_mode_cz_phase_accumulation(
+    *,
+    flux: float,
+    wc0: float,
+    A: float,
+    outfile: str = "three_mode_cz_phase_accumulation.pdf",
+    t_max: float | None = None,
+    n_times: int = 400,
+    title: str | None = None,
+    dress_kw: dict | None = None,
+    **ham_kwargs: Unpack[ThreeModeHamiltonianCommonKwargs],
+) -> tuple[np.ndarray, np.ndarray, float]:
+    """Plot computational dynamical phases and CZ conditional phase vs time.
+
+    Uses dressed computational energies ``(E00, E01, E10, E11)`` at one flux point
+    and shows the conditional phase
+    ``phi_cz(t) = (E11 - E10 - E01 + E00) * t = zeta * t``.
+    """
+    flux = float(flux)
+    n_times = int(n_times)
+    if n_times < 2:
+        raise ValueError(f"n_times must be >= 2, got {n_times}")
+
+    dress_kw = dress_kw or {}
+    wc = float(coupler_frequency(wc0, A, flux))
+    H = three_mode_hamiltonian_from_kwargs(ham_kwargs, w_c=wc)
+    nq = int(ham_kwargs["nlevels_qubit"])
+    nc = int(ham_kwargs["nlevels_coupler"])
+    energies = dressed_computational_energies(H, nq, nc, **dress_kw)
+    e00, e01, e10, e11 = (float(v) for v in energies)
+    zeta = e11 - e10 - e01 + e00
+
+    if t_max is None:
+        if abs(zeta) > 1e-12:
+            t_max = 2.0 * (np.pi / abs(zeta))
+        else:
+            t_max = 200.0
+    t_max = float(t_max)
+    if t_max <= 0.0:
+        raise ValueError(f"t_max must be > 0, got {t_max}")
+
+    t_values = np.linspace(0.0, t_max, n_times)
+    phase01 = (e01 - e00) * t_values
+    phase10 = (e10 - e00) * t_values
+    phase11 = (e11 - e00) * t_values
+    phi_cz = zeta * t_values
+
+    t_cz = np.pi / abs(zeta) if abs(zeta) > 1e-12 else np.inf
+
+    fig, (ax_phase, ax_cz) = plt.subplots(2, 1, figsize=(8.5, 6.8), sharex=True)
+    ax_phase.plot(t_values, phase01, label=r"$\phi_{01}(t)=(E_{01}-E_{00})t$", color="C0")
+    ax_phase.plot(t_values, phase10, label=r"$\phi_{10}(t)=(E_{10}-E_{00})t$", color="C1")
+    ax_phase.plot(t_values, phase11, label=r"$\phi_{11}(t)=(E_{11}-E_{00})t$", color="C2")
+    ax_phase.set_ylabel("Dynamical phase (rad)")
+    ax_phase.grid(True, alpha=0.3)
+    ax_phase.legend(loc="upper left", fontsize="small")
+
+    ax_cz.plot(
+        t_values,
+        phi_cz,
+        color="C3",
+        linewidth=2.0,
+        label=r"$\phi_\mathrm{CZ}(t)=\phi_{11}-\phi_{10}-\phi_{01}+\phi_{00}=\zeta t$",
+    )
+    ax_cz.axhline(np.pi, color="0.35", linestyle="--", linewidth=1.2, label=r"$\pi$")
+    if np.isfinite(t_cz) and 0.0 <= t_cz <= t_max:
+        ax_cz.axvline(
+            t_cz,
+            color="0.1",
+            linestyle=":",
+            linewidth=1.2,
+            label=rf"$t_{{CZ}}=\pi/|\zeta| \approx {t_cz:.3g}$",
+        )
+    ax_cz.set_xlabel("Time (ns)")
+    ax_cz.set_ylabel("Conditional phase (rad)")
+    ax_cz.grid(True, alpha=0.3)
+    ax_cz.legend(loc="upper left", fontsize="small")
+
+    fig.suptitle(
+        title
+        or (
+            "Three-mode CZ phase accumulation "
+            + rf"(flux={flux:.4g}, $w_c={wc:.4g}$ GHz, $\zeta={zeta:.4g}$ GHz)"
+        )
+    )
+    fig.tight_layout()
+    plt.savefig(outfile, format="pdf")
+    plt.close(fig)
+    return t_values, phi_cz, float(zeta)
