@@ -17,17 +17,6 @@ from model3.reference_params import DEFAULT_TRANSMON_KEY, load_transmon_params
 
 
 def main() -> None:
-    ham_kwargs = {
-        "w_1": 5.0,
-        "w_2": 5.12,
-        "alpha_1": -0.28,
-        "alpha_c": -0.22,
-        "alpha_2": -0.31,
-        "g_1c": 0.12,
-        "g_2c": 0.105,
-        "nlevels_qubit": 2,
-        "nlevels_coupler": 2,
-    }
     flux = np.linspace(0.0, 1.0, 121)
     outdir = Path(__file__).resolve().parent
     outfile = outdir / "model1_model2_vs_scqubits_regime_map_test.pdf"
@@ -45,9 +34,10 @@ def main() -> None:
             "g_1c": 0.09,
             "g_2c": 0.085,
         },
+        model2_nlevels_qubit=3,
+        model2_nlevels_coupler=3,
         model1_mode="cosine-fit",
         outfile=str(outfile),
-        **ham_kwargs,
     )
 
     print("Summary (RMSE/max_abs in GHz):")

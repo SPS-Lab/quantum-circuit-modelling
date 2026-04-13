@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 import sys
 from pathlib import Path
-from typing import TypedDict, Unpack
+from typing import TypedDict, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,7 +22,6 @@ from model2.effective import (
     build_dressed_effective_computational_stack,
     extract_model1_parameters_from_4x4_stack,
 )
-from model2.hamiltonian_types import ThreeModeHamiltonianCommonKwargs
 from model3.scqref import (
     transmon_oscillator_stack_vs_flux,
 )
@@ -43,6 +42,37 @@ class ScqubitsReferenceConfig(TypedDict, total=False):
     coupler_dim: int
     g_1c: float
     g_2c: float
+
+
+def _transmon_w01_alpha_from_ej_ec(
+    *,
+    ej: float,
+    ec: float,
+    ng: float,
+    ncut: int,
+    truncated_dim: int,
+) -> tuple[float, float]:
+    """Return transmon ``(w01, alpha)`` from EJ/EC via low-lying eigenvalues."""
+    try:
+        import scqubits as scq
+    except Exception as exc:  # pragma: no cover - import guard only
+        raise ImportError(
+            "scqubits import failed; cannot auto-calibrate model2 from reference transmons."
+        ) from exc
+
+    t = scq.Transmon(
+        EJ=float(ej),
+        EC=float(ec),
+        ng=float(ng),
+        ncut=int(ncut),
+        truncated_dim=int(truncated_dim),
+    )
+    evals = np.asarray(t.eigenvals(evals_count=3), dtype=float).ravel()
+    if evals.size < 3:
+        raise ValueError("Need at least 3 transmon levels to extract anharmonicity.")
+    w01 = float(evals[1] - evals[0])
+    alpha = float((evals[2] - evals[1]) - (evals[1] - evals[0]))
+    return w01, alpha
 
 
 def _resolved_reference_config(
@@ -110,18 +140,24 @@ def compare_model1_model2_against_scqubits(
     wc0: float,
     A: float,
     reference: ScqubitsReferenceConfig | None = None,
+    model2_nlevels_qubit: int = 3,
+    model2_nlevels_coupler: int = 3,
+    model2_transmon_ncut: int = 60,
+    model2_transmon_dim: int = 12,
     n_candidate_states: int = 16,
     model1_mode: str = "cosine-fit",
     idle_ratio: float = 6.0,
     near_ratio: float = 2.0,
     outfile: str = "model1_model2_vs_scqubits_regime_map.pdf",
     title: str | None = None,
-    **ham_kwargs: Unpack[ThreeModeHamiltonianCommonKwargs],
-) -> dict[str, np.ndarray | dict[str, float]]:
-    """Compare model-1/model-2 against a Transmon+Oscillator scqubits reference."""
+) -> dict[str, object]:
+    """Compare model-1/model-2 against a Transmon+Oscillator scqubits reference.
+
+    Model-2 parameters are always calibrated from the reference transmon EJ/EC:
+    ``w_1,w_2,alpha_1,alpha_2`` from transmon spectra, ``alpha_c=0``,
+    and couplings ``g_1c,g_2c`` copied from reference.
+    """
     flux_values = np.asarray(flux_values, dtype=float).ravel()
-    nq = int(ham_kwargs["nlevels_qubit"])
-    nc = int(ham_kwargs["nlevels_coupler"])
     ref = _resolved_reference_config(wc0=wc0, A=A, reference=reference)
     nq_ref = int(ref["transmon_dim"])
     nc_ref = int(ref["coupler_dim"])
@@ -132,12 +168,42 @@ def compare_model1_model2_against_scqubits(
             "reference.transmon1_params and reference.transmon2_params are required. "
             "Load them from model3/reference_params.json near your main script and pass explicitly."
         )
+    p1 = cast(Mapping[str, float], ref["transmon1_params"])
+    p2 = cast(Mapping[str, float], ref["transmon2_params"])
+    ng = float(ref["transmon_ng"])
+    w1, alpha1 = _transmon_w01_alpha_from_ej_ec(
+        ej=float(p1["EJ"]),
+        ec=float(p1["EC"]),
+        ng=ng,
+        ncut=int(model2_transmon_ncut),
+        truncated_dim=int(model2_transmon_dim),
+    )
+    w2, alpha2 = _transmon_w01_alpha_from_ej_ec(
+        ej=float(p2["EJ"]),
+        ec=float(p2["EC"]),
+        ng=ng,
+        ncut=int(model2_transmon_ncut),
+        truncated_dim=int(model2_transmon_dim),
+    )
+    ham_kwargs_used: dict[str, float | int] = {
+        "w_1": float(w1),
+        "w_2": float(w2),
+        "alpha_1": float(alpha1),
+        "alpha_c": 0.0,
+        "alpha_2": float(alpha2),
+        "g_1c": float(ref["g_1c"]),
+        "g_2c": float(ref["g_2c"]),
+        "nlevels_qubit": max(int(model2_nlevels_qubit), 3),
+        "nlevels_coupler": max(int(model2_nlevels_coupler), 3),
+    }
+    nq = int(ham_kwargs_used["nlevels_qubit"])
+    nc = int(ham_kwargs_used["nlevels_coupler"])
 
     H2 = three_mode_hamiltonian_stack_vs_flux(
         flux_values,
         wc0=wc0,
         A=A,
-        ham_kwargs=ham_kwargs,
+        ham_kwargs=ham_kwargs_used,
     )
     H3 = transmon_oscillator_stack_vs_flux(
         flux_values,
@@ -291,22 +357,12 @@ def compare_model1_model2_against_scqubits(
         "params_model1": p1,
         "params_scqubits": p3,
         "reference_config": ref,
+        "ham_kwargs_used": dict(ham_kwargs_used),
         "summary": summary,
     }
 
 
 def main() -> None:
-    ham_kwargs: ThreeModeHamiltonianCommonKwargs = {
-        "w_1": 5.0,
-        "w_2": 5.12,
-        "alpha_1": -0.28,
-        "alpha_c": -0.22,
-        "alpha_2": -0.31,
-        "g_1c": 0.12,
-        "g_2c": 0.105,
-        "nlevels_qubit": 2,
-        "nlevels_coupler": 2,
-    }
     flux = np.linspace(0.0, 1.0, 121)
     outdir = Path(__file__).resolve().parent
     transmon_params = load_transmon_params(DEFAULT_TRANSMON_KEY)
@@ -322,10 +378,14 @@ def main() -> None:
             "g_1c": 0.09,
             "g_2c": 0.085,
         },
+        model2_nlevels_qubit=3,
+        model2_nlevels_coupler=3,
         model1_mode="cosine-fit",
         outfile=str(outdir / "model1_model2_vs_scqubits_regime_map.pdf"),
-        **ham_kwargs,
     )
+    print("Model2 kwargs used:")
+    for key, value in out["ham_kwargs_used"].items():
+        print(f"  {key}: {value}")
     print("Summary (RMSE/max_abs in GHz):")
     for key, value in out["summary"].items():
         print(f"  {key}: {value:.6e}")

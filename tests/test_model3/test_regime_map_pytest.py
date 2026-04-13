@@ -42,17 +42,6 @@ def test_transmon_oscillator_hamiltonian_shape() -> None:
 
 def test_regime_map_model2_outperforms_model1(tmp_path) -> None:
     params = load_transmon_params(DEFAULT_TRANSMON_KEY)
-    ham_kwargs = {
-        "w_1": 5.0,
-        "w_2": 5.12,
-        "alpha_1": -0.28,
-        "alpha_c": -0.22,
-        "alpha_2": -0.31,
-        "g_1c": 0.12,
-        "g_2c": 0.105,
-        "nlevels_qubit": 2,
-        "nlevels_coupler": 2,
-    }
     flux = np.linspace(0.0, 1.0, 31)
     outfile = tmp_path / "regime_map.pdf"
     out = compare_model1_model2_against_scqubits(
@@ -68,9 +57,10 @@ def test_regime_map_model2_outperforms_model1(tmp_path) -> None:
             "g_1c": 0.09,
             "g_2c": 0.085,
         },
+        model2_nlevels_qubit=3,
+        model2_nlevels_coupler=3,
         model1_mode="cosine-fit",
         outfile=str(outfile),
-        **ham_kwargs,
     )
     summary = out["summary"]
     assert summary["model2_idle_rmse"] < summary["model1_idle_rmse"]
