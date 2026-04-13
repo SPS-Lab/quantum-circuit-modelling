@@ -37,6 +37,12 @@ from model2.core import (
     three_mode_hamiltonian_stack_vs_flux,
 )
 from model2.dynamics import propagate_piecewise
+from model2.effective import (
+    build_dressed_effective_computational_stack,
+    build_dressed_effective_stack,
+    extract_model1_parameters_from_4x4_stack,
+    lowdin_orthonormalize_columns,
+)
 from model2.plots import (
     plot_three_mode_cz_phase_accumulation,
     plot_three_mode_energy_levels,
@@ -54,6 +60,10 @@ __all__ = [
     "coupler_frequency",
     "computational_state_indices",
     "computational_subspace_block",
+    "lowdin_orthonormalize_columns",
+    "build_dressed_effective_stack",
+    "build_dressed_effective_computational_stack",
+    "extract_model1_parameters_from_4x4_stack",
     "dressed_computational_energies",
     "exchange_and_zz_from_4x4_eigenvalues",
     "heff_spin_to_lab_hamiltonian",
@@ -106,16 +116,29 @@ if __name__ == "__main__":
 #        **_common,
 #    )
 #    flux = np.linspace(0.0, 1.0, 80)
+#    plot_compare_model1_model2_vs_flux(
+#        flux,
+#        outfile=str(_dir / f"model1_vs_eff_model2_energy_vs_flux_{from_flux}to{to_flux}.pdf"),
+#        subtract_ground=True,
+#        verbose=True,
+#        wc0=5.0,
+#        A=1.0,
+#        plot_eff2_levels=True,
+#        n_model2_levels=8,
+#        dressed_selection_mode="continuous",
+#        **_common,
+#    )
+    
     plot_compare_model1_model2_vs_flux(
         flux,
-        outfile=str(_dir / f"model1_vs_eff_model2_energy_vs_flux_{from_flux}to{to_flux}.pdf"),
-        subtract_ground=True,
-        verbose=True,
         wc0=5.0,
         A=1.0,
-        plot_eff2_levels=True,
-        n_model2_levels=8,
-        dressed_selection_mode="continuous",
+        model1_params={
+            "w1": lambda phi: 5.0 + 0.2*np.cos(2*np.pi*phi),
+            "w2": lambda phi: 5.1 + 0.15*np.cos(2*np.pi*phi + 0.1),
+            "J":  lambda phi: 0.01 + 0.003*np.cos(2*np.pi*phi),
+            "zeta": 0.002,
+        },
         **_common,
     )
     

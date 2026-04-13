@@ -23,75 +23,11 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from model2.analysis import lowdin_orthonormalize_columns
-from model2.core import computational_state_indices, coupler_frequency, three_mode_hamiltonian_stack_vs_flux
-from toolkit.spectrum import overlap_row_to_col_assignment
-
-
-def build_dressed_effective_stack(
-    flux_values: np.ndarray,
-    *,
-    wc0: float,
-    A: float,
-    ham_kwargs: dict[str, float | int],
-    n_candidate_states: int = 16,
-) -> np.ndarray:
-    """Return dressed effective computational Hamiltonian stack ``(n_flux, 4, 4)``."""
-    flux_values = np.asarray(flux_values, dtype=float).ravel()
-    H2 = three_mode_hamiltonian_stack_vs_flux(
-        flux_values,
-        wc0=wc0,
-        A=A,
-        ham_kwargs=ham_kwargs,
-    )
-
-    nq = int(ham_kwargs["nlevels_qubit"])
-    nc = int(ham_kwargs["nlevels_coupler"])
-    comp_idx = computational_state_indices(nq, nc)
-    d_full = H2.shape[1]
-    n_cand = max(4, min(int(n_candidate_states), d_full))
-
-    H2_eff = np.empty((flux_values.size, 4, 4), dtype=complex)
-    prev_selected_full: np.ndarray | None = None
-    for k in range(flux_values.size):
-        evals_full, evecs_full = np.linalg.eigh(H2[k])
-        evecs_cand = evecs_full[:, :n_cand]
-
-        if prev_selected_full is None:
-            overlap = np.abs(evecs_cand[comp_idx, :]) ** 2
-        else:
-            overlap = np.abs(prev_selected_full.conj().T @ evecs_cand) ** 2
-
-        col_ind = overlap_row_to_col_assignment(overlap)
-        evals_comp = np.asarray(evals_full[col_ind], dtype=float)
-        selected_full = np.asarray(evecs_cand[:, col_ind], dtype=complex)
-        prev_selected_full = selected_full
-
-        comp_components = np.asarray(selected_full[comp_idx, :], dtype=complex)
-        dressed_basis = lowdin_orthonormalize_columns(comp_components)
-        heff2 = dressed_basis @ np.diag(evals_comp) @ dressed_basis.conj().T
-        H2_eff[k] = 0.5 * (heff2 + heff2.conj().T)
-
-    return H2_eff
-
-
-def extract_w1_w2_j_zeta(H2_eff: np.ndarray) -> dict[str, np.ndarray]:
-    """Extract model-1-style metrics from dressed effective 4x4 stack."""
-    H2_eff = np.asarray(H2_eff, dtype=complex)
-    d00 = np.real(H2_eff[:, 0, 0])
-    d01 = np.real(H2_eff[:, 1, 1])
-    d10 = np.real(H2_eff[:, 2, 2])
-    d11 = np.real(H2_eff[:, 3, 3])
-
-    zeta = d11 - d10 - d01 + d00
-    # In symmetric operating points zeta can be exactly zero; suppress
-    # floating-point roundoff jitter so the plotted curve is visually stable.
-    zeta_tol = 1e-12
-    zeta = np.where(np.abs(zeta) < zeta_tol, 0.0, zeta)
-    w1 = d10 - d00 + 0.5 * zeta
-    w2 = d01 - d00 + 0.5 * zeta
-    j = 0.5 * np.real(H2_eff[:, 1, 2])
-    return {"w1": w1, "w2": w2, "J": j, "zeta": zeta}
+from model2.core import coupler_frequency, three_mode_hamiltonian_stack_vs_flux
+from model2.effective import (
+    build_dressed_effective_computational_stack,
+    extract_model1_parameters_from_4x4_stack,
+)
 
 
 def cosine_from_mean_and_max(
@@ -353,13 +289,18 @@ def main() -> None:
     }
 
     flux = np.linspace(0.0, 1.0, 401)
-    H2_eff = build_dressed_effective_stack(
+    H2 = three_mode_hamiltonian_stack_vs_flux(
         flux,
         wc0=wc0,
         A=A,
         ham_kwargs=ham_kwargs,
     )
-    true_metrics = extract_w1_w2_j_zeta(H2_eff)
+    H2_eff = build_dressed_effective_computational_stack(
+        H2,
+        nlevels_qubit=int(ham_kwargs["nlevels_qubit"]),
+        nlevels_coupler=int(ham_kwargs["nlevels_coupler"]),
+    )
+    true_metrics = extract_model1_parameters_from_4x4_stack(H2_eff)
 
     cosine_metrics_meanmax: dict[str, np.ndarray] = {}
     coeffs_meanmax: dict[str, tuple[float, float]] = {}
