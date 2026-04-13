@@ -30,3 +30,7 @@ Focused pytest run (fast, recommended during iteration):
 ```bash
 pytest -q tests/test_model3/test_regime_map_pytest.py
 ```
+
+`model3` uses a scqubits reference with transmon values from:
+`model3/reference_params.json`
+loaded near the script `main` via `model3.reference_params.load_transmon_params(...)`.
