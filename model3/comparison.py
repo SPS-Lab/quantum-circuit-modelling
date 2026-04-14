@@ -114,6 +114,7 @@ def compare_model1_model2_against_scqubits(
     model2_transmon_ncut: int = 60,
     model2_transmon_dim: int = 12,
     n_candidate_states: int = 16,
+    selection_mode: str = "continuous",
     model1_mode: str = "cosine-fit",
     idle_ratio: float = 6.0,
     near_ratio: float = 2.0,
@@ -125,8 +126,19 @@ def compare_model1_model2_against_scqubits(
     Model-2 parameters are always calibrated from the reference transmon EJ/EC:
     ``w_1,w_2,alpha_1,alpha_2`` from transmon spectra, ``alpha_c=0``,
     and couplings ``g_1c,g_2c`` copied from reference.
+
+    ``selection_mode`` controls dressed-state assignment used when building
+    effective computational subspaces for model2 and model3:
+    ``"continuous"`` (overlap continuation along sweep) or ``"bare"``
+    (independent bare-state matching at each flux point).
     """
     flux_values = np.asarray(flux_values, dtype=float).ravel()
+    selection_mode = str(selection_mode).strip().lower()
+    if selection_mode not in {"continuous", "bare"}:
+        raise ValueError(
+            "selection_mode must be one of {'continuous', 'bare'}, "
+            f"got {selection_mode!r}"
+        )
     reference_cfg: ScqubitsReferenceConfig = reference or {}
     ref_wc0 = float(reference_cfg.get("wc0", wc0))
     ref_A = float(reference_cfg.get("A", A))
@@ -211,14 +223,14 @@ def compare_model1_model2_against_scqubits(
         nlevels_qubit=nq,
         nlevels_coupler=nc,
         n_candidate_states=n_candidate_states,
-        selection_mode="continuous",
+        selection_mode=selection_mode,
     )
     H3_eff = build_dressed_effective_computational_stack(
         H3,
         nlevels_qubit=nq_ref,
         nlevels_coupler=nc_ref,
         n_candidate_states=max(n_candidate_states, 20),
-        selection_mode="continuous",
+        selection_mode=selection_mode,
     )
 
     p2 = extract_model1_parameters_from_4x4_stack(H2_eff)
@@ -345,6 +357,7 @@ def compare_model1_model2_against_scqubits(
         "params_scqubits": p3,
         "reference_config": ref,
         "ham_kwargs_used": dict(ham_kwargs_used),
+        "selection_mode": selection_mode,
         "summary": summary,
     }
 
@@ -365,6 +378,7 @@ def main() -> None:
             "g_1c": 0.09,
             "g_2c": 0.085,
         },
+        selection_mode="continuous",
         model2_nlevels_qubit=2,
         model2_nlevels_coupler=2,
         model1_mode="cosine-fit",
