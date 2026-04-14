@@ -82,13 +82,13 @@ def transmon_oscillator_hamiltonian(
     hilbertspace = scq.HilbertSpace([q1, c, q2])
     x_c = c.creation_operator() + c.annihilation_operator()
     hilbertspace.add_interaction(
-        check_validity=False,
+        check_validity=True, #Seems not to be a bottleneck.
         g=float(g_1c),
         op1=(q1.n_operator(), q1),
         op2=(x_c, c),
     )
     hilbertspace.add_interaction(
-        check_validity=False,
+        check_validity=True,
         g=float(g_2c),
         op1=(q2.n_operator(), q2),
         op2=(x_c, c),

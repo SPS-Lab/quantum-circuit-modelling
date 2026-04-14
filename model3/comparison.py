@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import sys
+import time
 from pathlib import Path
 from typing import TypedDict, cast
 
@@ -52,7 +53,7 @@ def _transmon_w01_alpha_from_ej_ec(
     ncut: int,
     truncated_dim: int,
 ) -> tuple[float, float]:
-    """Return transmon ``(w01, alpha)`` from EJ/EC via low-lying eigenvalues."""
+    """Return single transmon ``(w01, alpha)`` from EJ/EC via low-lying eigenvalues."""
     try:
         import scqubits as scq
     except Exception as exc:  # pragma: no cover - import guard only
@@ -73,38 +74,6 @@ def _transmon_w01_alpha_from_ej_ec(
     w01 = float(evals[1] - evals[0])
     alpha = float((evals[2] - evals[1]) - (evals[1] - evals[0]))
     return w01, alpha
-
-
-def _resolved_reference_config(
-    *,
-    wc0: float,
-    A: float,
-    reference: ScqubitsReferenceConfig | None,
-) -> dict[str, object]:
-    """Merge user reference config with defaults."""
-    cfg: dict[str, object] = {
-        "wc0": float(wc0),
-        "A": float(A),
-        "transmon1_params": None,
-        "transmon2_params": None,
-        "transmon_ng": 0.0,
-        "transmon_ncut": 45,
-        "transmon_dim": 6,
-        "coupler_dim": 8,
-        "g_1c": 0.08,
-        "g_2c": 0.08,
-    }
-    if reference is not None:
-        cfg.update(dict(reference))
-    cfg["wc0"] = float(cfg["wc0"])
-    cfg["A"] = float(cfg["A"])
-    cfg["transmon_ng"] = float(cfg["transmon_ng"])
-    cfg["transmon_ncut"] = int(cfg["transmon_ncut"])
-    cfg["transmon_dim"] = int(cfg["transmon_dim"])
-    cfg["coupler_dim"] = int(cfg["coupler_dim"])
-    cfg["g_1c"] = float(cfg["g_1c"])
-    cfg["g_2c"] = float(cfg["g_2c"])
-    return cfg
 
 
 def _relative_energies(H_stack: np.ndarray, *, n_track: int = 4) -> np.ndarray:
@@ -158,30 +127,48 @@ def compare_model1_model2_against_scqubits(
     and couplings ``g_1c,g_2c`` copied from reference.
     """
     flux_values = np.asarray(flux_values, dtype=float).ravel()
-    ref = _resolved_reference_config(wc0=wc0, A=A, reference=reference)
-    nq_ref = int(ref["transmon_dim"])
-    nc_ref = int(ref["coupler_dim"])
-    ref_wc0 = float(ref["wc0"])
-    ref_A = float(ref["A"])
-    if ref["transmon1_params"] is None or ref["transmon2_params"] is None:
+    reference_cfg: ScqubitsReferenceConfig = reference or {}
+    ref_wc0 = float(reference_cfg.get("wc0", wc0))
+    ref_A = float(reference_cfg.get("A", A))
+    ref_transmon1_params = reference_cfg.get("transmon1_params")
+    ref_transmon2_params = reference_cfg.get("transmon2_params")
+    ref_transmon_ng = float(reference_cfg.get("transmon_ng", 0.0))
+    ref_transmon_ncut = int(reference_cfg.get("transmon_ncut", 45))
+    nq_ref = int(reference_cfg.get("transmon_dim", 6))
+    nc_ref = int(reference_cfg.get("coupler_dim", 8))
+    ref_g_1c = float(reference_cfg.get("g_1c", 0.08))
+    ref_g_2c = float(reference_cfg.get("g_2c", 0.08))
+
+    ref: dict[str, object] = {
+        "wc0": ref_wc0,
+        "A": ref_A,
+        "transmon1_params": ref_transmon1_params,
+        "transmon2_params": ref_transmon2_params,
+        "transmon_ng": ref_transmon_ng,
+        "transmon_ncut": ref_transmon_ncut,
+        "transmon_dim": nq_ref,
+        "coupler_dim": nc_ref,
+        "g_1c": ref_g_1c,
+        "g_2c": ref_g_2c,
+    }
+    if ref_transmon1_params is None or ref_transmon2_params is None:
         raise ValueError(
             "reference.transmon1_params and reference.transmon2_params are required. "
             "Load them from model3/reference_params.json near your main script and pass explicitly."
         )
-    p1 = cast(Mapping[str, float], ref["transmon1_params"])
-    p2 = cast(Mapping[str, float], ref["transmon2_params"])
-    ng = float(ref["transmon_ng"])
+    transmon1_params = cast(Mapping[str, float], ref_transmon1_params)
+    transmon2_params = cast(Mapping[str, float], ref_transmon2_params)
     w1, alpha1 = _transmon_w01_alpha_from_ej_ec(
-        ej=float(p1["EJ"]),
-        ec=float(p1["EC"]),
-        ng=ng,
+        ej=float(transmon1_params["EJ"]),
+        ec=float(transmon1_params["EC"]),
+        ng=ref_transmon_ng,
         ncut=int(model2_transmon_ncut),
         truncated_dim=int(model2_transmon_dim),
     )
     w2, alpha2 = _transmon_w01_alpha_from_ej_ec(
-        ej=float(p2["EJ"]),
-        ec=float(p2["EC"]),
-        ng=ng,
+        ej=float(transmon2_params["EJ"]),
+        ec=float(transmon2_params["EC"]),
+        ng=ref_transmon_ng,
         ncut=int(model2_transmon_ncut),
         truncated_dim=int(model2_transmon_dim),
     )
@@ -191,8 +178,8 @@ def compare_model1_model2_against_scqubits(
         "alpha_1": float(alpha1),
         "alpha_c": 0.0,
         "alpha_2": float(alpha2),
-        "g_1c": float(ref["g_1c"]),
-        "g_2c": float(ref["g_2c"]),
+        "g_1c": ref_g_1c,
+        "g_2c": ref_g_2c,
         "nlevels_qubit": max(int(model2_nlevels_qubit), 3),
         "nlevels_coupler": max(int(model2_nlevels_coupler), 3),
     }
@@ -209,14 +196,14 @@ def compare_model1_model2_against_scqubits(
         flux_values,
         wc0=ref_wc0,
         A=ref_A,
-        transmon1_params=ref["transmon1_params"],
-        transmon2_params=ref["transmon2_params"],
-        transmon_ng=float(ref["transmon_ng"]),
-        transmon_ncut=int(ref["transmon_ncut"]),
+        transmon1_params=ref_transmon1_params,
+        transmon2_params=ref_transmon2_params,
+        transmon_ng=ref_transmon_ng,
+        transmon_ncut=ref_transmon_ncut,
         transmon_dim=nq_ref,
         coupler_dim=nc_ref,
-        g_1c=float(ref["g_1c"]),
-        g_2c=float(ref["g_2c"]),
+        g_1c=ref_g_1c,
+        g_2c=ref_g_2c,
     )
 
     H2_eff = build_dressed_effective_computational_stack(
@@ -266,7 +253,7 @@ def compare_model1_model2_against_scqubits(
     wc = np.asarray(coupler_frequency(ref_wc0, ref_A, flux_values), dtype=float).ravel()
     d1 = np.abs(p3["w1"] - wc)
     d2 = np.abs(p3["w2"] - wc)
-    g_scale = max(abs(float(ref["g_1c"])), abs(float(ref["g_2c"])), 1e-12)
+    g_scale = max(abs(ref_g_1c), abs(ref_g_2c), 1e-12)
     detuning_ratio = np.minimum(d1, d2) / g_scale
     idle_mask = detuning_ratio >= float(idle_ratio)
     near_mask = detuning_ratio <= float(near_ratio)
@@ -378,8 +365,8 @@ def main() -> None:
             "g_1c": 0.09,
             "g_2c": 0.085,
         },
-        model2_nlevels_qubit=3,
-        model2_nlevels_coupler=3,
+        model2_nlevels_qubit=2,
+        model2_nlevels_coupler=2,
         model1_mode="cosine-fit",
         outfile=str(outdir / "model1_model2_vs_scqubits_regime_map.pdf"),
     )
@@ -393,4 +380,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    t0 = time.perf_counter()
     main()
+    dt = time.perf_counter() - t0
+    print(f"Elapsed: {dt:.3f} s")
