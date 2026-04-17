@@ -20,57 +20,9 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from model1.heff import heff
-from model2.analysis import lowdin_orthonormalize_columns
 from model2.comparison import heff_spin_to_lab_hamiltonian, plot_compare_model1_model2_vs_flux
-from model2.core import computational_state_indices, three_mode_hamiltonian_stack_vs_flux
-from toolkit.spectrum import overlap_row_to_col_assignment
-
-
-def build_dressed_effective_stack(
-    flux_values: np.ndarray,
-    *,
-    wc0: float,
-    A: float,
-    ham_kwargs: dict[str, float | int],
-    n_candidate_states: int = 16,
-) -> np.ndarray:
-    """Return dressed effective computational Hamiltonian stack ``H2_eff`` (n_flux, 4, 4)."""
-    flux_values = np.asarray(flux_values, dtype=float).ravel()
-    H2 = three_mode_hamiltonian_stack_vs_flux(
-        flux_values,
-        wc0=wc0,
-        A=A,
-        ham_kwargs=ham_kwargs,
-    )
-
-    nq = int(ham_kwargs["nlevels_qubit"])
-    nc = int(ham_kwargs["nlevels_coupler"])
-    comp_idx = computational_state_indices(nq, nc)
-    d_full = H2.shape[1]
-    n_cand = max(4, min(int(n_candidate_states), d_full))
-
-    H2_eff = np.empty((flux_values.size, 4, 4), dtype=complex)
-    prev_selected_full: np.ndarray | None = None
-    for k in range(flux_values.size):
-        evals_full, evecs_full = np.linalg.eigh(H2[k])
-        evecs_cand = evecs_full[:, :n_cand]
-
-        if prev_selected_full is None:
-            overlap = np.abs(evecs_cand[comp_idx, :]) ** 2
-        else:
-            overlap = np.abs(prev_selected_full.conj().T @ evecs_cand) ** 2
-
-        col_ind = overlap_row_to_col_assignment(overlap)
-        evals_comp = np.asarray(evals_full[col_ind], dtype=float)
-        selected_full = np.asarray(evecs_cand[:, col_ind], dtype=complex)
-        prev_selected_full = selected_full
-
-        comp_components = np.asarray(selected_full[comp_idx, :], dtype=complex)
-        dressed_basis = lowdin_orthonormalize_columns(comp_components)
-        heff2 = dressed_basis @ np.diag(evals_comp) @ dressed_basis.conj().T
-        H2_eff[k] = 0.5 * (heff2 + heff2.conj().T)
-
-    return H2_eff
+from model2.core import three_mode_hamiltonian_stack_vs_flux
+from model2.effective import build_dressed_effective_computational_stack
 
 
 def centered_quadratic_values(
@@ -142,11 +94,16 @@ def main() -> None:
     train_mask = (np.arange(n_flux) % 2) == 0
     holdout_mask = ~train_mask
 
-    h2_eff = build_dressed_effective_stack(
+    h2 = three_mode_hamiltonian_stack_vs_flux(
         flux,
         wc0=wc0,
         A=A,
         ham_kwargs=ham_kwargs,
+    )
+    h2_eff = build_dressed_effective_computational_stack(
+        h2,
+        nlevels_qubit=int(ham_kwargs["nlevels_qubit"]),
+        nlevels_coupler=int(ham_kwargs["nlevels_coupler"]),
     )
     e2_rel = np.linalg.eigvalsh(h2_eff)
     e2_rel = e2_rel - e2_rel[:, :1]

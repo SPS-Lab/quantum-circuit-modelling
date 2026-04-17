@@ -21,3 +21,9 @@ dependencies:
   # Utilities
   - matplotlib
   - sympy
+  
+  # Python type checker
+  - pyright
+  
+  # To run tests
+  - pytest

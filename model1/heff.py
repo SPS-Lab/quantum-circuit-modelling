@@ -15,6 +15,7 @@ from toolkit.helpers import px, py, pz, I2
 
 
 def w_vs_flux(w_O, w_A, flux_bias):
+    """w_O is the offset and w_A is the amplitude frequency of the flux modulation."""
     w = w_O + w_A * np.cos(2 * np.pi * flux_bias)
     return w
 
@@ -133,8 +134,7 @@ def plot_evolve_state(psi0=np.array([np.sqrt(1), np.sqrt(1), np.sqrt(0), np.sqrt
     fig.tight_layout()
     plt.savefig("statevector_evolution_model1.pdf", format="pdf")
 
-plot_energy_levels_vs_flux()
 
-
-
-plot_evolve_state()
+if __name__ == "__main__":
+    plot_energy_levels_vs_flux()
+    plot_evolve_state()

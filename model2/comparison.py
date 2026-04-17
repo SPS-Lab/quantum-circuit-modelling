@@ -5,20 +5,18 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
-from typing import Unpack
+from typing import Callable, Mapping, Unpack
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 from toolkit.helpers import I2, pz
-from toolkit.spectrum import overlap_row_to_col_assignment, track_energy_levels_stack
+from toolkit.spectrum import track_energy_levels_stack
 
-from model2.analysis import lowdin_orthonormalize_columns
-from model2.core import (
-    computational_state_indices,
-    computational_subspace_block,
-    coupler_frequency,
-    three_mode_hamiltonian_stack_vs_flux,
+from model2.core import computational_subspace_block, coupler_frequency, three_mode_hamiltonian_stack_vs_flux
+from model2.effective import (
+    build_dressed_effective_computational_stack,
+    extract_model1_parameters_from_4x4_stack,
 )
 from model2.hamiltonian_types import ThreeModeHamiltonianCommonKwargs
 
@@ -26,6 +24,68 @@ from model2.hamiltonian_types import ThreeModeHamiltonianCommonKwargs
 _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
+
+_Model1FluxParamSpec = float | np.ndarray | Callable[[np.ndarray], np.ndarray]
+
+
+def _resolve_flux_param(
+    flux_values: np.ndarray,
+    spec: _Model1FluxParamSpec,
+    *,
+    name: str,
+) -> np.ndarray:
+    """Resolve a scalar / 1D array / callable flux parameter to shape ``(n_flux,)``."""
+    values = spec(flux_values) if callable(spec) else spec
+    arr = np.asarray(values, dtype=float)
+    if arr.ndim == 0:
+        return np.full(flux_values.shape[0], float(arr), dtype=float)
+    arr = arr.ravel()
+    if arr.size != flux_values.size:
+        raise ValueError(
+            f"model1 parameter {name!r} must be scalar or length n_flux={flux_values.size}, "
+            f"got shape {arr.shape}"
+        )
+    return arr.astype(float, copy=False)
+
+
+def _resolve_model1_params(
+    flux_values: np.ndarray,
+    model1_params: Mapping[str, _Model1FluxParamSpec],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Resolve user-provided model-1 flux parameters (w1, w2, J, zeta)."""
+    allowed_aliases = {
+        "w1": ("w1", "w_1"),
+        "w2": ("w2", "w_2"),
+        "J": ("J", "j"),
+        "zeta": ("zeta",),
+    }
+    allowed_keys = {k for aliases in allowed_aliases.values() for k in aliases}
+    unknown = sorted(set(model1_params.keys()) - allowed_keys)
+    if unknown:
+        raise ValueError(
+            "Unknown keys in model1_params: "
+            f"{unknown}. Allowed keys: {sorted(allowed_keys)}"
+        )
+
+    resolved: dict[str, np.ndarray] = {}
+    for canonical, aliases in allowed_aliases.items():
+        matched = [alias for alias in aliases if alias in model1_params]
+        if len(matched) == 0:
+            raise ValueError(
+                f"Missing model1 parameter {canonical!r} in model1_params. "
+                f"Accepted key(s): {aliases}"
+            )
+        if len(matched) > 1:
+            raise ValueError(
+                f"Multiple aliases provided for {canonical!r}: {matched}. "
+                "Use only one."
+            )
+        resolved[canonical] = _resolve_flux_param(
+            flux_values,
+            model1_params[matched[0]],
+            name=canonical,
+        )
+    return resolved["w1"], resolved["w2"], resolved["J"], resolved["zeta"]
 
 
 def _import_model1_heff():
@@ -125,6 +185,7 @@ def plot_compare_model1_model2_vs_flux(
     plot_eff2_levels: bool = True,
     n_model2_levels: int | None = None,
     dressed_selection_mode: str = "continuous",
+    model1_params: Mapping[str, _Model1FluxParamSpec] | None = None,
     **ham_kwargs: Unpack[ThreeModeHamiltonianCommonKwargs],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Overlay tracked levels: model-1 ``H_eff`` vs a dressed model-2 computational effective ``4x4``.
@@ -132,6 +193,9 @@ def plot_compare_model1_model2_vs_flux(
     At each flux, this diagonalizes full model-2 ``H`` and overlap-matches dressed states to
     ``|00>``, ``|01>``, ``|10>``, ``|11>``. A Löwdin-orthonormalized effective ``4x4`` is formed
     from those dressed eigenpairs, then ``(w1, w2, J, zeta)`` are extracted and fed to model 1.
+    To compare against an independently specified effective model-1 sweep, pass ``model1_params``
+    with keys ``w1, w2, J, zeta`` (alias keys ``w_1, w_2, j`` also accepted), each as a scalar,
+    1D array of length ``n_flux``, or callable ``f(flux_values) -> array``.
     Optionally, additional model-2-only levels can be plotted from the full three-mode Hamiltonian.
     ``dressed_selection_mode`` controls dressed-state selection:
     - ``"continuous"``: continue labels by overlap with previous flux step (stable along sweep)
@@ -172,33 +236,13 @@ def plot_compare_model1_model2_vs_flux(
     )
 
     
-    # Construct dressed effective 4x4 for each flux.
-    # "continuous": initialize by bare match, then continue by overlap with prior selected states.
-    # "bare": match independently at each flux to bare computational states.
-    comp_idx = computational_state_indices(nq, nc)
-    d_full = H2.shape[1]
-    n_cand = max(dim_heff, min(int(n_candidate_states), d_full))
-    H2_eff = np.empty((flux_values.shape[0], dim_heff, dim_heff), dtype=complex)
-    prev_selected_full: np.ndarray | None = None
-    for k in range(flux_values.shape[0]):
-        evals_full, evecs_full = np.linalg.eigh(H2[k])
-        evecs_cand = evecs_full[:, :n_cand]
-
-        if dressed_selection_mode == "bare" or prev_selected_full is None:
-            overlap = np.abs(evecs_cand[comp_idx, :]) ** 2
-        else:
-            overlap = np.abs(prev_selected_full.conj().T @ evecs_cand) ** 2
-
-        col_ind = overlap_row_to_col_assignment(overlap)
-        evals_comp = np.asarray(evals_full[col_ind], dtype=float)
-        selected_full = np.asarray(evecs_cand[:, col_ind], dtype=complex)
-        if dressed_selection_mode == "continuous":
-            prev_selected_full = selected_full
-
-        comp_components = np.asarray(selected_full[comp_idx, :], dtype=complex)
-        dressed_basis = lowdin_orthonormalize_columns(comp_components)
-        heff2 = dressed_basis @ np.diag(evals_comp) @ dressed_basis.conj().T
-        H2_eff[k] = 0.5 * (heff2 + heff2.conj().T)
+    H2_eff = build_dressed_effective_computational_stack(
+        H2,
+        nlevels_qubit=nq,
+        nlevels_coupler=nc,
+        n_candidate_states=n_candidate_states,
+        selection_mode=dressed_selection_mode,
+    )
 
     
     if plot_eff2_levels:
@@ -207,22 +251,29 @@ def plot_compare_model1_model2_vs_flux(
         evals2 = track_energy_levels_stack(H2, n_track)
     evals2_full_plot = track_energy_levels_stack(H2, n_model2_plot)
 
-    d00 = np.real(H2_eff[:, 0, 0])
-    d01 = np.real(H2_eff[:, 1, 1])
-    d10 = np.real(H2_eff[:, 2, 2])
-    d11 = np.real(H2_eff[:, 3, 3])
-    zeta = d11 - d10 - d01 + d00
-    w1f = d10 - d00 + 0.5 * zeta
-    w2f = d01 - d00 + 0.5 * zeta
-    jf = 0.5 * np.real(H2_eff[:, 1, 2])
+    if model1_params is None:
+        params = extract_model1_parameters_from_4x4_stack(H2_eff)
+        w1f = params["w1"]
+        w2f = params["w2"]
+        jf = params["J"]
+        zeta = params["zeta"]
 
-    max_j_imag = float(np.max(np.abs(np.imag(H2_eff[:, 1, 2]))))
-    if verbose:
-        print(
-            "[plot_compare_model1_model2_vs_flux] "
-            f"derived per-flux from full-H2 dressed states/energies; max imag(H01,10)={max_j_imag:.3e}",
-            flush=True,
-        )
+        max_j_imag = float(np.max(np.abs(np.imag(H2_eff[:, 1, 2]))))
+        if verbose:
+            print(
+                "[plot_compare_model1_model2_vs_flux] "
+                f"derived model1 params per flux from model2 dressed states; "
+                f"max imag(H01,10)={max_j_imag:.3e}",
+                flush=True,
+            )
+    else:
+        w1f, w2f, jf, zeta = _resolve_model1_params(flux_values, model1_params)
+        if verbose:
+            print(
+                "[plot_compare_model1_model2_vs_flux] "
+                "using user-provided model1_params (independent of model2 per flux)",
+                flush=True,
+            )
 
     H1_raw = np.asarray(m1.heff(w1f, w2f, jf, zeta), dtype=complex)
     H1 = heff_spin_to_lab_hamiltonian(H1_raw, w1f, w2f)
@@ -306,7 +357,7 @@ def plot_compare_model1_model2_vs_flux(
             linewidth=1.1,
             alpha=0.65,
             zorder=1,
-            label=(rf"model 2 extra $E_{{{i}}}$" if i == n_track else None),
+            label=(rf"model 2 extra $E_{{{i}}}$"),
         )
 
     ax.set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
