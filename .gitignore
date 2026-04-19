@@ -209,3 +209,15 @@ __marimo__/
 
 # Generated plots
 *.pdf
+
+# Untracked files
+untracked/
+
+.codex
+
+pyrightconfig.json
+
+
+# Temporarily ignored.
+model0/single_mode_duffiling.ipynb
+model3/scgui.ipynb
