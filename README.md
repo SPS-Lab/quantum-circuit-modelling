@@ -15,22 +15,29 @@ And verify with:
 python print_versions.py
 ```
 
-## Comparison scripts
+## Refactored Study Workflow
 
-Run the main comparison workflows:
+The paper-aligned workflow is now organized by responsibility:
+
+- `study/models`: model builders (`effective`, `duffing`, `circuit`)
+- `study/comparison`: benchmark logic (`static`, CZ/leakage headers)
+- `study/plots`: plotting only
+- `params`: all runtime parameters consumed by main scripts
+
+Run the static benchmark:
 
 ```bash
-python tests/test1.py
-python tests/test_full_range/test_full_range.py
-python tests/test_model3/test_regime_map.py
+python scripts/run_static_benchmark.py
 ```
 
-Focused pytest run (fast, recommended during iteration):
+This reads:
+
+- `params/system_params.json` (device/system parameters)
+- `params/static_benchmark_params.json` (benchmark/model/plot settings)
+
+CZ/leakage benchmark headers exist but are intentionally not implemented yet:
 
 ```bash
-pytest -q tests/test_model3/test_regime_map_pytest.py
+python scripts/run_cz_benchmark.py
+python scripts/run_leakage_benchmark.py
 ```
-
-`model3` uses a scqubits reference with transmon values from:
-`model3/reference_params.json`
-loaded near the script `main` via `model3.reference_params.load_transmon_params(...)`.
