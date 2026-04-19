@@ -190,7 +190,7 @@ def plot_energy_levels_vs_flux(
     show_legend: bool = True,
     legend_ncol: int = 2,
 ) -> np.ndarray:
-    """Plot lowest eigenenergies vs flux (same idea as :func:`model1.heff.plot_energy_levels_vs_flux`).
+    """Plot lowest eigenenergies vs flux with optional overlap-based tracking.
 
     Hamiltonians are stacked from ``hamiltonian`` (batched or per-flux). Eigenvalues use
     ``eigvalsh`` on each slice, or :func:`toolkit.spectrum.track_energy_levels_stack` when

@@ -9,9 +9,9 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from study.comparison.static import run_static_benchmark
-from study.config import load_study_config
-from study.plots.static import plot_static_benchmark
+from comparison.static import run_static_benchmark
+from study_config import load_study_config
+from plots.static import plot_static_benchmark
 
 
 

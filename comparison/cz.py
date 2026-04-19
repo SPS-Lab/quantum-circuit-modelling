@@ -6,7 +6,7 @@ Implementation will be added after static-benchmark refactoring is stabilized.
 
 from __future__ import annotations
 
-from study.config import StudyConfig
+from study_config import StudyConfig
 
 
 

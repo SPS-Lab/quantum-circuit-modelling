@@ -6,19 +6,16 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from model2.effective import (
-    build_dressed_effective_computational_stack,
-    extract_model1_parameters_from_4x4_stack,
-)
-from toolkit.spectrum import track_energy_levels_stack
-
-from study.config import StudyConfig, build_flux_values
-from study.models import (
+from models import (
     build_circuit_model_stack,
+    build_dressed_effective_computational_stack,
     build_duffing_model_stack,
     build_effective_hamiltonian_stack,
     derive_effective_model_from_dressed_stack,
+    extract_model1_parameters_from_4x4_stack,
 )
+from study_config import StudyConfig, build_flux_values
+from toolkit.spectrum import track_energy_levels_stack
 
 
 @dataclass(frozen=True)

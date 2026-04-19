@@ -7,9 +7,8 @@ from typing import Mapping
 
 import numpy as np
 
-from model1.heff import heff
-from model2.effective import extract_model1_parameters_from_4x4_stack
-from toolkit.helpers import I2, pz
+from models.dressed import extract_model1_parameters_from_4x4_stack
+from toolkit.helpers import I2, px, py, pz
 
 
 @dataclass(frozen=True)
@@ -22,6 +21,32 @@ class HarmonicFitResult:
 class EffectiveModelDerivationResult:
     extracted_parameters: dict[str, np.ndarray]
     harmonic_fit: HarmonicFitResult
+
+
+
+def _coeff_for_ham(c: np.ndarray | float) -> np.ndarray | float:
+    """Scalar * (4,4) stays (4,4); 1D (n,) -> (n,1,1) for batched eigensolvers."""
+    c = np.asarray(c)
+    if c.ndim == 0:
+        return c
+    if c.ndim == 1:
+        return c[:, np.newaxis, np.newaxis]
+    raise ValueError("w1, w2, J, zeta must be scalars or 1D arrays")
+
+
+
+def heff(w1: np.ndarray | float, w2: np.ndarray | float, J: np.ndarray | float, zeta: np.ndarray | float) -> np.ndarray:
+    """Build effective model Hamiltonian in spin convention."""
+    w1c = _coeff_for_ham(w1)
+    w2c = _coeff_for_ham(w2)
+    jc = _coeff_for_ham(J)
+    zc = _coeff_for_ham(zeta)
+    return (
+        0.5 * w1c * np.kron(pz, I2)
+        + 0.5 * w2c * np.kron(I2, pz)
+        + jc * (np.kron(px, px) + np.kron(py, py))
+        + 0.25 * zc * np.kron(pz, pz)
+    )
 
 
 

@@ -41,7 +41,7 @@
       "near_ratio": 2.0
     },
     "outputs": {
-      "figure": "figures/model3/model1_model2_vs_scqubits_regime_map.pdf"
+      "figure": "figures/regime_map/model_comparison_static.pdf"
     }
   }
 }

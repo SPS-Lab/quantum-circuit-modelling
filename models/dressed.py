@@ -1,4 +1,4 @@
-"""Shared dressed-subspace extraction utilities for effective-model analysis."""
+"""Dressed-subspace extraction and effective-parameter utilities."""
 
 from __future__ import annotations
 
@@ -6,7 +6,8 @@ import numpy as np
 
 from toolkit.spectrum import overlap_row_to_col_assignment
 
-from model2.core import computational_state_indices
+from models.three_mode import computational_state_indices
+
 
 
 def lowdin_orthonormalize_columns(
@@ -23,6 +24,7 @@ def lowdin_orthonormalize_columns(
     return vectors @ gram_inv_sqrt
 
 
+
 def build_dressed_effective_stack(
     H_stack: np.ndarray,
     *,
@@ -30,20 +32,7 @@ def build_dressed_effective_stack(
     n_candidate_states: int = 16,
     selection_mode: str = "continuous",
 ) -> np.ndarray:
-    """Return dressed effective subspace Hamiltonians from a full stack.
-
-    Parameters
-    ----------
-    H_stack
-        Full Hamiltonian stack with shape ``(n_param, d, d)``.
-    subspace_indices
-        Bare basis indices defining the tracked subspace (length ``m``).
-    n_candidate_states
-        Number of low-energy full eigenstates to consider when assigning dressed states.
-    selection_mode
-        ``"continuous"`` for overlap continuation vs previous step, or ``"bare"`` for
-        independent matching to bare states at each parameter point.
-    """
+    """Return dressed effective subspace Hamiltonians from a full stack."""
     H_stack = np.asarray(H_stack, dtype=complex)
     if H_stack.ndim != 3 or H_stack.shape[1] != H_stack.shape[2]:
         raise ValueError(f"H_stack must be (n, d, d), got {H_stack.shape}")
@@ -54,9 +43,7 @@ def build_dressed_effective_stack(
     if m < 1:
         raise ValueError("subspace_indices must be non-empty")
     if np.any(subspace_indices < 0) or np.any(subspace_indices >= d):
-        raise ValueError(
-            f"subspace_indices out of bounds for d={d}: {subspace_indices}"
-        )
+        raise ValueError(f"subspace_indices out of bounds for d={d}: {subspace_indices}")
 
     mode = str(selection_mode).strip().lower()
     if mode not in {"continuous", "bare"}:
@@ -92,6 +79,7 @@ def build_dressed_effective_stack(
     return H_eff
 
 
+
 def build_dressed_effective_computational_stack(
     H_stack: np.ndarray,
     nlevels_qubit: int,
@@ -101,10 +89,7 @@ def build_dressed_effective_computational_stack(
     selection_mode: str = "continuous",
 ) -> np.ndarray:
     """Return dressed effective computational ``4x4`` Hamiltonians from full stacks."""
-    idx = computational_state_indices(
-        int(nlevels_qubit),
-        int(nlevels_coupler),
-    )
+    idx = computational_state_indices(int(nlevels_qubit), int(nlevels_coupler))
     return build_dressed_effective_stack(
         H_stack,
         subspace_indices=idx,
@@ -113,12 +98,13 @@ def build_dressed_effective_computational_stack(
     )
 
 
+
 def extract_model1_parameters_from_4x4_stack(
     H_eff: np.ndarray,
     *,
     zeta_tol: float = 1e-12,
 ) -> dict[str, np.ndarray]:
-    """Extract ``w1, w2, J, zeta`` from a dressed effective computational ``4x4`` stack."""
+    """Extract ``w1, w2, J, zeta`` from dressed effective computational ``4x4`` stack."""
     H_eff = np.asarray(H_eff, dtype=complex)
     if H_eff.ndim == 2:
         H_eff = H_eff[np.newaxis, ...]

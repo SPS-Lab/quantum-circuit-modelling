@@ -6,9 +6,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from model0.cpb import flux_dependent_EJ
-from model2.core import three_mode_hamiltonian_stack_vs_flux
-from study.config import CouplerFrequencyConfig, DuffingModelConfig, SystemParams
+from models.josephson import flux_dependent_EJ
+from models.three_mode import three_mode_hamiltonian_stack_vs_flux
+from study_config import CouplerFrequencyConfig, DuffingModelConfig, SystemParams
 
 
 @dataclass(frozen=True)

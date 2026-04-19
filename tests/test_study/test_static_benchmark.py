@@ -11,11 +11,11 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from study.comparison.cz import run_cz_benchmark
-from study.comparison.leakage import run_leakage_benchmark
-from study.comparison.static import run_static_benchmark
-from study.config import load_study_config
-from study.models.effective import fit_single_harmonic_parameters
+from comparison.cz import run_cz_benchmark
+from comparison.leakage import run_leakage_benchmark
+from comparison.static import run_static_benchmark
+from study_config import load_study_config
+from models.effective import fit_single_harmonic_parameters
 
 
 

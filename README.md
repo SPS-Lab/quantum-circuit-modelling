@@ -15,14 +15,17 @@ And verify with:
 python print_versions.py
 ```
 
-## Refactored Study Workflow
+## Refactored Workflow
 
-The paper-aligned workflow is now organized by responsibility:
+The paper-aligned workflow is organized by responsibility:
 
-- `study/models`: model builders (`effective`, `duffing`, `circuit`)
-- `study/comparison`: benchmark logic (`static`, CZ/leakage headers)
-- `study/plots`: plotting only
+- `models`: model builders (`effective`, `duffing`, `circuit`)
+- `comparison`: benchmark logic (`static`, CZ/leakage headers)
+- `plots`: plotting only
+- `study_config.py`: typed config loading/validation
 - `params`: all runtime parameters consumed by main scripts
+
+Legacy `model0/1/2/3` packages have been merged into the modules above.
 
 Run the static benchmark:
 

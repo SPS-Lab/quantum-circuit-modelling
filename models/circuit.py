@@ -6,8 +6,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from model0.cpb import flux_dependent_EJ
-from study.config import CircuitModelConfig, CouplerFrequencyConfig, SystemParams
+from models.josephson import flux_dependent_EJ
+from study_config import CircuitModelConfig, CouplerFrequencyConfig, SystemParams
 
 
 @dataclass(frozen=True)
