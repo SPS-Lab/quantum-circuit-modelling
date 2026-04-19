@@ -1,0 +1,50 @@
+{
+  "source": {
+    "paper": "DiCarlo et al., Nature 460, 240-244 (2009)",
+    "doi": "10.1038/nature08121",
+    "fit_truncation": {
+      "qubit_levels": 5,
+      "cavity_photons": 5
+    }
+  },
+  "paper_fit_values_ghz": {
+    "QL": {
+      "EJmax": 28.48,
+      "EC": 0.317,
+      "g_over_2pi": 0.199
+    },
+    "QR": {
+      "EJmax": 42.34,
+      "EC": 0.297,
+      "g_over_2pi": 0.183
+    },
+    "cavity": {
+      "omega_c_over_2pi": 6.902,
+      "kappa_over_2pi": 0.001
+    }
+  },
+  "for_tunable_transmon_oscillator_model": {
+    "known": {
+      "left_or_right_qubit_params": [
+        "EJmax",
+        "EC"
+      ],
+      "oscillator_params": [
+        "E_osc"
+      ]
+    },
+    "missing": {
+      "tunable_transmon": [
+        "d",
+        "flux",
+        "ng",
+        "ncut"
+      ],
+      "coupling_model_specific": [
+        "g_1c",
+        "g_2c"
+      ]
+    },
+    "note": "g_over_2pi values are from the paper's generalized Tavis-Cummings fit and are not automatically identical to g_1c/g_2c in every TunableTransmon-Oscillator coupling convention."
+  }
+}
