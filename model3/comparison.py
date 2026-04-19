@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import json
 import sys
 import time
 from pathlib import Path
@@ -26,7 +27,6 @@ from model2.effective import (
 from model3.scqref import (
     transmon_oscillator_stack_vs_flux,
 )
-from model3.reference_params import DEFAULT_TRANSMON_KEY, load_transmon_params
 from toolkit.spectrum import track_energy_levels_stack
 
 
@@ -43,6 +43,96 @@ class ScqubitsReferenceConfig(TypedDict, total=False):
     coupler_dim: int
     g_1c: float
     g_2c: float
+
+
+class ComparisonRunConfig(TypedDict):
+    """Top-level parameters used by ``main`` to run the comparison."""
+
+    wc0: float
+    A: float
+    reference: ScqubitsReferenceConfig
+    model2_transmon_ncut: int
+    model2_transmon_dim: int
+
+
+_SYSTEM_PARAMS_PATH = _ROOT / "params" / "system_params.json"
+
+
+def _effective_ej_from_ejmax(*, ej_max: float, d: float, flux: float) -> float:
+    """Map SQUID ``EJmax`` to effective ``EJ`` at a fixed reduced flux."""
+    x = np.pi * float(flux)
+    return float(float(ej_max) * np.sqrt(np.cos(x) ** 2 + (float(d) ** 2) * np.sin(x) ** 2))
+
+
+def _require_mapping(obj: object, *, name: str) -> Mapping[str, object]:
+    if not isinstance(obj, Mapping):
+        raise ValueError(f"{name} must be a JSON object, got {type(obj).__name__}")
+    return cast(Mapping[str, object], obj)
+
+
+def _load_comparison_run_config(path: Path = _SYSTEM_PARAMS_PATH) -> ComparisonRunConfig:
+    """Load model3 run configuration from ``params/system_params.json``."""
+    with path.open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+    root = _require_mapping(payload, name="system_params")
+    parameters = _require_mapping(root.get("parameters"), name="system_params.parameters")
+    q1 = _require_mapping(parameters.get("q1"), name="system_params.parameters.q1")
+    q2 = _require_mapping(parameters.get("q2"), name="system_params.parameters.q2")
+    c = _require_mapping(parameters.get("c"), name="system_params.parameters.c")
+    interactions = _require_mapping(
+        parameters.get("interactions"), name="system_params.parameters.interactions"
+    )
+
+    q1_ng = float(q1["ng"])
+    q2_ng = float(q2["ng"])
+    if not np.isclose(q1_ng, q2_ng):
+        raise ValueError(
+            "comparison.py currently supports a shared transmon ng; "
+            f"got q1.ng={q1_ng} and q2.ng={q2_ng}"
+        )
+    q1_ncut = int(q1["ncut"])
+    q2_ncut = int(q2["ncut"])
+    if q1_ncut != q2_ncut:
+        raise ValueError(
+            "comparison.py currently supports a shared transmon ncut; "
+            f"got q1.ncut={q1_ncut} and q2.ncut={q2_ncut}"
+        )
+    q1_dim = int(q1["truncated_dim"])
+    q2_dim = int(q2["truncated_dim"])
+    if q1_dim != q2_dim:
+        raise ValueError(
+            "comparison.py currently supports a shared transmon truncated_dim; "
+            f"got q1.truncated_dim={q1_dim} and q2.truncated_dim={q2_dim}"
+        )
+
+    q1_ej = _effective_ej_from_ejmax(
+        ej_max=float(q1["EJmax"]),
+        d=float(q1["d"]),
+        flux=float(q1["flux"]),
+    )
+    q2_ej = _effective_ej_from_ejmax(
+        ej_max=float(q2["EJmax"]),
+        d=float(q2["d"]),
+        flux=float(q2["flux"]),
+    )
+
+    reference: ScqubitsReferenceConfig = {
+        "transmon1_params": {"EJ": q1_ej, "EC": float(q1["EC"])},
+        "transmon2_params": {"EJ": q2_ej, "EC": float(q2["EC"])},
+        "transmon_ng": q1_ng,
+        "transmon_ncut": q1_ncut,
+        "transmon_dim": q1_dim,
+        "coupler_dim": int(c["truncated_dim"]),
+        "g_1c": float(interactions["g_1c"]),
+        "g_2c": float(interactions["g_2c"]),
+    }
+    return {
+        "wc0": float(c["E_osc"]),
+        "A": 0.0,
+        "reference": reference,
+        "model2_transmon_ncut": q1_ncut,
+        "model2_transmon_dim": q1_dim,
+    }
 
 
 def _transmon_w01_alpha_from_ej_ec(
@@ -364,22 +454,17 @@ def compare_model1_model2_against_scqubits(
 def main() -> None:
     flux = np.linspace(0.0, 1.0, 121)
     outdir = Path(__file__).resolve().parent
-    transmon_params = load_transmon_params(DEFAULT_TRANSMON_KEY)
+    run_cfg = _load_comparison_run_config()
     out = compare_model1_model2_against_scqubits(
         flux,
-        wc0=5.05,
-        A=0.95,
-        reference={
-            "transmon1_params": transmon_params,
-            "transmon2_params": transmon_params,
-            "transmon_dim": 5,
-            "coupler_dim": 6,
-            "g_1c": 0.09,
-            "g_2c": 0.085,
-        },
+        wc0=run_cfg["wc0"],
+        A=run_cfg["A"],
+        reference=run_cfg["reference"],
         selection_mode="continuous",
         model2_nlevels_qubit=2,
         model2_nlevels_coupler=2,
+        model2_transmon_ncut=run_cfg["model2_transmon_ncut"],
+        model2_transmon_dim=run_cfg["model2_transmon_dim"],
         model1_mode="cosine-fit",
         outfile=str(outdir / "model1_model2_vs_scqubits_regime_map.pdf"),
     )
