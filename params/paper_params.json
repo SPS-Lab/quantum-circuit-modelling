@@ -1,0 +1,27 @@
+{
+  "source": {
+    "paper": "DiCarlo et al., Nature 460, 240-244 (2009)",
+    "doi": "10.1038/nature08121",
+    "quoted_fit_line": "Simultaneously fitting the spectra ... gives EJL(R)/h = 28.48(42.34) GHz, ECL(R)/h = 317(297) MHz, gL(R)/2pi = 199(183) MHz. Cavity parameters are vC/2pi = 6.902 GHz and linewidth kappa/2pi = 1 MHz.",
+    "fit_truncation": {
+      "qubit_levels": 5,
+      "cavity_photons": 5
+    }
+  },
+  "paper_fit_values_ghz": {
+    "QL": {
+      "EJmax": 28.48,
+      "EC": 0.317,
+      "g_over_2pi": 0.199
+    },
+    "QR": {
+      "EJmax": 42.34,
+      "EC": 0.297,
+      "g_over_2pi": 0.183
+    },
+    "cavity": {
+      "omega_c_over_2pi": 6.902,
+      "kappa_over_2pi": 0.001
+    }
+  }
+}
