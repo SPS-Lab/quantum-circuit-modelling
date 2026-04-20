@@ -21,6 +21,7 @@ TWO_PI = 2.0 * np.pi
 
 @dataclass(frozen=True)
 class _DynamicsObservables:
+    computational_amplitudes: np.ndarray
     populations_11: np.ndarray
     leakage_11: np.ndarray
     conditional_phase: np.ndarray
@@ -49,6 +50,7 @@ class CzBenchmarkResult:
     effective_conditional_phase: np.ndarray
     duffing_conditional_phase: np.ndarray
     circuit_conditional_phase: np.ndarray
+    circuit_statevector_11: np.ndarray
     effective_intermediate_population_11: np.ndarray
     duffing_intermediate_population_11: np.ndarray
     circuit_intermediate_population_11: np.ndarray
@@ -188,6 +190,7 @@ def _extract_observables_from_amplitudes(comp_amp: np.ndarray) -> _DynamicsObser
     cond_phase = np.unwrap(np.angle((d00 * d11) / den_safe))
 
     return _DynamicsObservables(
+        computational_amplitudes=amp,
         populations_11=np.asarray(populations_11, dtype=float),
         leakage_11=np.asarray(leakage_11, dtype=float),
         conditional_phase=np.asarray(cond_phase, dtype=float),
@@ -237,6 +240,7 @@ def _simulate_piecewise_constant_scipy(
 
     obs = _extract_observables_from_amplitudes(comp_amp)
     return _DynamicsObservables(
+        computational_amplitudes=obs.computational_amplitudes,
         populations_11=obs.populations_11,
         leakage_11=obs.leakage_11,
         conditional_phase=obs.conditional_phase,
@@ -292,6 +296,7 @@ def _simulate_piecewise_constant_qutip(
 
     obs = _extract_observables_from_amplitudes(comp_amp)
     return _DynamicsObservables(
+        computational_amplitudes=obs.computational_amplitudes,
         populations_11=obs.populations_11,
         leakage_11=obs.leakage_11,
         conditional_phase=obs.conditional_phase,
@@ -567,6 +572,7 @@ def run_cz_benchmark(
         effective_conditional_phase=obs_effective.conditional_phase,
         duffing_conditional_phase=obs_duffing.conditional_phase,
         circuit_conditional_phase=obs_circuit.conditional_phase,
+        circuit_statevector_11=obs_circuit.computational_amplitudes[:, :, 3],
         effective_intermediate_population_11=obs_effective.monitor_population_11,
         duffing_intermediate_population_11=obs_duffing.monitor_population_11,
         circuit_intermediate_population_11=obs_circuit.monitor_population_11,

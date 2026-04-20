@@ -6,6 +6,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import hsv_to_rgb
 
 from comparison.cz import CzBenchmarkResult
 
@@ -40,13 +41,23 @@ def plot_cz_benchmark(result: CzBenchmarkResult, outfile: Path, title: str) -> N
     ax_leak.grid(True, alpha=0.3)
     ax_leak.legend(loc="best", fontsize="small")
 
-    ax_p11.plot(t, result.circuit_intermediate_population_11, color="k", linewidth=2.0, label="circuit")
-    ax_p11.plot(t, result.duffing_intermediate_population_11, color="C0", linestyle="--", linewidth=1.8, label="duffing")
-    ax_p11.plot(t, result.effective_intermediate_population_11, color="C3", linestyle=":", linewidth=1.8, label="effective")
-    ax_p11.set_ylabel(r"$P_{20}(t)+P_{02}(t)$ from $|11\rangle$")
-    ax_p11.set_title("Intermediate leakage channel")
-    ax_p11.grid(True, alpha=0.3)
-    ax_p11.legend(loc="best", fontsize="small")
+    psi = np.asarray(result.circuit_statevector_11, dtype=complex)  # (n_time, 4)
+    prob = np.abs(psi.T) ** 2
+    phase = np.angle(psi.T)
+    hue = (phase + np.pi) / (2.0 * np.pi)
+    sat = np.ones_like(hue)
+    val = np.clip(prob, 0.0, 1.0)
+    rgb = hsv_to_rgb(np.stack((hue, sat, val), axis=-1))
+    ax_p11.imshow(
+        rgb,
+        origin="lower",
+        aspect="auto",
+        interpolation="nearest",
+        extent=[t[0], t[-1], -0.5, 3.5],
+    )
+    ax_p11.set_ylabel("Circuit basis state")
+    ax_p11.set_title(r"Circuit $|11\rangle$ statevector (hue=phase, value=$|c_k|^2$)")
+    ax_p11.set_yticks([0, 1, 2, 3], [r"$|00\rangle$", r"$|01\rangle$", r"$|10\rangle$", r"$|11\rangle$"])
 
     axes[1, 0].set_xlabel("Time (ns)")
     axes[1, 1].set_xlabel("Time (ns)")
