@@ -40,11 +40,11 @@ def plot_cz_benchmark(result: CzBenchmarkResult, outfile: Path, title: str) -> N
     ax_leak.grid(True, alpha=0.3)
     ax_leak.legend(loc="best", fontsize="small")
 
-    ax_p11.plot(t, result.circuit_populations_11[:, 3], color="k", linewidth=2.0, label="circuit")
-    ax_p11.plot(t, result.duffing_populations_11[:, 3], color="C0", linestyle="--", linewidth=1.8, label="duffing")
-    ax_p11.plot(t, result.effective_populations_11[:, 3], color="C3", linestyle=":", linewidth=1.8, label="effective")
-    ax_p11.set_ylabel(r"$P_{11}(t)$ from $|11\rangle$")
-    ax_p11.set_title(r"Computational population $|11\rangle$")
+    ax_p11.plot(t, result.circuit_intermediate_population_11, color="k", linewidth=2.0, label="circuit")
+    ax_p11.plot(t, result.duffing_intermediate_population_11, color="C0", linestyle="--", linewidth=1.8, label="duffing")
+    ax_p11.plot(t, result.effective_intermediate_population_11, color="C3", linestyle=":", linewidth=1.8, label="effective")
+    ax_p11.set_ylabel(r"$P_{20}(t)+P_{02}(t)$ from $|11\rangle$")
+    ax_p11.set_title("Intermediate leakage channel")
     ax_p11.grid(True, alpha=0.3)
     ax_p11.legend(loc="best", fontsize="small")
 

@@ -24,6 +24,7 @@ class _DynamicsObservables:
     populations_11: np.ndarray
     leakage_11: np.ndarray
     conditional_phase: np.ndarray
+    monitor_population_11: np.ndarray
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,9 @@ class CzBenchmarkResult:
     effective_conditional_phase: np.ndarray
     duffing_conditional_phase: np.ndarray
     circuit_conditional_phase: np.ndarray
+    effective_intermediate_population_11: np.ndarray
+    duffing_intermediate_population_11: np.ndarray
+    circuit_intermediate_population_11: np.ndarray
     summary: dict[str, float]
 
 
@@ -187,6 +191,7 @@ def _extract_observables_from_amplitudes(comp_amp: np.ndarray) -> _DynamicsObser
         populations_11=np.asarray(populations_11, dtype=float),
         leakage_11=np.asarray(leakage_11, dtype=float),
         conditional_phase=np.asarray(cond_phase, dtype=float),
+        monitor_population_11=np.zeros(amp.shape[0], dtype=float),
     )
 
 
@@ -194,6 +199,8 @@ def _simulate_piecewise_constant_scipy(
     H_stack: np.ndarray,
     times_ns: np.ndarray,
     computational_indices: np.ndarray,
+    *,
+    monitor_indices: np.ndarray | None = None,
 ) -> _DynamicsObservables:
     H = np.asarray(H_stack, dtype=complex)
     t = np.asarray(times_ns, dtype=float).ravel()
@@ -213,6 +220,10 @@ def _simulate_piecewise_constant_scipy(
 
     comp_amp = np.zeros((n_time, 4, 4), dtype=complex)
     comp_amp[0] = states[comp_idx, :]
+    mon_idx = None if monitor_indices is None else np.asarray(monitor_indices, dtype=int).ravel()
+    mon = np.zeros(n_time, dtype=float)
+    if mon_idx is not None and mon_idx.size > 0:
+        mon[0] = float(np.sum(np.abs(states[mon_idx, 3]) ** 2))
 
     for k in range(n_time - 1):
         dt = float(t[k + 1] - t[k])
@@ -221,14 +232,24 @@ def _simulate_piecewise_constant_scipy(
         U = expm((-1.0j * TWO_PI * dt) * H[k])
         states = U @ states
         comp_amp[k + 1] = states[comp_idx, :]
+        if mon_idx is not None and mon_idx.size > 0:
+            mon[k + 1] = float(np.sum(np.abs(states[mon_idx, 3]) ** 2))
 
-    return _extract_observables_from_amplitudes(comp_amp)
+    obs = _extract_observables_from_amplitudes(comp_amp)
+    return _DynamicsObservables(
+        populations_11=obs.populations_11,
+        leakage_11=obs.leakage_11,
+        conditional_phase=obs.conditional_phase,
+        monitor_population_11=mon,
+    )
 
 
 def _simulate_piecewise_constant_qutip(
     H_stack: np.ndarray,
     times_ns: np.ndarray,
     computational_indices: np.ndarray,
+    *,
+    monitor_indices: np.ndarray | None = None,
 ) -> _DynamicsObservables:
     try:
         import qutip as qt
@@ -253,6 +274,10 @@ def _simulate_piecewise_constant_qutip(
 
     comp_amp = np.zeros((n_time, 4, 4), dtype=complex)
     comp_amp[0] = states[comp_idx, :]
+    mon_idx = None if monitor_indices is None else np.asarray(monitor_indices, dtype=int).ravel()
+    mon = np.zeros(n_time, dtype=float)
+    if mon_idx is not None and mon_idx.size > 0:
+        mon[0] = float(np.sum(np.abs(states[mon_idx, 3]) ** 2))
 
     for k in range(n_time - 1):
         dt = float(t[k + 1] - t[k])
@@ -262,8 +287,32 @@ def _simulate_piecewise_constant_qutip(
         U = (-1.0j * TWO_PI * dt * step_h).expm()
         states = U.full() @ states
         comp_amp[k + 1] = states[comp_idx, :]
+        if mon_idx is not None and mon_idx.size > 0:
+            mon[k + 1] = float(np.sum(np.abs(states[mon_idx, 3]) ** 2))
 
-    return _extract_observables_from_amplitudes(comp_amp)
+    obs = _extract_observables_from_amplitudes(comp_amp)
+    return _DynamicsObservables(
+        populations_11=obs.populations_11,
+        leakage_11=obs.leakage_11,
+        conditional_phase=obs.conditional_phase,
+        monitor_population_11=mon,
+    )
+
+
+def _q1c0q2_index(n1: int, n2: int, *, nlevels_qubit: int, nlevels_coupler: int) -> int:
+    return int(n1) * int(nlevels_qubit) * int(nlevels_coupler) + int(n2)
+
+
+def _intermediate_channel_indices(*, nlevels_qubit: int, nlevels_coupler: int) -> np.ndarray:
+    if int(nlevels_qubit) < 3:
+        return np.zeros(0, dtype=int)
+    return np.array(
+        [
+            _q1c0q2_index(2, 0, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler),
+            _q1c0q2_index(0, 2, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler),
+        ],
+        dtype=int,
+    )
 
 
 def _evaluate_circuit_candidate(
@@ -335,6 +384,14 @@ def run_cz_benchmark(
     idx_circuit = computational_state_indices(
         config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
         config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
+    )
+    idx_duffing_intermediate = _intermediate_channel_indices(
+        nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
+        nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
+    )
+    idx_circuit_intermediate = _intermediate_channel_indices(
+        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
+        nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
     )
 
     scan_hold_list: list[float] = []
@@ -448,9 +505,24 @@ def run_cz_benchmark(
         sweep_target=sweep_target,
     ).hamiltonian_stack
 
-    obs_effective = _simulate_piecewise_constant_scipy(H_effective, times_ns, idx_effective)
-    obs_duffing = _simulate_piecewise_constant_scipy(duffing_stack, times_ns, idx_duffing)
-    obs_circuit = _simulate_piecewise_constant_qutip(circuit_stack, times_ns, idx_circuit)
+    obs_effective = _simulate_piecewise_constant_scipy(
+        H_effective,
+        times_ns,
+        idx_effective,
+        monitor_indices=None,
+    )
+    obs_duffing = _simulate_piecewise_constant_scipy(
+        duffing_stack,
+        times_ns,
+        idx_duffing,
+        monitor_indices=idx_duffing_intermediate,
+    )
+    obs_circuit = _simulate_piecewise_constant_qutip(
+        circuit_stack,
+        times_ns,
+        idx_circuit,
+        monitor_indices=idx_circuit_intermediate,
+    )
 
     eff_pop_rmse = float(np.sqrt(np.mean((obs_effective.populations_11 - obs_circuit.populations_11) ** 2)))
     duf_pop_rmse = float(np.sqrt(np.mean((obs_duffing.populations_11 - obs_circuit.populations_11) ** 2)))
@@ -495,5 +567,8 @@ def run_cz_benchmark(
         effective_conditional_phase=obs_effective.conditional_phase,
         duffing_conditional_phase=obs_duffing.conditional_phase,
         circuit_conditional_phase=obs_circuit.conditional_phase,
+        effective_intermediate_population_11=obs_effective.monitor_population_11,
+        duffing_intermediate_population_11=obs_duffing.monitor_population_11,
+        circuit_intermediate_population_11=obs_circuit.monitor_population_11,
         summary=summary,
     )
