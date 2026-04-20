@@ -14,6 +14,7 @@ if str(_ROOT) not in sys.path:
 from comparison.cz import run_cz_benchmark
 from comparison.leakage import run_leakage_benchmark
 from comparison.static import run_static_benchmark
+from models.dressed import extract_model1_parameters_from_4x4_stack
 from study_config import load_study_config
 from models.effective import fit_single_harmonic_parameters
 
@@ -31,7 +32,12 @@ def _write_small_system_params(tmp_path: Path) -> Path:
 
 
 
-def _write_small_study_params(tmp_path: Path) -> Path:
+def _write_small_study_params(
+    tmp_path: Path,
+    *,
+    coupler_amplitude: float = 0.0,
+    sweep_target: str = "q1",
+) -> Path:
     src = _ROOT / "params" / "static_benchmark_params.json"
     payload = json.loads(src.read_text(encoding="utf-8"))
     sb = payload["static_benchmark"]
@@ -42,8 +48,11 @@ def _write_small_study_params(tmp_path: Path) -> Path:
     sb["circuit_model"]["hilbert_truncation"]["q1_truncated_dim"] = 4
     sb["circuit_model"]["hilbert_truncation"]["q2_truncated_dim"] = 4
     sb["circuit_model"]["hilbert_truncation"]["c_truncated_dim"] = 4
+    sb["coupler_frequency"]["amplitude"] = float(coupler_amplitude)
+    sb["flux_control"]["sweep_target"] = str(sweep_target)
 
-    dst = tmp_path / "study_params_small.json"
+    suffix = str(coupler_amplitude).replace("-", "m").replace(".", "p")
+    dst = tmp_path / f"study_params_small_{sweep_target}_A{suffix}.json"
     dst.write_text(json.dumps(payload), encoding="utf-8")
     return dst
 
@@ -57,6 +66,7 @@ def test_load_study_config() -> None:
     assert cfg.system.q1.EJmax > 0.0
     assert cfg.static_benchmark.flux_sweep.num_points > 2
     assert cfg.static_benchmark.effective_model.derivation_source in {"duffing", "circuit"}
+    assert cfg.static_benchmark.flux_control.sweep_target in {"coupler", "q1", "q2"}
 
 
 
@@ -74,6 +84,24 @@ def test_effective_fit_is_compact_global_model() -> None:
     assert mismatch > 1e-3
 
 
+def test_extract_model1_parameters_gauge_fixes_exchange_phase() -> None:
+    H = np.zeros((3, 4, 4), dtype=complex)
+    for k, j in enumerate([0.05, -0.06, 0.04]):
+        H[k, 1, 1] = 1.0
+        H[k, 2, 2] = 1.2
+        H[k, 1, 2] = 2.0 * j
+        H[k, 2, 1] = 2.0 * j
+
+    params_raw = extract_model1_parameters_from_4x4_stack(H, gauge_fix_exchange=False)
+    params_fixed = extract_model1_parameters_from_4x4_stack(H, gauge_fix_exchange=True)
+
+    assert np.any(params_raw["J"] < 0.0)
+    assert np.all(params_fixed["J"] >= 0.0)
+    assert np.allclose(params_fixed["w1"], params_raw["w1"])
+    assert np.allclose(params_fixed["w2"], params_raw["w2"])
+    assert np.allclose(params_fixed["zeta"], params_raw["zeta"])
+
+
 
 def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
@@ -88,6 +116,28 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert np.isfinite(float(np.mean(out.effective_error_rmse)))
     assert np.isfinite(float(np.mean(out.duffing_error_rmse)))
 
+
+
+def test_static_benchmark_uses_coupler_amplitude_from_config(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path_zero = _write_small_study_params(tmp_path, coupler_amplitude=0.0, sweep_target="coupler")
+    study_path_nonzero = _write_small_study_params(tmp_path, coupler_amplitude=0.8, sweep_target="coupler")
+
+    out_zero = run_static_benchmark(load_study_config(system_path, study_path_zero))
+    out_nonzero = run_static_benchmark(load_study_config(system_path, study_path_nonzero))
+
+    # Nonzero coupler modulation must produce flux variation in the static spectrum.
+    assert float(np.ptp(out_zero.circuit_relative_energies[:, 1])) < 1e-10
+    assert float(np.ptp(out_nonzero.circuit_relative_energies[:, 1])) > 1e-6
+
+
+def test_static_benchmark_q1_sweep_varies_spectrum_with_fixed_coupler(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path, coupler_amplitude=0.0, sweep_target="q1")
+
+    out = run_static_benchmark(load_study_config(system_path, study_path))
+
+    assert float(np.ptp(out.circuit_relative_energies[:, 1])) > 1e-6
 
 
 def test_cz_and_leakage_headers_raise_not_implemented(tmp_path: Path) -> None:

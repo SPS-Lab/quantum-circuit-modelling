@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from models.josephson import flux_dependent_EJ
+from models.sweep import resolve_static_sweep_values
 from study_config import CircuitModelConfig, CouplerFrequencyConfig, SystemParams
 
 
@@ -28,24 +28,27 @@ def _require_scqubits_module():
 def _build_circuit_hamiltonian(
     system_params: SystemParams,
     circuit_config: CircuitModelConfig,
+    q1_flux: float,
+    q2_flux: float,
     coupler_E_osc: float,
 ):
     scq = _require_scqubits_module()
 
-    EJ1 = float(flux_dependent_EJ(system_params.q1.EJmax, system_params.q1.flux, system_params.q1.d))
-    EJ2 = float(flux_dependent_EJ(system_params.q2.EJmax, system_params.q2.flux, system_params.q2.d))
-
-    q1 = scq.Transmon(
-        EJ=EJ1,
+    q1 = scq.TunableTransmon(
+        EJmax=float(system_params.q1.EJmax),
         EC=float(system_params.q1.EC),
+        d=float(system_params.q1.d),
+        flux=float(q1_flux),
         ng=float(system_params.q1.ng),
         ncut=int(system_params.q1.ncut),
         truncated_dim=int(circuit_config.hilbert_truncation.q1_truncated_dim),
         id_str=str(system_params.q1.id_str),
     )
-    q2 = scq.Transmon(
-        EJ=EJ2,
+    q2 = scq.TunableTransmon(
+        EJmax=float(system_params.q2.EJmax),
         EC=float(system_params.q2.EC),
+        d=float(system_params.q2.d),
+        flux=float(q2_flux),
         ng=float(system_params.q2.ng),
         ncut=int(system_params.q2.ncut),
         truncated_dim=int(circuit_config.hilbert_truncation.q2_truncated_dim),
@@ -81,20 +84,25 @@ def build_circuit_model_stack(
     system_params: SystemParams,
     coupler_frequency: CouplerFrequencyConfig,
     circuit_config: CircuitModelConfig,
+    *,
+    sweep_target: str = "coupler",
 ) -> CircuitModelBuildResult:
-    """Build circuit-model Hamiltonians across a coupler-frequency flux sweep."""
-    flux_arr = np.asarray(flux_values, dtype=float).ravel()
-    wc = np.asarray(
-        float(coupler_frequency.wc0) + float(coupler_frequency.amplitude) * np.cos(2.0 * np.pi * flux_arr),
-        dtype=float,
-    ).ravel()
+    """Build circuit-model Hamiltonians for the configured static sweep target."""
+    q1_flux_arr, q2_flux_arr, wc = resolve_static_sweep_values(
+        flux_values,
+        system_params=system_params,
+        coupler_frequency_config=coupler_frequency,
+        sweep_target=sweep_target,
+    )
 
     mats = [
         _build_circuit_hamiltonian(
             system_params=system_params,
             circuit_config=circuit_config,
+            q1_flux=float(q1_flux_arr[k]),
+            q2_flux=float(q2_flux_arr[k]),
             coupler_E_osc=float(wc_k),
         )
-        for wc_k in wc
+        for k, wc_k in enumerate(wc)
     ]
     return CircuitModelBuildResult(hamiltonian_stack=np.stack(mats, axis=0))

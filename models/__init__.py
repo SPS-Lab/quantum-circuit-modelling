@@ -15,6 +15,7 @@ from models.effective import (
     heff,
 )
 from models.josephson import flux_dependent_EJ
+from models.sweep import resolve_static_sweep_values
 from models.three_mode import (
     ThreeModeHamiltonianCommonKwargs,
     ThreeModeHamiltonianKwargs,
@@ -40,6 +41,7 @@ __all__ = [
     "build_dressed_effective_computational_stack",
     "extract_model1_parameters_from_4x4_stack",
     "flux_dependent_EJ",
+    "resolve_static_sweep_values",
     "ThreeModeHamiltonianCommonKwargs",
     "ThreeModeHamiltonianKwargs",
     "coupler_frequency",

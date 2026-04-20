@@ -34,7 +34,7 @@ class ThreeModeHamiltonianKwargs(ThreeModeHamiltonianCommonKwargs):
 
 
 def coupler_frequency(wc0: float, A: float, flux: np.ndarray | float) -> np.ndarray:
-    """Return coupler frequency ``w_c = wc0 + A cos(2π flux)``."""
+    """Return coupler frequency ``w_c = wc0 + A cos(2pi flux)``."""
     return float(wc0) + float(A) * np.cos(2.0 * np.pi * flux)
 
 

@@ -13,6 +13,7 @@ from models import (
     build_effective_hamiltonian_stack,
     derive_effective_model_from_dressed_stack,
     extract_model1_parameters_from_4x4_stack,
+    resolve_static_sweep_values,
 )
 from study_config import StudyConfig, build_flux_values
 from toolkit.spectrum import track_energy_levels_stack
@@ -37,7 +38,12 @@ class StaticBenchmarkResult:
 
 
 def _relative_energies(H_stack: np.ndarray, n_track: int) -> np.ndarray:
-    evals = track_energy_levels_stack(np.asarray(H_stack, dtype=complex), int(n_track))
+    blocks = ((1, 2),) if int(n_track) >= 3 else None
+    evals = track_energy_levels_stack(
+        np.asarray(H_stack, dtype=complex),
+        int(n_track),
+        projector_blocks=blocks,
+    )
     return np.asarray(evals - evals[:, :1], dtype=float)
 
 
@@ -64,12 +70,14 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         system_params=config.system,
         coupler_frequency=config.static_benchmark.coupler_frequency,
         duffing_config=config.static_benchmark.duffing_model,
+        sweep_target=config.static_benchmark.flux_control.sweep_target,
     )
     circuit = build_circuit_model_stack(
         flux_values=flux_values,
         system_params=config.system,
         coupler_frequency=config.static_benchmark.coupler_frequency,
         circuit_config=config.static_benchmark.circuit_model,
+        sweep_target=config.static_benchmark.flux_control.sweep_target,
     )
 
     dressed_mode = config.static_benchmark.dressed_subspace.selection_mode
@@ -107,9 +115,10 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     effective_parameters = derivation.harmonic_fit.fitted_parameters
     H_effective = build_effective_hamiltonian_stack(effective_parameters)
 
-    E_eff = _relative_energies(H_effective, n_track=4)
-    E_duf = _relative_energies(H_duffing_eff, n_track=4)
-    E_cir = _relative_energies(H_circuit_eff, n_track=4)
+    n_track = int(H_effective.shape[-1])
+    E_eff = _relative_energies(H_effective, n_track=n_track)
+    E_duf = _relative_energies(H_duffing_eff, n_track=n_track)
+    E_cir = _relative_energies(H_circuit_eff, n_track=n_track)
 
     err_eff = _per_flux_rmse(E_eff, E_cir)
     err_duf = _per_flux_rmse(E_duf, E_cir)
@@ -117,9 +126,11 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     params_duffing = extract_model1_parameters_from_4x4_stack(H_duffing_eff)
     params_circuit = extract_model1_parameters_from_4x4_stack(H_circuit_eff)
 
-    wc = (
-        float(config.static_benchmark.coupler_frequency.wc0)
-        + float(config.static_benchmark.coupler_frequency.amplitude) * np.cos(2.0 * np.pi * flux_values)
+    _, _, wc = resolve_static_sweep_values(
+        flux_values,
+        system_params=config.system,
+        coupler_frequency_config=config.static_benchmark.coupler_frequency,
+        sweep_target=config.static_benchmark.flux_control.sweep_target,
     )
     d1 = np.abs(params_circuit["w1"] - wc)
     d2 = np.abs(params_circuit["w2"] - wc)
