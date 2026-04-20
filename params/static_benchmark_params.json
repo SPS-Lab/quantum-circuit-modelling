@@ -2,7 +2,7 @@
   "static_benchmark": {
     "flux_sweep": {
       "start": 0.0,
-      "stop": 0.3,
+      "stop": 1.0,
       "num_points": 61
     },
     "flux_control": {
