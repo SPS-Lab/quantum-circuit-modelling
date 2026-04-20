@@ -6,7 +6,6 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import hsv_to_rgb
 
 from comparison.cz import CzBenchmarkResult
 
@@ -15,7 +14,7 @@ def plot_cz_benchmark(result: CzBenchmarkResult, outfile: Path, title: str) -> N
     t = np.asarray(result.times_ns, dtype=float)
 
     fig, axes = plt.subplots(2, 2, figsize=(11.0, 8.0), sharex=True)
-    ax_flux, ax_phase, ax_prob, ax_p11 = axes.ravel()
+    ax_flux, ax_phase, ax_prob, ax_p01 = axes.ravel()
 
     ax_flux.plot(t, result.pulse_flux_values, color="C4", linewidth=2.0)
     ax_flux.axhline(result.idle_flux, color="0.4", linestyle=":", linewidth=1.0, label="idle")
@@ -44,25 +43,13 @@ def plot_cz_benchmark(result: CzBenchmarkResult, outfile: Path, title: str) -> N
     ax_prob.grid(True, alpha=0.3)
     ax_prob.legend(loc="best", fontsize="small", ncol=2)
 
-    prob_hm = np.abs(psi.T) ** 2
-    phase_ref = np.angle(psi[:, 0])  # reference to |00>
-    psi_rel = psi * np.exp(-1.0j * phase_ref)[:, np.newaxis]
-    phase = np.angle(psi_rel.T)
-    hue = np.mod(phase, 2.0 * np.pi) / (2.0 * np.pi)
-    sat = np.ones_like(hue)
-    # Brighten low populations for readability while preserving ordering.
-    val = np.clip(prob_hm, 0.0, 1.0) ** 0.35
-    rgb = hsv_to_rgb(np.stack((hue, sat, val), axis=-1))
-    ax_p11.imshow(
-        rgb,
-        origin="lower",
-        aspect="auto",
-        interpolation="nearest",
-        extent=[t[0], t[-1], -0.5, 3.5],
-    )
-    ax_p11.set_ylabel("Circuit basis state")
-    ax_p11.set_title(r"Circuit $|++\rangle$ statevector (phase relative to $|00\rangle$)")
-    ax_p11.set_yticks([0, 1, 2, 3], [r"$|00\rangle$", r"$|01\rangle$", r"$|10\rangle$", r"$|11\rangle$"])
+    ax_p01.plot(t, result.circuit_populations_plus_plus[:, 1], color="k", linewidth=2.0, label="circuit")
+    ax_p01.plot(t, result.duffing_populations_plus_plus[:, 1], color="C0", linestyle="--", linewidth=1.8, label="duffing")
+    ax_p01.plot(t, result.effective_populations_plus_plus[:, 1], color="C3", linestyle=":", linewidth=1.8, label="effective")
+    ax_p01.set_ylabel(r"$P_{01}(t)$")
+    ax_p01.set_title(r"Population $P_{01}$ from $|++\rangle$")
+    ax_p01.grid(True, alpha=0.3)
+    ax_p01.legend(loc="best", fontsize="small")
 
     axes[1, 0].set_xlabel("Time (ns)")
     axes[1, 1].set_xlabel("Time (ns)")

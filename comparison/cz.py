@@ -51,6 +51,9 @@ class CzBenchmarkResult:
     duffing_conditional_phase: np.ndarray
     circuit_conditional_phase: np.ndarray
     circuit_statevector_plus_plus: np.ndarray
+    effective_populations_plus_plus: np.ndarray
+    duffing_populations_plus_plus: np.ndarray
+    circuit_populations_plus_plus: np.ndarray
     effective_intermediate_population_11: np.ndarray
     duffing_intermediate_population_11: np.ndarray
     circuit_intermediate_population_11: np.ndarray
@@ -552,11 +555,24 @@ def run_cz_benchmark(
     }
 
     plus_plus_coeff = np.full(4, 0.5 + 0.0j, dtype=complex)
+    effective_statevector_plus_plus = np.einsum(
+        "tij,j->ti",
+        obs_effective.computational_amplitudes,
+        plus_plus_coeff,
+    )
+    duffing_statevector_plus_plus = np.einsum(
+        "tij,j->ti",
+        obs_duffing.computational_amplitudes,
+        plus_plus_coeff,
+    )
     circuit_statevector_plus_plus = np.einsum(
         "tij,j->ti",
         obs_circuit.computational_amplitudes,
         plus_plus_coeff,
     )
+    effective_pop_plus_plus = np.abs(effective_statevector_plus_plus) ** 2
+    duffing_pop_plus_plus = np.abs(duffing_statevector_plus_plus) ** 2
+    circuit_pop_plus_plus = np.abs(circuit_statevector_plus_plus) ** 2
 
     return CzBenchmarkResult(
         times_ns=np.asarray(times_ns, dtype=float),
@@ -580,6 +596,9 @@ def run_cz_benchmark(
         duffing_conditional_phase=obs_duffing.conditional_phase,
         circuit_conditional_phase=obs_circuit.conditional_phase,
         circuit_statevector_plus_plus=np.asarray(circuit_statevector_plus_plus, dtype=complex),
+        effective_populations_plus_plus=np.asarray(effective_pop_plus_plus, dtype=float),
+        duffing_populations_plus_plus=np.asarray(duffing_pop_plus_plus, dtype=float),
+        circuit_populations_plus_plus=np.asarray(circuit_pop_plus_plus, dtype=float),
         effective_intermediate_population_11=obs_effective.monitor_population_11,
         duffing_intermediate_population_11=obs_duffing.monitor_population_11,
         circuit_intermediate_population_11=obs_circuit.monitor_population_11,
