@@ -50,7 +50,7 @@ class CzBenchmarkResult:
     effective_conditional_phase: np.ndarray
     duffing_conditional_phase: np.ndarray
     circuit_conditional_phase: np.ndarray
-    circuit_statevector_11: np.ndarray
+    circuit_statevector_plus_plus: np.ndarray
     effective_intermediate_population_11: np.ndarray
     duffing_intermediate_population_11: np.ndarray
     circuit_intermediate_population_11: np.ndarray
@@ -551,6 +551,13 @@ def run_cz_benchmark(
         "dt_ns": float(dt_ns),
     }
 
+    plus_plus_coeff = np.full(4, 0.5 + 0.0j, dtype=complex)
+    circuit_statevector_plus_plus = np.einsum(
+        "tij,j->ti",
+        obs_circuit.computational_amplitudes,
+        plus_plus_coeff,
+    )
+
     return CzBenchmarkResult(
         times_ns=np.asarray(times_ns, dtype=float),
         pulse_flux_values=np.asarray(pulse_flux, dtype=float),
@@ -572,7 +579,7 @@ def run_cz_benchmark(
         effective_conditional_phase=obs_effective.conditional_phase,
         duffing_conditional_phase=obs_duffing.conditional_phase,
         circuit_conditional_phase=obs_circuit.conditional_phase,
-        circuit_statevector_11=obs_circuit.computational_amplitudes[:, :, 3],
+        circuit_statevector_plus_plus=np.asarray(circuit_statevector_plus_plus, dtype=complex),
         effective_intermediate_population_11=obs_effective.monitor_population_11,
         duffing_intermediate_population_11=obs_duffing.monitor_population_11,
         circuit_intermediate_population_11=obs_circuit.monitor_population_11,

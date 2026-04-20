@@ -29,8 +29,22 @@ def main() -> None:
     plot_cz_benchmark(result, figure_path, title)
 
     print("CZ benchmark summary:")
-    for key, value in result.summary.items():
-        print(f"  {key}: {value:.6e}")
+    cz_summary_keys = [
+        "effective_final_conditional_phase_rad",
+        "duffing_final_conditional_phase_rad",
+        "circuit_final_conditional_phase_rad",
+        "circuit_final_phase_error_to_pi_rad",
+        "effective_final_phase_error_vs_circuit_rad",
+        "duffing_final_phase_error_vs_circuit_rad",
+        "effective_populations_rmse_vs_circuit",
+        "duffing_populations_rmse_vs_circuit",
+        "ramp_time_ns",
+        "hold_time_ns",
+        "dt_ns",
+    ]
+    for key in cz_summary_keys:
+        if key in result.summary:
+            print(f"  {key}: {result.summary[key]:.6e}")
     print(
         "Selected pulse: "
         f"sweep_target={result.sweep_target}, idle_flux={result.idle_flux:.6f}, "

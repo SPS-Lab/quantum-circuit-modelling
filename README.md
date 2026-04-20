@@ -20,7 +20,7 @@ python print_versions.py
 The paper-aligned workflow is organized by responsibility:
 
 - `models`: model builders (`effective`, `duffing`, `circuit`)
-- `comparison`: benchmark logic (`static`, `cz`, leakage header)
+- `comparison`: benchmark logic (`static`, `cz`, `leakage`)
 - `plots`: plotting only
 - `study_config.py`: typed config loading/validation
 - `params`: all runtime parameters consumed by main scripts
@@ -55,10 +55,12 @@ The CZ benchmark:
 - uses a ramp-hold-ramp pulse with automatic hold-time scan toward CZ phase (`pi`),
 - propagates effective + Duffing models with `numpy/scipy`,
 - propagates the circuit model with `scqubits` Hamiltonians + `qutip`,
-- writes a CZ dynamics figure next to the configured static figure path.
+- focuses on CZ behavior/statevector from `|++>` and writes a CZ figure next to the configured static figure path.
 
-Leakage benchmark remains a header stub:
+Run the leakage benchmark (from `|11>`):
 
 ```bash
 python scripts/run_leakage_benchmark.py
 ```
+
+The leakage benchmark reuses the same calibrated pulse and reports/plots leakage-focused dynamics separately.

@@ -1,4 +1,4 @@
-"""Header script for leakage benchmark (not implemented yet)."""
+"""Run leakage benchmark with parameters loaded from /params."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from comparison.leakage import run_leakage_benchmark
+from plots.leakage import plot_leakage_benchmark
 from study_config import load_study_config
 
 
@@ -20,7 +21,23 @@ def main() -> None:
         repo_root / "params" / "system_params.json",
         repo_root / "params" / "static_benchmark_params.json",
     )
-    run_leakage_benchmark(config)
+    result = run_leakage_benchmark(config)
+
+    static_figure = repo_root / config.static_benchmark.outputs.figure
+    figure_path = static_figure.with_name("model_comparison_leakage.pdf")
+    title = "Leakage benchmark from |11>: effective vs Duffing vs circuit"
+    plot_leakage_benchmark(result, figure_path, title)
+
+    print("Leakage benchmark summary:")
+    for key, value in result.summary.items():
+        print(f"  {key}: {value:.6e}")
+    print(
+        "Selected pulse: "
+        f"sweep_target={result.sweep_target}, idle_flux={result.idle_flux:.6f}, "
+        f"target_flux={result.target_flux:.6f}, ramp_time_ns={result.ramp_time_ns:.3f}, "
+        f"hold_time_ns={result.hold_time_ns:.3f}, dt_ns={result.dt_ns:.3f}"
+    )
+    print(f"Wrote figure: {figure_path}")
 
 
 if __name__ == "__main__":
