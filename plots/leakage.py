@@ -32,11 +32,23 @@ def plot_leakage_benchmark(result: LeakageBenchmarkResult, outfile: Path, title:
     ax_leak.grid(True, alpha=0.3)
     ax_leak.legend(loc="best", fontsize="small")
 
-    ax_inter.plot(t, result.circuit_intermediate_population_11, color="k", linewidth=2.0, label="circuit")
-    ax_inter.plot(t, result.duffing_intermediate_population_11, color="C0", linestyle="--", linewidth=1.8, label="duffing")
-    ax_inter.plot(t, result.effective_intermediate_population_11, color="C3", linestyle=":", linewidth=1.8, label="effective")
-    ax_inter.set_ylabel(r"$P_{20}(t)+P_{02}(t)$ from $|11\rangle$")
-    ax_inter.set_title("Intermediate leakage channel")
+    ax_inter.plot(
+        t,
+        result.circuit_state_011_11,
+        color="k",
+        linewidth=2.0,
+        label=r"circuit $P_{|0,1,1\rangle}$",
+    )
+    ax_inter.plot(
+        t,
+        result.duffing_state_011_11,
+        color="C0",
+        linestyle="--",
+        linewidth=1.8,
+        label=r"duffing $P_{|0,1,1\rangle}$",
+    )
+    ax_inter.set_ylabel("Population")
+    ax_inter.set_title(r"Leakage-channel comparison from $|11\rangle$")
     ax_inter.grid(True, alpha=0.3)
     ax_inter.legend(loc="best", fontsize="small")
 

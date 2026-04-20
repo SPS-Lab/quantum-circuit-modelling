@@ -5,8 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+from scipy.linalg import expm
 
-from comparison.cz import CzBenchmarkResult, run_cz_benchmark
+from comparison.cz import CzBenchmarkResult, TWO_PI, run_cz_benchmark
+from models import build_circuit_model_stack, build_duffing_model_stack
 from study_config import StudyConfig
 
 
@@ -29,12 +31,119 @@ class LeakageBenchmarkResult:
     effective_intermediate_population_11: np.ndarray
     duffing_intermediate_population_11: np.ndarray
     circuit_intermediate_population_11: np.ndarray
+    duffing_state_011_11: np.ndarray
+    circuit_coupler_excited_11: np.ndarray
+    circuit_state_011_11: np.ndarray
     summary: dict[str, float]
 
 
-def _as_leakage_result(cz_result: CzBenchmarkResult) -> LeakageBenchmarkResult:
+def _idx_qcq(n1: int, nc: int, n2: int, i: int, j: int, k: int) -> int:
+    return int((i * nc + j) * n2 + k)
+
+
+def _state_011_from_11_for_stack(
+    *,
+    stack: np.ndarray,
+    times_ns: np.ndarray,
+    nlevels_qubit: int,
+    nlevels_coupler: int,
+) -> np.ndarray:
+    t = np.asarray(times_ns, dtype=float).ravel()
+    n1 = int(nlevels_qubit)
+    nc = int(nlevels_coupler)
+    n2 = int(nlevels_qubit)
+    d = int(stack.shape[1])
+
+    psi = np.zeros(d, dtype=complex)
+    psi[_idx_qcq(n1, nc, n2, 1, 0, 1)] = 1.0
+    idx_011 = _idx_qcq(n1, nc, n2, 0, 1, 1)
+
+    p_state_011 = np.zeros(t.size, dtype=float)
+    p_state_011[0] = float(np.abs(psi[idx_011]) ** 2)
+
+    for m in range(t.size - 1):
+        dt = float(t[m + 1] - t[m])
+        if dt <= 0.0:
+            raise ValueError("times_ns must be strictly increasing")
+        U = expm((-1.0j * TWO_PI * dt) * stack[m])
+        psi = U @ psi
+        p_state_011[m + 1] = float(np.abs(psi[idx_011]) ** 2)
+    return p_state_011
+
+
+def _circuit_leakage_destination_from_11(
+    *,
+    config: StudyConfig,
+    cz_result: CzBenchmarkResult,
+) -> tuple[np.ndarray, np.ndarray]:
+    stack = build_circuit_model_stack(
+        flux_values=cz_result.pulse_flux_values,
+        system_params=config.system,
+        coupler_frequency=config.static_benchmark.coupler_frequency,
+        circuit_config=config.static_benchmark.circuit_model,
+        sweep_target=cz_result.sweep_target,
+    ).hamiltonian_stack
+
+    t = np.asarray(cz_result.times_ns, dtype=float).ravel()
+    n1 = int(config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim)
+    nc = int(config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim)
+    n2 = int(config.static_benchmark.circuit_model.hilbert_truncation.q2_truncated_dim)
+    d = int(stack.shape[1])
+
+    psi = np.zeros(d, dtype=complex)
+    psi[_idx_qcq(n1, nc, n2, 1, 0, 1)] = 1.0
+
+    p_coupler_exc = np.zeros(t.size, dtype=float)
+    p_state_011 = np.zeros(t.size, dtype=float)
+
+    idx_011 = _idx_qcq(n1, nc, n2, 0, 1, 1)
+    p_c0 = 0.0
+    for i in range(n1):
+        for k in range(n2):
+            idx = _idx_qcq(n1, nc, n2, i, 0, k)
+            p_c0 += float(np.abs(psi[idx]) ** 2)
+    p_coupler_exc[0] = 1.0 - p_c0
+    p_state_011[0] = float(np.abs(psi[idx_011]) ** 2)
+
+    for m in range(t.size - 1):
+        dt = float(t[m + 1] - t[m])
+        if dt <= 0.0:
+            raise ValueError("times_ns must be strictly increasing")
+        U = expm((-1.0j * TWO_PI * dt) * stack[m])
+        psi = U @ psi
+
+        p_c0 = 0.0
+        for i in range(n1):
+            for k in range(n2):
+                idx = _idx_qcq(n1, nc, n2, i, 0, k)
+                p_c0 += float(np.abs(psi[idx]) ** 2)
+        p_coupler_exc[m + 1] = 1.0 - p_c0
+        p_state_011[m + 1] = float(np.abs(psi[idx_011]) ** 2)
+
+    return p_coupler_exc, p_state_011
+
+
+def _as_leakage_result(
+    *,
+    config: StudyConfig,
+    cz_result: CzBenchmarkResult,
+) -> LeakageBenchmarkResult:
     eff_rmse = float(np.sqrt(np.mean((cz_result.effective_leakage_11 - cz_result.circuit_leakage_11) ** 2)))
     duf_rmse = float(np.sqrt(np.mean((cz_result.duffing_leakage_11 - cz_result.circuit_leakage_11) ** 2)))
+    p_coupler_exc, p_state_011 = _circuit_leakage_destination_from_11(config=config, cz_result=cz_result)
+    duffing_stack = build_duffing_model_stack(
+        flux_values=cz_result.pulse_flux_values,
+        system_params=config.system,
+        coupler_frequency=config.static_benchmark.coupler_frequency,
+        duffing_config=config.static_benchmark.duffing_model,
+        sweep_target=cz_result.sweep_target,
+    ).hamiltonian_stack
+    p_duffing_011 = _state_011_from_11_for_stack(
+        stack=duffing_stack,
+        times_ns=cz_result.times_ns,
+        nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
+        nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
+    )
 
     summary = {
         "effective_max_leakage_11": float(np.max(cz_result.effective_leakage_11)),
@@ -48,6 +157,9 @@ def _as_leakage_result(cz_result: CzBenchmarkResult) -> LeakageBenchmarkResult:
         "effective_max_intermediate_11": float(np.max(cz_result.effective_intermediate_population_11)),
         "duffing_max_intermediate_11": float(np.max(cz_result.duffing_intermediate_population_11)),
         "circuit_max_intermediate_11": float(np.max(cz_result.circuit_intermediate_population_11)),
+        "duffing_max_state_011_11": float(np.max(p_duffing_011)),
+        "circuit_max_coupler_excited_11": float(np.max(p_coupler_exc)),
+        "circuit_max_state_011_11": float(np.max(p_state_011)),
         "ramp_time_ns": float(cz_result.ramp_time_ns),
         "hold_time_ns": float(cz_result.hold_time_ns),
         "dt_ns": float(cz_result.dt_ns),
@@ -71,6 +183,9 @@ def _as_leakage_result(cz_result: CzBenchmarkResult) -> LeakageBenchmarkResult:
         effective_intermediate_population_11=np.asarray(cz_result.effective_intermediate_population_11, dtype=float),
         duffing_intermediate_population_11=np.asarray(cz_result.duffing_intermediate_population_11, dtype=float),
         circuit_intermediate_population_11=np.asarray(cz_result.circuit_intermediate_population_11, dtype=float),
+        duffing_state_011_11=np.asarray(p_duffing_011, dtype=float),
+        circuit_coupler_excited_11=np.asarray(p_coupler_exc, dtype=float),
+        circuit_state_011_11=np.asarray(p_state_011, dtype=float),
         summary=summary,
     )
 
@@ -97,4 +212,4 @@ def run_leakage_benchmark(
         scan_max_hold_ns=scan_max_hold_ns,
         scan_leakage_penalty=scan_leakage_penalty,
     )
-    return _as_leakage_result(cz_result)
+    return _as_leakage_result(config=config, cz_result=cz_result)
