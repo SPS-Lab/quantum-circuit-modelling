@@ -14,7 +14,7 @@
     },
     "dressed_subspace": {
       "n_candidate_states": 20,
-      "selection_mode": "continuous"
+      "selection_mode": "bare"
     },
     "duffing_model": {
       "transmon_spectral_extraction": {
