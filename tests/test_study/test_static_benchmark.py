@@ -179,12 +179,30 @@ def test_duffing_analytic_per_flux_calibration_varies_with_flux(tmp_path: Path) 
     assert float(np.ptp(out.duffing_relative_energies[:, 1])) > 1e-6
 
 
-def test_cz_and_leakage_headers_raise_not_implemented(tmp_path: Path) -> None:
+def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
+    pytest.importorskip("qutip")
+
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
     cfg = load_study_config(system_path, study_path)
 
-    with pytest.raises(NotImplementedError):
-        run_cz_benchmark(cfg)
+    out = run_cz_benchmark(cfg, total_time_ns=20.0, num_time_points=21, ramp_fraction=0.25)
+    assert out.times_ns.shape == (21,)
+    assert out.effective_populations_11.shape == (21, 4)
+    assert out.duffing_populations_11.shape == (21, 4)
+    assert out.circuit_populations_11.shape == (21, 4)
+    assert np.all(np.isfinite(out.effective_conditional_phase))
+    assert np.all(np.isfinite(out.duffing_conditional_phase))
+    assert np.all(np.isfinite(out.circuit_conditional_phase))
+    assert np.all(out.effective_leakage_11 >= -1e-12)
+    assert np.all(out.duffing_leakage_11 >= -1e-12)
+    assert np.all(out.circuit_leakage_11 >= -1e-12)
+
+
+def test_leakage_header_raises_not_implemented(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_path, study_path)
+
     with pytest.raises(NotImplementedError):
         run_leakage_benchmark(cfg)
