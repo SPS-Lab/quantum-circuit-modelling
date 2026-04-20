@@ -17,6 +17,29 @@ def plot_static_benchmark(result: StaticBenchmarkResult, outfile: Path, title: s
     fig, axes = plt.subplots(2, 2, figsize=(11.0, 8.0), sharex=True)
     axE, axErr, axJ, axZeta = axes.ravel()
 
+    # Plot lower full-spectrum levels for context (faint lines), then emphasize
+    # the tracked computational manifold on top.
+    n_full = int(result.circuit_full_relative_energies.shape[1])
+    if n_full > 4:
+        for i in range(1, n_full):
+            axE.plot(
+                flux,
+                result.circuit_full_relative_energies[:, i],
+                color="0.55",
+                linewidth=0.8,
+                alpha=0.25,
+            )
+            axE.plot(
+                flux,
+                result.duffing_full_relative_energies[:, i],
+                color="C0",
+                linestyle="--",
+                linewidth=0.7,
+                alpha=0.14,
+            )
+        axE.plot([], [], color="0.55", linewidth=1.2, alpha=0.35, label="circuit lower levels")
+        axE.plot([], [], color="C0", linestyle="--", linewidth=1.1, alpha=0.35, label="duffing lower levels")
+
     for i in (1, 2, 3):
         color = f"C{i - 1}"
         axE.plot(flux, result.circuit_relative_energies[:, i], color=color, linewidth=1.8, label=rf"circuit $E_{{{i}}}$")

@@ -25,6 +25,8 @@ class StaticBenchmarkResult:
     effective_relative_energies: np.ndarray
     duffing_relative_energies: np.ndarray
     circuit_relative_energies: np.ndarray
+    duffing_full_relative_energies: np.ndarray
+    circuit_full_relative_energies: np.ndarray
     effective_error_rmse: np.ndarray
     duffing_error_rmse: np.ndarray
     effective_parameters: dict[str, np.ndarray]
@@ -37,8 +39,13 @@ class StaticBenchmarkResult:
 
 
 
-def _relative_energies(H_stack: np.ndarray, n_track: int) -> np.ndarray:
-    blocks = ((1, 2),) if int(n_track) >= 3 else None
+def _relative_energies(
+    H_stack: np.ndarray,
+    n_track: int,
+    *,
+    projector_track_single_excitation: bool = False,
+) -> np.ndarray:
+    blocks = ((1, 2),) if projector_track_single_excitation and int(n_track) >= 3 else None
     evals = track_energy_levels_stack(
         np.asarray(H_stack, dtype=complex),
         int(n_track),
@@ -116,9 +123,13 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     H_effective = build_effective_hamiltonian_stack(effective_parameters)
 
     n_track = int(H_effective.shape[-1])
-    E_eff = _relative_energies(H_effective, n_track=n_track)
-    E_duf = _relative_energies(H_duffing_eff, n_track=n_track)
-    E_cir = _relative_energies(H_circuit_eff, n_track=n_track)
+    E_eff = _relative_energies(H_effective, n_track=n_track, projector_track_single_excitation=True)
+    E_duf = _relative_energies(H_duffing_eff, n_track=n_track, projector_track_single_excitation=True)
+    E_cir = _relative_energies(H_circuit_eff, n_track=n_track, projector_track_single_excitation=True)
+
+    n_full_track = int(min(10, duffing.hamiltonian_stack.shape[1], circuit.hamiltonian_stack.shape[1]))
+    E_duf_full = _relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
+    E_cir_full = _relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
 
     err_eff = _per_flux_rmse(E_eff, E_cir)
     err_duf = _per_flux_rmse(E_duf, E_cir)
@@ -163,6 +174,8 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         effective_relative_energies=E_eff,
         duffing_relative_energies=E_duf,
         circuit_relative_energies=E_cir,
+        duffing_full_relative_energies=E_duf_full,
+        circuit_full_relative_energies=E_cir_full,
         effective_error_rmse=err_eff,
         duffing_error_rmse=err_duf,
         effective_parameters={k: np.asarray(v, dtype=float) for k, v in effective_parameters.items()},
