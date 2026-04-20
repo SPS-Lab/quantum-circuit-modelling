@@ -72,6 +72,7 @@ def test_load_study_config() -> None:
     assert cfg.static_benchmark.duffing_model.calibration_mode in {"fixed", "analytic-per-flux", "per-flux"}
     assert len(cfg.truncation_benchmark.duffing_ncut_values) > 0
     assert cfg.truncation_benchmark.duffing_truncated_dim >= 3
+    assert cfg.truncation_benchmark.lowest_excited_levels_to_plot >= 1
     assert cfg.truncation_benchmark.circuit_reference_ncut > 0
     assert cfg.truncation_benchmark.duffing_calibration_mode in {"fixed", "analytic-per-flux", "per-flux"}
 

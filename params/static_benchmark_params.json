@@ -49,9 +49,10 @@
     }
   },
   "truncation_benchmark": {
-    "fixed_flux": 0.1,
-    "duffing_ncut_values": [2,3,4,5,6,7,8, 15, 20],
+    "fixed_flux": 0.000001,
+    "duffing_ncut_values": [2, 3, 4, 5, 6, 7, 8, 15, 20],
     "duffing_truncated_dim": 40,
+    "lowest_excited_levels_to_plot": 12,
     "circuit_reference_ncut": 120,
     "duffing_calibration_mode": "per-flux",
     "outputs": {

@@ -79,6 +79,11 @@ This benchmark:
 - sweeps Duffing transmon calibration `ncut`,
 - uses `truncation_benchmark.duffing_truncated_dim` for transmon spectral extraction,
   with per-point safety clipping to `min(duffing_truncated_dim, 2*ncut+1)`,
+- uses `truncation_benchmark.lowest_excited_levels_to_plot` to control how many
+  lowest excited levels are shown in the level and level-difference subplots,
 - plots Duffing `J`/`\zeta` against a circuit reference shown as horizontal lines,
 - and shows the lowest relative energy levels vs `ncut` (Duffing curves with circuit horizontal references).
   (computed once at large circuit `ncut`).
+- and prints `Duffing - circuit` numerically at the maximum Duffing `ncut`
+  for those reported excited levels, including relative difference as percent
+  of circuit energy.

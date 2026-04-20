@@ -27,6 +27,10 @@ class TruncationBenchmarkResult:
     duffing_zeta: np.ndarray
     duffing_lowest_relative_energies: np.ndarray
     circuit_lowest_relative_energies: np.ndarray
+    max_duffing_ncut: int
+    max_ncut_reported_excited_levels: np.ndarray
+    duffing_minus_circuit_at_max_ncut: np.ndarray
+    duffing_minus_circuit_percent_of_circuit_at_max_ncut: np.ndarray
     circuit_reference_ncut: int
     circuit_j: float
     circuit_zeta: float
@@ -124,6 +128,7 @@ def run_truncation_benchmark(
     duffing_ncut_values: list[int] | np.ndarray,
     fixed_flux: float | None = None,
     duffing_truncated_dim: int | None = None,
+    lowest_excited_levels_to_report: int | None = None,
     circuit_reference_ncut: int = 120,
     duffing_calibration_mode: str = "per-flux",
 ) -> TruncationBenchmarkResult:
@@ -150,6 +155,13 @@ def run_truncation_benchmark(
     )
     if trunc_dim_cfg < 3:
         raise ValueError("duffing_truncated_dim must be >= 3")
+    n_report_cfg = int(
+        config.truncation_benchmark.lowest_excited_levels_to_plot
+        if lowest_excited_levels_to_report is None
+        else lowest_excited_levels_to_report
+    )
+    if n_report_cfg < 1:
+        raise ValueError("lowest_excited_levels_to_report must be >= 1")
 
     j_vals = np.empty(ncuts.shape[0], dtype=float)
     zeta_vals = np.empty(ncuts.shape[0], dtype=float)
@@ -178,6 +190,25 @@ def run_truncation_benchmark(
     )
     duffing_low = np.stack([levels[:n_low] for levels in rel_levels_duffing], axis=0)
     circuit_low = np.asarray(rel_levels_circuit[:n_low], dtype=float)
+    max_ncut = int(np.max(ncuts))
+    max_ncut_idx = int(np.flatnonzero(ncuts == max_ncut)[-1])
+    n_report = int(min(n_report_cfg, max(0, n_low - 1)))
+    reported_levels = np.arange(1, 1 + n_report, dtype=int)
+    max_ncut_diff = (
+        np.asarray(duffing_low[max_ncut_idx, 1 : 1 + n_report] - circuit_low[1 : 1 + n_report], dtype=float)
+        if n_report > 0
+        else np.zeros(0, dtype=float)
+    )
+    if n_report > 0:
+        circuit_ref_levels = np.asarray(circuit_low[1 : 1 + n_report], dtype=float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            max_ncut_diff_percent = 100.0 * (max_ncut_diff / circuit_ref_levels)
+        # If a circuit reference level is effectively zero, percent is undefined.
+        near_zero = np.abs(circuit_ref_levels) < 1e-15
+        max_ncut_diff_percent = np.where(near_zero, np.nan, max_ncut_diff_percent)
+        max_ncut_diff_percent = np.asarray(max_ncut_diff_percent, dtype=float)
+    else:
+        max_ncut_diff_percent = np.zeros(0, dtype=float)
 
     err_j = j_vals - circuit_j
     err_zeta = zeta_vals - circuit_zeta
@@ -192,7 +223,13 @@ def run_truncation_benchmark(
         "duffing_zeta_rmse_vs_circuit": float(np.sqrt(np.mean(err_zeta * err_zeta))),
         "duffing_zeta_max_abs_vs_circuit": float(np.max(np.abs(err_zeta))),
         "lowest_levels_count": float(n_low),
+        "max_duffing_ncut": float(max_ncut),
+        "reported_excited_levels_count": float(n_report),
     }
+    for level, diff in zip(reported_levels, max_ncut_diff):
+        summary[f"duffing_minus_circuit_E{int(level)}_at_max_ncut"] = float(diff)
+    for level, rel_pct in zip(reported_levels, max_ncut_diff_percent):
+        summary[f"duffing_minus_circuit_E{int(level)}_percent_of_circuit_at_max_ncut"] = float(rel_pct)
 
     return TruncationBenchmarkResult(
         flux=flux,
@@ -205,6 +242,10 @@ def run_truncation_benchmark(
         duffing_zeta=np.asarray(zeta_vals, dtype=float),
         duffing_lowest_relative_energies=np.asarray(duffing_low, dtype=float),
         circuit_lowest_relative_energies=np.asarray(circuit_low, dtype=float),
+        max_duffing_ncut=max_ncut,
+        max_ncut_reported_excited_levels=np.asarray(reported_levels, dtype=int),
+        duffing_minus_circuit_at_max_ncut=np.asarray(max_ncut_diff, dtype=float),
+        duffing_minus_circuit_percent_of_circuit_at_max_ncut=np.asarray(max_ncut_diff_percent, dtype=float),
         circuit_reference_ncut=int(circuit_reference_ncut),
         circuit_j=float(circuit_j),
         circuit_zeta=float(circuit_zeta),

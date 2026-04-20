@@ -45,6 +45,7 @@ def _write_small_study_params(tmp_path: Path) -> Path:
     tb["fixed_flux"] = 0.4
     tb["duffing_ncut_values"] = [3, 4, 6, 8]
     tb["duffing_truncated_dim"] = 12
+    tb["lowest_excited_levels_to_plot"] = 2
     tb["circuit_reference_ncut"] = 35
     tb["duffing_calibration_mode"] = "per-flux"
     tb["outputs"]["figure"] = "figures/regime_map/test_truncation_benchmark.pdf"
@@ -76,12 +77,22 @@ def test_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.duffing_lowest_relative_energies.shape[0] == 4
     assert out.duffing_lowest_relative_energies.shape[1] >= 2
     assert out.circuit_lowest_relative_energies.shape == (out.duffing_lowest_relative_energies.shape[1],)
+    assert out.max_duffing_ncut == int(np.max(out.duffing_ncut_values))
+    n_report = min(
+        int(cfg.truncation_benchmark.lowest_excited_levels_to_plot),
+        max(0, int(out.duffing_lowest_relative_energies.shape[1]) - 1),
+    )
+    assert out.max_ncut_reported_excited_levels.shape == (n_report,)
+    assert out.duffing_minus_circuit_at_max_ncut.shape == (n_report,)
+    assert out.duffing_minus_circuit_percent_of_circuit_at_max_ncut.shape == (n_report,)
     assert np.all(np.isfinite(out.duffing_j))
     assert np.all(np.isfinite(out.duffing_zeta))
     assert np.all(out.duffing_effective_truncated_dim_values <= (2 * out.duffing_ncut_values + 1))
     assert np.all(out.duffing_effective_truncated_dim_values <= out.duffing_truncated_dim)
     assert np.all(np.isfinite(out.duffing_lowest_relative_energies))
     assert np.all(np.isfinite(out.circuit_lowest_relative_energies))
+    assert np.all(np.isfinite(out.duffing_minus_circuit_at_max_ncut))
+    assert np.all(np.isfinite(out.duffing_minus_circuit_percent_of_circuit_at_max_ncut))
     assert np.allclose(out.duffing_lowest_relative_energies[:, 0], 0.0, atol=1e-12)
     assert np.isclose(out.circuit_lowest_relative_energies[0], 0.0, atol=1e-12)
     assert np.isfinite(out.circuit_j)
@@ -122,5 +133,10 @@ def test_truncation_plot_writes_pdf(tmp_path: Path) -> None:
     )
 
     outfile = tmp_path / "truncation_benchmark.pdf"
-    plot_truncation_benchmark(out, outfile, title="test")
+    plot_truncation_benchmark(
+        out,
+        outfile,
+        title="test",
+        lowest_excited_levels_to_plot=cfg.truncation_benchmark.lowest_excited_levels_to_plot,
+    )
     assert outfile.exists()

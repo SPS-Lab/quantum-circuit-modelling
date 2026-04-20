@@ -28,6 +28,7 @@ def main() -> None:
         duffing_ncut_values=list(trunc_cfg.duffing_ncut_values),
         fixed_flux=float(trunc_cfg.fixed_flux),
         duffing_truncated_dim=int(trunc_cfg.duffing_truncated_dim),
+        lowest_excited_levels_to_report=int(trunc_cfg.lowest_excited_levels_to_plot),
         circuit_reference_ncut=int(trunc_cfg.circuit_reference_ncut),
         duffing_calibration_mode=str(trunc_cfg.duffing_calibration_mode),
     )
@@ -41,7 +42,12 @@ def main() -> None:
         "Fixed-flux truncation benchmark: Duffing vs circuit "
         f"(flux={result.flux:.6f}, target={result.sweep_target})"
     )
-    plot_truncation_benchmark(result, figure_path, title)
+    plot_truncation_benchmark(
+        result,
+        figure_path,
+        title,
+        lowest_excited_levels_to_plot=int(trunc_cfg.lowest_excited_levels_to_plot),
+    )
 
     print("Truncation benchmark summary:")
     for key, value in result.summary.items():
@@ -63,6 +69,19 @@ def main() -> None:
         f"ncut={result.circuit_reference_ncut}, "
         f"J={result.circuit_j:.6e}, zeta={result.circuit_zeta:.6e}"
     )
+    print(
+        "Duffing - circuit at max Duffing ncut "
+        f"(ncut={result.max_duffing_ncut}) for reported excited levels (GHz):"
+    )
+    for level, diff, rel_pct in zip(
+        result.max_ncut_reported_excited_levels,
+        result.duffing_minus_circuit_at_max_ncut,
+        result.duffing_minus_circuit_percent_of_circuit_at_max_ncut,
+    ):
+        rel_text = f"{float(rel_pct):.6f}%"
+        if not (float(rel_pct) == float(rel_pct)):  # NaN check
+            rel_text = "nan%"
+        print(f"  E{int(level)}: {float(diff):.12e} ({rel_text} of circuit)")
     print(f"Wrote figure: {figure_path}")
 
 

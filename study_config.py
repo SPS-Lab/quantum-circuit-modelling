@@ -147,6 +147,7 @@ class TruncationBenchmarkConfig:
     fixed_flux: float
     duffing_ncut_values: tuple[int, ...]
     duffing_truncated_dim: int
+    lowest_excited_levels_to_plot: int
     circuit_reference_ncut: int
     duffing_calibration_mode: DuffingCalibrationMode
     outputs: OutputConfig
@@ -406,6 +407,7 @@ def _parse_truncation_benchmark(
     )
     default_ncuts = (8, 10, 12, 16, 20, 24, 30, 40, 50, 60, 80, 100)
     default_trunc_dim = int(static_config.duffing_model.transmon_spectral_extraction.truncated_dim)
+    default_n_levels_to_plot = 6
     default_ref_ncut = 120
     default_mode: DuffingCalibrationMode = "per-flux"
     default_figure = "figures/regime_map/model_comparison_truncation_static_metrics.pdf"
@@ -415,6 +417,7 @@ def _parse_truncation_benchmark(
             fixed_flux=float(default_fixed_flux),
             duffing_ncut_values=tuple(int(x) for x in default_ncuts),
             duffing_truncated_dim=int(default_trunc_dim),
+            lowest_excited_levels_to_plot=int(default_n_levels_to_plot),
             circuit_reference_ncut=int(default_ref_ncut),
             duffing_calibration_mode=default_mode,
             outputs=OutputConfig(figure=default_figure),
@@ -432,6 +435,9 @@ def _parse_truncation_benchmark(
     trunc_dim = int(tb.get("duffing_truncated_dim", default_trunc_dim))
     if trunc_dim < 3:
         raise ValueError("study.truncation_benchmark.duffing_truncated_dim must be >= 3")
+    n_levels_to_plot = int(tb.get("lowest_excited_levels_to_plot", default_n_levels_to_plot))
+    if n_levels_to_plot < 1:
+        raise ValueError("study.truncation_benchmark.lowest_excited_levels_to_plot must be >= 1")
 
     mode = str(tb.get("duffing_calibration_mode", default_mode)).strip().lower()
     if mode not in ("fixed", "analytic-per-flux", "per-flux"):
@@ -452,6 +458,7 @@ def _parse_truncation_benchmark(
         fixed_flux=float(default_fixed_flux if fixed_flux_val is None else fixed_flux_val),
         duffing_ncut_values=ncuts,
         duffing_truncated_dim=trunc_dim,
+        lowest_excited_levels_to_plot=n_levels_to_plot,
         circuit_reference_ncut=_require_int(tb, "circuit_reference_ncut", "study.truncation_benchmark"),
         duffing_calibration_mode=mode,
         outputs=OutputConfig(figure=figure),
