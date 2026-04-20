@@ -33,8 +33,14 @@ def main() -> None:
         print(f"  {key}: {value:.6e}")
     print(
         "Selected pulse: "
-        f"sweep_target={result.sweep_target}, idle_flux={result.idle_flux:.6f}, target_flux={result.target_flux:.6f}"
+        f"sweep_target={result.sweep_target}, idle_flux={result.idle_flux:.6f}, "
+        f"target_flux={result.target_flux:.6f}, ramp_time_ns={result.ramp_time_ns:.3f}, "
+        f"hold_time_ns={result.hold_time_ns:.3f}, dt_ns={result.dt_ns:.3f}"
     )
+    if result.scan_hold_times_ns.size > 0:
+        print("Hold scan (ns, phase_err_to_pi_rad, score):")
+        for h, err, score in zip(result.scan_hold_times_ns, result.scan_phase_error_rad, result.scan_scores):
+            print(f"  {h:.6f}, {err:.6e}, {score:.6e}")
     print(f"Wrote figure: {figure_path}")
 
 

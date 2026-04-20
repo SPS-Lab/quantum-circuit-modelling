@@ -52,6 +52,7 @@ python scripts/run_cz_benchmark.py
 
 The CZ benchmark:
 - uses a shared flux pulse schedule for all models,
+- uses a ramp-hold-ramp pulse with automatic hold-time scan toward CZ phase (`pi`),
 - propagates effective + Duffing models with `numpy/scipy`,
 - propagates the circuit model with `scqubits` Hamiltonians + `qutip`,
 - writes a CZ dynamics figure next to the configured static figure path.

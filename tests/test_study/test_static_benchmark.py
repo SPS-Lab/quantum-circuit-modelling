@@ -186,7 +186,13 @@ def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     study_path = _write_small_study_params(tmp_path)
     cfg = load_study_config(system_path, study_path)
 
-    out = run_cz_benchmark(cfg, total_time_ns=20.0, num_time_points=21, ramp_fraction=0.25)
+    out = run_cz_benchmark(
+        cfg,
+        ramp_time_ns=4.0,
+        hold_time_ns=12.0,
+        dt_ns=1.0,
+        enable_hold_time_scan=False,
+    )
     assert out.times_ns.shape == (21,)
     assert out.effective_populations_11.shape == (21, 4)
     assert out.duffing_populations_11.shape == (21, 4)
