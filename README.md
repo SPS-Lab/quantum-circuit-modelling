@@ -15,22 +15,38 @@ And verify with:
 python print_versions.py
 ```
 
-## Comparison scripts
+## Refactored Workflow
 
-Run the main comparison workflows:
+The paper-aligned workflow is organized by responsibility:
+
+- `models`: model builders (`effective`, `duffing`, `circuit`)
+- `comparison`: benchmark logic (`static`, CZ/leakage headers)
+- `plots`: plotting only
+- `study_config.py`: typed config loading/validation
+- `params`: all runtime parameters consumed by main scripts
+
+Legacy `model0/1/2/3` packages have been merged into the modules above.
+
+Run the static benchmark:
 
 ```bash
-python tests/test1.py
-python tests/test_full_range/test_full_range.py
-python tests/test_model3/test_regime_map.py
+python scripts/run_static_benchmark.py
 ```
 
-Focused pytest run (fast, recommended during iteration):
+This reads:
+
+- `params/system_params.json` (device/system parameters)
+- `params/static_benchmark_params.json` (benchmark/model/plot settings)
+
+The Duffing model supports calibration modes via
+`static_benchmark.duffing_model.calibration_mode`:
+- `fixed`: calibrate transmon Duffing parameters once at system parking biases
+- `analytic-per-flux` (default): flux-dependent transmon approximation (no per-point numerical calibration)
+- `per-flux`: recalibrate transmon Duffing parameters at every sweep point using transmon diagonalization
+
+CZ/leakage benchmark headers exist but are intentionally not implemented yet:
 
 ```bash
-pytest -q tests/test_model3/test_regime_map_pytest.py
+python scripts/run_cz_benchmark.py
+python scripts/run_leakage_benchmark.py
 ```
-
-`model3` uses a scqubits reference with transmon values from:
-`model3/reference_params.json`
-loaded near the script `main` via `model3.reference_params.load_transmon_params(...)`.

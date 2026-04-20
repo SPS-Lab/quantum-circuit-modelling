@@ -1,0 +1,51 @@
+{
+  "static_benchmark": {
+    "flux_sweep": {
+      "start": 0.0,
+      "stop": 0.3,
+      "num_points": 61
+    },
+    "flux_control": {
+      "sweep_target": "q1"
+    },
+    "coupler_frequency": {
+      "wc0": 6.902,
+      "amplitude": 0.0
+    },
+    "dressed_subspace": {
+      "n_candidate_states": 20,
+      "selection_mode": "continuous"
+    },
+    "duffing_model": {
+      "transmon_spectral_extraction": {
+        "ncut": 60,
+        "truncated_dim": 12
+      },
+      "hilbert_truncation": {
+        "nlevels_qubit": 3,
+        "nlevels_coupler": 3
+      },
+      "coupler_anharmonicity": 0.0,
+      "calibration_mode": "analytic-per-flux"
+    },
+    "circuit_model": {
+      "hilbert_truncation": {
+        "q1_truncated_dim": 5,
+        "q2_truncated_dim": 5,
+        "c_truncated_dim": 6
+      },
+      "interaction_validity_check": true
+    },
+    "effective_model": {
+      "derivation_source": "circuit",
+      "fit_basis": "single-harmonic"
+    },
+    "regime_thresholds": {
+      "idle_ratio": 6.0,
+      "near_ratio": 2.0
+    },
+    "outputs": {
+      "figure": "figures/regime_map/model_comparison_static.pdf"
+    }
+  }
+}

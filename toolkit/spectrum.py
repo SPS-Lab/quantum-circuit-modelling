@@ -70,7 +70,78 @@ def reorder_by_overlap(
     return matched, col_indices
 
 
-def track_energy_levels_stack(H_stack: np.ndarray, n_track: int) -> np.ndarray:
+def _validate_projector_blocks(
+    projector_blocks: tuple[tuple[int, ...], ...] | None,
+    n_track: int,
+) -> tuple[tuple[int, ...], ...]:
+    if projector_blocks is None:
+        return tuple()
+    seen: set[int] = set()
+    normalized: list[tuple[int, ...]] = []
+    for block in projector_blocks:
+        rows = tuple(int(r) for r in block)
+        if len(rows) < 2:
+            continue
+        for r in rows:
+            if r < 0 or r >= n_track:
+                raise ValueError(f"projector block row {r} out of bounds for n_track={n_track}")
+            if r in seen:
+                raise ValueError(f"projector blocks must be disjoint; repeated row {r}")
+            seen.add(r)
+        normalized.append(rows)
+    return tuple(normalized)
+
+
+def _assignment_with_projector_blocks(
+    overlap: np.ndarray,
+    *,
+    projector_blocks: tuple[tuple[int, ...], ...],
+) -> np.ndarray:
+    overlap = np.asarray(overlap, dtype=float)
+    n_rows, n_cols = overlap.shape
+    row_to_col = -np.ones(n_rows, dtype=int)
+    used_cols = np.zeros(n_cols, dtype=bool)
+
+    for block in projector_blocks:
+        block_rows = np.asarray(block, dtype=int)
+        block_size = int(block_rows.size)
+        available_cols = np.flatnonzero(~used_cols)
+        if available_cols.size < block_size:
+            raise ValueError("Not enough columns left for projector-block assignment")
+
+        block_overlap = overlap[np.ix_(block_rows, available_cols)]
+        projector_score = np.sum(block_overlap, axis=0)
+        top_local = np.argpartition(projector_score, -block_size)[-block_size:]
+        chosen_cols = available_cols[top_local]
+
+        within_overlap = overlap[np.ix_(block_rows, chosen_cols)]
+        within_map = overlap_row_to_col_assignment(within_overlap)
+        for i, row in enumerate(block_rows):
+            col = int(chosen_cols[int(within_map[i])])
+            row_to_col[int(row)] = col
+            used_cols[col] = True
+
+    remaining_rows = np.flatnonzero(row_to_col < 0)
+    if remaining_rows.size > 0:
+        remaining_cols = np.flatnonzero(~used_cols)
+        rem_overlap = overlap[np.ix_(remaining_rows, remaining_cols)]
+        rem_map = overlap_row_to_col_assignment(rem_overlap)
+        for i, row in enumerate(remaining_rows):
+            col = int(remaining_cols[int(rem_map[i])])
+            row_to_col[int(row)] = col
+            used_cols[col] = True
+
+    if np.any(row_to_col < 0):
+        raise RuntimeError("Failed to assign all tracked rows")
+    return row_to_col
+
+
+def track_energy_levels_stack(
+    H_stack: np.ndarray,
+    n_track: int,
+    *,
+    projector_blocks: tuple[tuple[int, ...], ...] | None = None,
+) -> np.ndarray:
     """Lowest ``n_track`` energies at each step, matched for continuity along axis 0.
 
     Parameters
@@ -79,6 +150,10 @@ def track_energy_levels_stack(H_stack: np.ndarray, n_track: int) -> np.ndarray:
         ``(n_param, d, d)`` Hermitian matrices (e.g. flux slices).
     n_track
         Number of levels to follow (≤ ``d``).
+
+    projector_blocks
+        Optional row-index blocks (within ``0..n_track-1``) tracked as transported
+        subspaces rather than strict one-by-one eigenstate labels.
 
     Returns
     -------
@@ -92,6 +167,7 @@ def track_energy_levels_stack(H_stack: np.ndarray, n_track: int) -> np.ndarray:
     n_track = int(n_track)
     if n_track < 1 or n_track > d:
         raise ValueError(f"n_track must be in [1, d], d={d}, got {n_track}")
+    projector_blocks = _validate_projector_blocks(projector_blocks, n_track)
 
     # If every slice is the same (no parameter variation), overlap tracking is ill-defined:
     # `eigh` can rotate degenerate subspaces and the Hungarian step permutes labels vs index.
@@ -106,7 +182,32 @@ def track_energy_levels_stack(H_stack: np.ndarray, n_track: int) -> np.ndarray:
 
     for k in range(1, n_flux):
         w, v = np.linalg.eigh(H_stack[k])
-        evecs_prev, col_idx = reorder_by_overlap(evecs_prev, v)
-        evals_out[k] = w[col_idx]
+        overlap = np.abs(evecs_prev.conj().T @ v) ** 2
+        if projector_blocks:
+            col_idx = _assignment_with_projector_blocks(overlap, projector_blocks=projector_blocks)
+        else:
+            col_idx = overlap_row_to_col_assignment(overlap)
+
+        matched = v[:, col_idx]
+        evals_step = np.asarray(w[col_idx], dtype=float)
+
+        # Within each projector block, parallel-transport the basis and report
+        # block-diagonal expectation energies in that smooth transported basis.
+        for block in projector_blocks:
+            block_rows = np.asarray(block, dtype=int)
+            prev_block = evecs_prev[:, block_rows]
+            new_block = matched[:, block_rows]
+            ov_block = prev_block.conj().T @ new_block
+            u, _, vh = np.linalg.svd(ov_block, full_matrices=False)
+            q = vh.conj().T @ u.conj().T
+
+            matched[:, block_rows] = new_block @ q
+
+            block_evals = evals_step[block_rows]
+            h_block = q.conj().T @ np.diag(block_evals) @ q
+            evals_step[block_rows] = np.real(np.diag(h_block))
+
+        evecs_prev = matched
+        evals_out[k] = evals_step
 
     return evals_out

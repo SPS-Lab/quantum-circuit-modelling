@@ -1,17 +1,42 @@
-"""Core three-mode Hamiltonian and basis helpers."""
+"""Three-mode (qubit-coupler-qubit) Hamiltonian construction utilities."""
 
 from __future__ import annotations
+
+from typing import TypedDict
 
 import numpy as np
 
 from toolkit.helpers import destroy
 
-from model2.hamiltonian_types import ThreeModeHamiltonianCommonKwargs
+
+class ThreeModeHamiltonianCommonKwargs(TypedDict):
+    """Common fixed keyword arguments for three-mode Hamiltonians.
+
+    These include all parameters except explicit coupler frequency ``w_c``.
+    """
+
+    w_1: float
+    w_2: float
+    alpha_1: float
+    alpha_c: float
+    alpha_2: float
+    g_1c: float
+    g_2c: float
+    nlevels_qubit: int
+    nlevels_coupler: int
+
+
+class ThreeModeHamiltonianKwargs(ThreeModeHamiltonianCommonKwargs):
+    """Keyword arguments required by ``three_mode_hamiltonian``."""
+
+    w_c: float
+
 
 
 def coupler_frequency(wc0: float, A: float, flux: np.ndarray | float) -> np.ndarray:
-    """Return coupler frequency ``w_c = wc0 + A cos(2π flux)``."""
-    return wc0 + A * np.cos(2 * np.pi * flux)
+    """Return coupler frequency ``w_c = wc0 + A cos(2pi flux)``."""
+    return float(wc0) + float(A) * np.cos(2.0 * np.pi * flux)
+
 
 
 def three_mode_hamiltonian(
@@ -30,15 +55,15 @@ def three_mode_hamiltonian(
     from numpy import eye, kron
 
     a_local = [
-        destroy(nlevels_qubit),
-        destroy(nlevels_coupler),
-        destroy(nlevels_qubit),
+        destroy(int(nlevels_qubit)),
+        destroy(int(nlevels_coupler)),
+        destroy(int(nlevels_qubit)),
     ]
     adag_local = [op.conj().T for op in a_local]
     n_local = [adag_local[j] @ a_local[j] for j in range(3)]
 
-    id_q = eye(nlevels_qubit, dtype=complex)
-    id_c = eye(nlevels_coupler, dtype=complex)
+    id_q = eye(int(nlevels_qubit), dtype=complex)
+    id_c = eye(int(nlevels_coupler), dtype=complex)
 
     def kron3(o1: np.ndarray, o2: np.ndarray, o3: np.ndarray) -> np.ndarray:
         return kron(kron(o1, o2), o3)
@@ -55,32 +80,23 @@ def three_mode_hamiltonian(
     n2 = kron3(id_q, id_c, n_local[2])
 
     return (
-        w_1 * n1
-        + w_c * nc
-        + w_2 * n2
-        + (alpha_1 / 2) * (adag1 @ adag1 @ a1 @ a1)
-        + (alpha_c / 2) * (adagc @ adagc @ ac @ ac)
-        + (alpha_2 / 2) * (adag2 @ adag2 @ a2 @ a2)
-        + g_1c * (adag1 @ ac + adagc @ a1)
-        + g_2c * (adag2 @ ac + adagc @ a2)
+        float(w_1) * n1
+        + float(w_c) * nc
+        + float(w_2) * n2
+        + (float(alpha_1) / 2.0) * (adag1 @ adag1 @ a1 @ a1)
+        + (float(alpha_c) / 2.0) * (adagc @ adagc @ ac @ ac)
+        + (float(alpha_2) / 2.0) * (adag2 @ adag2 @ a2 @ a2)
+        + float(g_1c) * (adag1 @ ac + adagc @ a1)
+        + float(g_2c) * (adag2 @ ac + adagc @ a2)
     )
 
 
-def computational_state_indices(
-    nlevels_qubit: int,
-    nlevels_coupler: int,
-) -> np.ndarray:
+
+def computational_state_indices(nlevels_qubit: int, nlevels_coupler: int) -> np.ndarray:
     """Flat indices of bare ``|n_1,0_c,n_2>`` with ``n_1,n_2 in {0,1}``."""
-    n_1_significance = nlevels_qubit * nlevels_coupler
-    return np.array(
-        [
-            0,
-            1,
-            n_1_significance + 0,
-            n_1_significance + 1,
-        ],
-        dtype=int,
-    )
+    n_1_significance = int(nlevels_qubit) * int(nlevels_coupler)
+    return np.array([0, 1, n_1_significance + 0, n_1_significance + 1], dtype=int)
+
 
 
 def three_mode_hamiltonian_from_kwargs(
@@ -88,8 +104,7 @@ def three_mode_hamiltonian_from_kwargs(
     *,
     w_c: float,
 ) -> np.ndarray:
-    """Build ``three_mode_hamiltonian`` from the common ``ham_kwargs`` dict
-    and coupler frequency."""
+    """Build ``three_mode_hamiltonian`` from kwargs + coupler frequency."""
     return three_mode_hamiltonian(
         float(ham_kwargs["w_1"]),
         float(w_c),
@@ -102,6 +117,7 @@ def three_mode_hamiltonian_from_kwargs(
         int(ham_kwargs["nlevels_qubit"]),
         int(ham_kwargs["nlevels_coupler"]),
     )
+
 
 
 def three_mode_hamiltonian_stack_vs_flux(
@@ -121,6 +137,7 @@ def three_mode_hamiltonian_stack_vs_flux(
     return np.stack(mats, axis=0)
 
 
+
 def computational_subspace_block(
     H: np.ndarray,
     nlevels_qubit: int,
@@ -128,9 +145,9 @@ def computational_subspace_block(
     *,
     hermitianize: bool = False,
 ) -> np.ndarray:
-    """Extract the computational ``4x4`` block from one Hamiltonian or a stack."""
+    """Extract computational ``4x4`` block from one Hamiltonian or a stack."""
     H = np.asarray(H, dtype=complex)
-    idx = computational_state_indices(nlevels_qubit, nlevels_coupler)
+    idx = computational_state_indices(int(nlevels_qubit), int(nlevels_coupler))
 
     if H.ndim == 2:
         block = H[np.ix_(idx, idx)]
