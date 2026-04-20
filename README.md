@@ -38,6 +38,12 @@ This reads:
 - `params/system_params.json` (device/system parameters)
 - `params/static_benchmark_params.json` (benchmark/model/plot settings)
 
+The Duffing model supports calibration modes via
+`static_benchmark.duffing_model.calibration_mode`:
+- `fixed`: calibrate transmon Duffing parameters once at system parking biases
+- `analytic-per-flux` (default): flux-dependent transmon approximation (no per-point numerical calibration)
+- `per-flux`: recalibrate transmon Duffing parameters at every sweep point using transmon diagonalization
+
 CZ/leakage benchmark headers exist but are intentionally not implemented yet:
 
 ```bash

@@ -37,6 +37,7 @@ def _write_small_study_params(
     *,
     coupler_amplitude: float = 0.0,
     sweep_target: str = "q1",
+    duffing_calibration_mode: str = "analytic-per-flux",
 ) -> Path:
     src = _ROOT / "params" / "static_benchmark_params.json"
     payload = json.loads(src.read_text(encoding="utf-8"))
@@ -50,9 +51,10 @@ def _write_small_study_params(
     sb["circuit_model"]["hilbert_truncation"]["c_truncated_dim"] = 4
     sb["coupler_frequency"]["amplitude"] = float(coupler_amplitude)
     sb["flux_control"]["sweep_target"] = str(sweep_target)
+    sb["duffing_model"]["calibration_mode"] = str(duffing_calibration_mode)
 
     suffix = str(coupler_amplitude).replace("-", "m").replace(".", "p")
-    dst = tmp_path / f"study_params_small_{sweep_target}_A{suffix}.json"
+    dst = tmp_path / f"study_params_small_{sweep_target}_A{suffix}_{duffing_calibration_mode}.json"
     dst.write_text(json.dumps(payload), encoding="utf-8")
     return dst
 
@@ -67,6 +69,7 @@ def test_load_study_config() -> None:
     assert cfg.static_benchmark.flux_sweep.num_points > 2
     assert cfg.static_benchmark.effective_model.derivation_source in {"duffing", "circuit"}
     assert cfg.static_benchmark.flux_control.sweep_target in {"coupler", "q1", "q2"}
+    assert cfg.static_benchmark.duffing_model.calibration_mode in {"fixed", "analytic-per-flux", "per-flux"}
 
 
 
@@ -138,6 +141,42 @@ def test_static_benchmark_q1_sweep_varies_spectrum_with_fixed_coupler(tmp_path: 
     out = run_static_benchmark(load_study_config(system_path, study_path))
 
     assert float(np.ptp(out.circuit_relative_energies[:, 1])) > 1e-6
+
+
+def test_duffing_fixed_calibration_is_not_recomputed_per_flux(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(
+        tmp_path,
+        coupler_amplitude=0.0,
+        sweep_target="q1",
+        duffing_calibration_mode="fixed",
+    )
+    out = run_static_benchmark(load_study_config(system_path, study_path))
+    assert float(np.ptp(out.duffing_relative_energies[:, 1])) < 1e-10
+
+
+def test_duffing_per_flux_calibration_can_be_enabled_explicitly(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(
+        tmp_path,
+        coupler_amplitude=0.0,
+        sweep_target="q1",
+        duffing_calibration_mode="per-flux",
+    )
+    out = run_static_benchmark(load_study_config(system_path, study_path))
+    assert float(np.ptp(out.duffing_relative_energies[:, 1])) > 1e-6
+
+
+def test_duffing_analytic_per_flux_calibration_varies_with_flux(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(
+        tmp_path,
+        coupler_amplitude=0.0,
+        sweep_target="q1",
+        duffing_calibration_mode="analytic-per-flux",
+    )
+    out = run_static_benchmark(load_study_config(system_path, study_path))
+    assert float(np.ptp(out.duffing_relative_energies[:, 1])) > 1e-6
 
 
 def test_cz_and_leakage_headers_raise_not_implemented(tmp_path: Path) -> None:

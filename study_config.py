@@ -18,6 +18,7 @@ SelectionMode = Literal["continuous", "bare"]
 DerivationSource = Literal["duffing", "circuit"]
 FitBasis = Literal["single-harmonic"]
 SweepTarget = Literal["coupler", "q1", "q2"]
+DuffingCalibrationMode = Literal["fixed", "analytic-per-flux", "per-flux"]
 
 
 @dataclass(frozen=True)
@@ -95,6 +96,7 @@ class DuffingModelConfig:
     transmon_spectral_extraction: TransmonSpectralExtractionConfig
     hilbert_truncation: DuffingHilbertTruncationConfig
     coupler_anharmonicity: float
+    calibration_mode: DuffingCalibrationMode
 
 
 @dataclass(frozen=True)
@@ -270,6 +272,13 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
     if fit_basis not in ("single-harmonic",):
         raise ValueError("study.static_benchmark.effective_model.fit_basis must be 'single-harmonic'")
 
+    calibration_mode = str(duffing.get("calibration_mode", "analytic-per-flux")).strip().lower()
+    if calibration_mode not in ("fixed", "analytic-per-flux", "per-flux"):
+        raise ValueError(
+            "study.static_benchmark.duffing_model.calibration_mode must be "
+            "'fixed', 'analytic-per-flux', or 'per-flux'"
+        )
+
     if flux_control is None:
         sweep_target: SweepTarget = "coupler"
     else:
@@ -327,6 +336,7 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
                 "coupler_anharmonicity",
                 "study.static_benchmark.duffing_model",
             ),
+            calibration_mode=calibration_mode,
         ),
         circuit_model=CircuitModelConfig(
             hilbert_truncation=CircuitHilbertTruncationConfig(
