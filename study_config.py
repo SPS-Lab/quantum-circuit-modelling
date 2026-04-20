@@ -143,9 +143,20 @@ class StaticBenchmarkConfig:
 
 
 @dataclass(frozen=True)
+class TruncationBenchmarkConfig:
+    fixed_flux: float
+    duffing_ncut_values: tuple[int, ...]
+    duffing_truncated_dim: int
+    circuit_reference_ncut: int
+    duffing_calibration_mode: DuffingCalibrationMode
+    outputs: OutputConfig
+
+
+@dataclass(frozen=True)
 class StudyConfig:
     system: SystemParams
     static_benchmark: StaticBenchmarkConfig
+    truncation_benchmark: TruncationBenchmarkConfig
 
 
 
@@ -199,6 +210,24 @@ def _require_bool(parent: dict[str, Any], key: str, path: str) -> bool:
     if not isinstance(value, bool):
         raise TypeError(f"{path}.{key} must be a boolean")
     return value
+
+
+def _require_list(parent: dict[str, Any], key: str, path: str) -> list[Any]:
+    if key not in parent:
+        raise KeyError(f"Missing required key {path}.{key}")
+    value = parent[key]
+    if not isinstance(value, list):
+        raise TypeError(f"{path}.{key} must be a list")
+    return value
+
+
+def _optional_float(parent: dict[str, Any], key: str) -> float | None:
+    if key not in parent:
+        return None
+    value = parent[key]
+    if value is None:
+        return None
+    return float(value)
 
 
 
@@ -364,13 +393,80 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
     )
 
 
+def _parse_truncation_benchmark(
+    study_payload: dict[str, Any],
+    *,
+    static_config: StaticBenchmarkConfig,
+) -> TruncationBenchmarkConfig:
+    tb = study_payload.get("truncation_benchmark")
+
+    default_fixed_flux = 0.5 * (
+        float(static_config.flux_sweep.start)
+        + float(static_config.flux_sweep.stop)
+    )
+    default_ncuts = (8, 10, 12, 16, 20, 24, 30, 40, 50, 60, 80, 100)
+    default_trunc_dim = int(static_config.duffing_model.transmon_spectral_extraction.truncated_dim)
+    default_ref_ncut = 120
+    default_mode: DuffingCalibrationMode = "per-flux"
+    default_figure = "figures/regime_map/model_comparison_truncation_static_metrics.pdf"
+
+    if tb is None:
+        return TruncationBenchmarkConfig(
+            fixed_flux=float(default_fixed_flux),
+            duffing_ncut_values=tuple(int(x) for x in default_ncuts),
+            duffing_truncated_dim=int(default_trunc_dim),
+            circuit_reference_ncut=int(default_ref_ncut),
+            duffing_calibration_mode=default_mode,
+            outputs=OutputConfig(figure=default_figure),
+        )
+    if not isinstance(tb, dict):
+        raise TypeError("study.truncation_benchmark must be an object")
+
+    fixed_flux_val = _optional_float(tb, "fixed_flux")
+    ncuts_raw = _require_list(tb, "duffing_ncut_values", "study.truncation_benchmark")
+    ncuts = tuple(int(v) for v in ncuts_raw)
+    if len(ncuts) == 0:
+        raise ValueError("study.truncation_benchmark.duffing_ncut_values must be non-empty")
+    if any(v < 1 for v in ncuts):
+        raise ValueError("study.truncation_benchmark.duffing_ncut_values must contain positive integers")
+    trunc_dim = int(tb.get("duffing_truncated_dim", default_trunc_dim))
+    if trunc_dim < 3:
+        raise ValueError("study.truncation_benchmark.duffing_truncated_dim must be >= 3")
+
+    mode = str(tb.get("duffing_calibration_mode", default_mode)).strip().lower()
+    if mode not in ("fixed", "analytic-per-flux", "per-flux"):
+        raise ValueError(
+            "study.truncation_benchmark.duffing_calibration_mode must be "
+            "'fixed', 'analytic-per-flux', or 'per-flux'"
+        )
+
+    outputs = tb.get("outputs")
+    if outputs is None:
+        figure = default_figure
+    else:
+        if not isinstance(outputs, dict):
+            raise TypeError("study.truncation_benchmark.outputs must be an object")
+        figure = _require_str(outputs, "figure", "study.truncation_benchmark.outputs")
+
+    return TruncationBenchmarkConfig(
+        fixed_flux=float(default_fixed_flux if fixed_flux_val is None else fixed_flux_val),
+        duffing_ncut_values=ncuts,
+        duffing_truncated_dim=trunc_dim,
+        circuit_reference_ncut=_require_int(tb, "circuit_reference_ncut", "study.truncation_benchmark"),
+        duffing_calibration_mode=mode,
+        outputs=OutputConfig(figure=figure),
+    )
+
+
 
 def load_study_config(system_params_path: Path, study_params_path: Path) -> StudyConfig:
     system_payload = _load_json(system_params_path)
     study_payload = _load_json(study_params_path)
+    static_config = _parse_static_benchmark(study_payload)
     return StudyConfig(
         system=_parse_system(system_payload),
-        static_benchmark=_parse_static_benchmark(study_payload),
+        static_benchmark=static_config,
+        truncation_benchmark=_parse_truncation_benchmark(study_payload, static_config=static_config),
     )
 
 

@@ -64,3 +64,21 @@ python scripts/run_leakage_benchmark.py
 ```
 
 The leakage benchmark reuses the same calibrated pulse and reports/plots leakage-focused dynamics separately.
+
+Run the fixed-flux truncation benchmark (`J`, `zeta` vs Duffing `ncut`):
+
+```bash
+python scripts/run_truncation_benchmark.py
+```
+
+This reads truncation settings from:
+- `params/static_benchmark_params.json` under `truncation_benchmark`
+
+This benchmark:
+- fixes one flux point,
+- sweeps Duffing transmon calibration `ncut`,
+- uses `truncation_benchmark.duffing_truncated_dim` for transmon spectral extraction,
+  with per-point safety clipping to `min(duffing_truncated_dim, 2*ncut+1)`,
+- plots Duffing `J`/`\zeta` against a circuit reference shown as horizontal lines,
+- and shows the lowest relative energy levels vs `ncut` (Duffing curves with circuit horizontal references).
+  (computed once at large circuit `ncut`).

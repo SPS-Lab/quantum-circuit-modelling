@@ -47,5 +47,15 @@
     "outputs": {
       "figure": "figures/regime_map/model_comparison_static.pdf"
     }
+  },
+  "truncation_benchmark": {
+    "fixed_flux": 0.1,
+    "duffing_ncut_values": [2,3,4,5,6,7,8, 15, 20],
+    "duffing_truncated_dim": 40,
+    "circuit_reference_ncut": 120,
+    "duffing_calibration_mode": "per-flux",
+    "outputs": {
+      "figure": "figures/regime_map/model_comparison_truncation_static_metrics.pdf"
+    }
   }
 }
