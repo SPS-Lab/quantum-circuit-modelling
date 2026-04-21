@@ -50,6 +50,9 @@ class CzBenchmarkResult:
     effective_conditional_phase: np.ndarray
     duffing_conditional_phase: np.ndarray
     circuit_conditional_phase: np.ndarray
+    effective_computational_amplitudes: np.ndarray
+    duffing_computational_amplitudes: np.ndarray
+    circuit_computational_amplitudes: np.ndarray
     effective_statevector_plus_plus: np.ndarray
     duffing_statevector_plus_plus: np.ndarray
     circuit_statevector_plus_plus: np.ndarray
@@ -597,6 +600,9 @@ def run_cz_benchmark(
         effective_conditional_phase=obs_effective.conditional_phase,
         duffing_conditional_phase=obs_duffing.conditional_phase,
         circuit_conditional_phase=obs_circuit.conditional_phase,
+        effective_computational_amplitudes=np.asarray(obs_effective.computational_amplitudes, dtype=complex),
+        duffing_computational_amplitudes=np.asarray(obs_duffing.computational_amplitudes, dtype=complex),
+        circuit_computational_amplitudes=np.asarray(obs_circuit.computational_amplitudes, dtype=complex),
         effective_statevector_plus_plus=np.asarray(effective_statevector_plus_plus, dtype=complex),
         duffing_statevector_plus_plus=np.asarray(duffing_statevector_plus_plus, dtype=complex),
         circuit_statevector_plus_plus=np.asarray(circuit_statevector_plus_plus, dtype=complex),

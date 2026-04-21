@@ -85,6 +85,35 @@ def _computational_hsv_rgb(
     return np.transpose(rgb, (1, 0, 2))
 
 
+def _local_z_removed_hsv_from_comp_amplitudes(
+    computational_amplitudes: np.ndarray,
+    conditional_phase: np.ndarray,
+) -> np.ndarray:
+    comp = np.asarray(computational_amplitudes, dtype=complex)
+    cphase = np.asarray(conditional_phase, dtype=float).ravel()
+    if comp.ndim != 3 or comp.shape[1:] != (4, 4):
+        raise ValueError(f"computational_amplitudes must be (n_time, 4, 4), got {comp.shape}")
+    if comp.shape[0] != cphase.size:
+        raise ValueError(
+            "computational_amplitudes time axis must match conditional_phase length, "
+            f"got {comp.shape[0]} and {cphase.size}"
+        )
+
+    diag = np.diagonal(comp, axis1=1, axis2=2)
+    value = np.clip(np.abs(diag) ** 2, 0.0, 1.0)
+
+    # Remove global + local Z phases in the computational subspace:
+    # rows |00>,|01>,|10> are fixed to zero phase, and |11> carries CPhase.
+    phase = np.zeros_like(value, dtype=float)
+    phase[:, 3] = np.angle(np.exp(1.0j * cphase))
+
+    hue = (phase + np.pi) / (2.0 * np.pi)
+    saturation = np.ones_like(hue)
+    hsv = np.stack((hue, saturation, value), axis=-1)
+    rgb = hsv_to_rgb(hsv)
+    return np.transpose(rgb, (1, 0, 2))
+
+
 def plot_cz_benchmark(
     result: CzBenchmarkResult,
     outfile: Path,
@@ -94,9 +123,24 @@ def plot_cz_benchmark(
     t = np.asarray(result.times_ns, dtype=float)
     basis_labels = [r"$|00\rangle$", r"$|01\rangle$", r"$|10\rangle$", r"$|11\rangle$"]
 
-    rgb_eff = _computational_hsv_rgb(result.effective_statevector_plus_plus)
-    rgb_duf = _computational_hsv_rgb(result.duffing_statevector_plus_plus)
-    rgb_cir = _computational_hsv_rgb(result.circuit_statevector_plus_plus)
+    if np.asarray(result.effective_computational_amplitudes).size > 0:
+        rgb_eff = _local_z_removed_hsv_from_comp_amplitudes(
+            result.effective_computational_amplitudes,
+            result.effective_conditional_phase,
+        )
+        rgb_duf = _local_z_removed_hsv_from_comp_amplitudes(
+            result.duffing_computational_amplitudes,
+            result.duffing_conditional_phase,
+        )
+        rgb_cir = _local_z_removed_hsv_from_comp_amplitudes(
+            result.circuit_computational_amplitudes,
+            result.circuit_conditional_phase,
+        )
+    else:
+        # Backward-compatible fallback for older result files.
+        rgb_eff = _computational_hsv_rgb(result.effective_statevector_plus_plus)
+        rgb_duf = _computational_hsv_rgb(result.duffing_statevector_plus_plus)
+        rgb_cir = _computational_hsv_rgb(result.circuit_statevector_plus_plus)
 
     with benchmark_plot_style(font_size):
         fig = plt.figure(figsize=(14.0, 9.0))
@@ -140,9 +184,9 @@ def plot_cz_benchmark(
         ax_phase.grid(True, alpha=0.3)
 
         for ax, rgb, panel_title in (
-            (ax_eff, rgb_eff, "Effective computational state"),
-            (ax_duf, rgb_duf, "Duffing computational state"),
-            (ax_cir, rgb_cir, "Circuit computational state"),
+            (ax_eff, rgb_eff, "Effective computational propagator (local-Z removed)"),
+            (ax_duf, rgb_duf, "Duffing computational propagator (local-Z removed)"),
+            (ax_cir, rgb_cir, "Circuit computational propagator (local-Z removed)"),
         ):
             ax.imshow(
                 rgb,
@@ -163,7 +207,7 @@ def plot_cz_benchmark(
         cbar_phase = fig.colorbar(phase_mappable, cax=ax_cbar_phase)
         cbar_phase.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
         cbar_phase.set_ticklabels(["$-\\pi$", "$-\\pi/2$", "$0$", "$\\pi/2$", "$\\pi$"])
-        cbar_phase.set_label("Relative phase hue")
+        cbar_phase.set_label("Phase hue after global/local-Z removal")
 
         pop_mappable = plt.cm.ScalarMappable(cmap="gray", norm=plt.Normalize(vmin=0.0, vmax=1.0))
         pop_mappable.set_array([])
