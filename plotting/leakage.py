@@ -107,12 +107,21 @@ def _top_n_with_other(
 
 
 def _set_destination_ticks(ax: plt.Axes, labels: list[str], *, tick_font_size: float) -> None:
+    def _to_math_label(label: str) -> str:
+        text = str(label).strip()
+        if text in {"other", "other states"}:
+            return text
+        if text.startswith("|") and text.endswith(">"):
+            inner = text[1:-1]
+            return rf"$\left|{inner}\right\rangle$"
+        return text
+
     n = len(labels)
     if n == 0:
         return
     idx = np.arange(n, dtype=int)
     ax.set_yticks(idx)
-    ax.set_yticklabels([labels[i] for i in idx])
+    ax.set_yticklabels([_to_math_label(labels[i]) for i in idx])
     ax.tick_params(axis="y", labelsize=tick_font_size, pad=2.5)
 
 

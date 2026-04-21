@@ -67,12 +67,29 @@ def _top_n_with_other(
 
 
 def _set_ticks(ax: plt.Axes, labels: list[str], *, tick_font_size: float) -> None:
+    def _to_math_label(label: str) -> str:
+        text = str(label).strip()
+        if text == "other transitions":
+            return text
+        if "->" in text:
+            src, dst = text.split("->", 1)
+            src = src.strip()
+            dst = dst.strip()
+            if src.startswith("|") and src.endswith(">") and dst.startswith("|") and dst.endswith(">"):
+                src_inner = src[1:-1]
+                dst_inner = dst[1:-1]
+                return rf"$\left|{src_inner}\right\rangle \to \left|{dst_inner}\right\rangle$"
+        if text.startswith("|") and text.endswith(">"):
+            inner = text[1:-1]
+            return rf"$\left|{inner}\right\rangle$"
+        return text
+
     n = len(labels)
     if n == 0:
         return
     idx = np.arange(n, dtype=int)
     ax.set_yticks(idx)
-    ax.set_yticklabels([labels[i] for i in idx])
+    ax.set_yticklabels([_to_math_label(labels[i]) for i in idx])
     ax.tick_params(axis="y", labelsize=tick_font_size, pad=2.5)
 
 
