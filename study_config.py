@@ -162,11 +162,20 @@ class LeakageBenchmarkConfig:
 
 
 @dataclass(frozen=True)
+class StateToStateLeakageBenchmarkConfig:
+    total_time_ns: float
+    ramp_time_ns: float
+    dt_ns: float
+    top_transition_rows: int
+
+
+@dataclass(frozen=True)
 class StudyConfig:
     system: SystemParams
     static_benchmark: StaticBenchmarkConfig
     truncation_benchmark: TruncationBenchmarkConfig
     leakage_benchmark: LeakageBenchmarkConfig
+    state_to_state_leakage_benchmark: StateToStateLeakageBenchmarkConfig
 
 
 
@@ -516,6 +525,48 @@ def _parse_leakage_benchmark(study_payload: dict[str, Any]) -> LeakageBenchmarkC
     )
 
 
+def _parse_state_to_state_leakage_benchmark(study_payload: dict[str, Any]) -> StateToStateLeakageBenchmarkConfig:
+    sb = study_payload.get("state_to_state_leakage_benchmark")
+    default_total_time_ns = 70.0
+    default_ramp_time_ns = 8.0
+    default_dt_ns = 1.0
+    default_top_transition_rows = 10
+
+    if sb is None:
+        total_time_ns = float(default_total_time_ns)
+        ramp_time_ns = float(default_ramp_time_ns)
+        dt_ns = float(default_dt_ns)
+        top_transition_rows = int(default_top_transition_rows)
+    else:
+        if not isinstance(sb, dict):
+            raise TypeError("study.state_to_state_leakage_benchmark must be an object")
+        total_time_ns = float(sb.get("total_time_ns", default_total_time_ns))
+        ramp_time_ns = float(sb.get("ramp_time_ns", default_ramp_time_ns))
+        dt_ns = float(sb.get("dt_ns", default_dt_ns))
+        top_transition_rows = int(sb.get("top_transition_rows", default_top_transition_rows))
+
+    if total_time_ns <= 0.0:
+        raise ValueError("study.state_to_state_leakage_benchmark.total_time_ns must be positive")
+    if ramp_time_ns <= 0.0:
+        raise ValueError("study.state_to_state_leakage_benchmark.ramp_time_ns must be positive")
+    if dt_ns <= 0.0:
+        raise ValueError("study.state_to_state_leakage_benchmark.dt_ns must be positive")
+    if top_transition_rows < 1:
+        raise ValueError("study.state_to_state_leakage_benchmark.top_transition_rows must be >= 1")
+    if total_time_ns < 2.0 * ramp_time_ns:
+        raise ValueError(
+            "study.state_to_state_leakage_benchmark.total_time_ns must be >= 2 * ramp_time_ns "
+            "for a ramp-hold-ramp pulse"
+        )
+
+    return StateToStateLeakageBenchmarkConfig(
+        total_time_ns=float(total_time_ns),
+        ramp_time_ns=float(ramp_time_ns),
+        dt_ns=float(dt_ns),
+        top_transition_rows=int(top_transition_rows),
+    )
+
+
 
 def load_study_config(system_params_path: Path, study_params_path: Path) -> StudyConfig:
     system_payload = _load_json(system_params_path)
@@ -526,6 +577,7 @@ def load_study_config(system_params_path: Path, study_params_path: Path) -> Stud
         static_benchmark=static_config,
         truncation_benchmark=_parse_truncation_benchmark(study_payload, static_config=static_config),
         leakage_benchmark=_parse_leakage_benchmark(study_payload),
+        state_to_state_leakage_benchmark=_parse_state_to_state_leakage_benchmark(study_payload),
     )
 
 
