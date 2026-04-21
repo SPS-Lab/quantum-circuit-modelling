@@ -158,6 +158,7 @@ class LeakageBenchmarkConfig:
     total_time_ns: float
     ramp_time_ns: float
     dt_ns: float
+    top_destination_rows: int
 
 
 @dataclass(frozen=True)
@@ -478,17 +479,20 @@ def _parse_leakage_benchmark(study_payload: dict[str, Any]) -> LeakageBenchmarkC
     default_total_time_ns = 70.0
     default_ramp_time_ns = 8.0
     default_dt_ns = 1.0
+    default_top_destination_rows = 10
 
     if lb is None:
         total_time_ns = float(default_total_time_ns)
         ramp_time_ns = float(default_ramp_time_ns)
         dt_ns = float(default_dt_ns)
+        top_destination_rows = int(default_top_destination_rows)
     else:
         if not isinstance(lb, dict):
             raise TypeError("study.leakage_benchmark must be an object")
         total_time_ns = float(lb.get("total_time_ns", default_total_time_ns))
         ramp_time_ns = float(lb.get("ramp_time_ns", default_ramp_time_ns))
         dt_ns = float(lb.get("dt_ns", default_dt_ns))
+        top_destination_rows = int(lb.get("top_destination_rows", default_top_destination_rows))
 
     if total_time_ns <= 0.0:
         raise ValueError("study.leakage_benchmark.total_time_ns must be positive")
@@ -496,6 +500,8 @@ def _parse_leakage_benchmark(study_payload: dict[str, Any]) -> LeakageBenchmarkC
         raise ValueError("study.leakage_benchmark.ramp_time_ns must be positive")
     if dt_ns <= 0.0:
         raise ValueError("study.leakage_benchmark.dt_ns must be positive")
+    if top_destination_rows < 1:
+        raise ValueError("study.leakage_benchmark.top_destination_rows must be >= 1")
     if total_time_ns < 2.0 * ramp_time_ns:
         raise ValueError(
             "study.leakage_benchmark.total_time_ns must be >= 2 * ramp_time_ns "
@@ -506,6 +512,7 @@ def _parse_leakage_benchmark(study_payload: dict[str, Any]) -> LeakageBenchmarkC
         total_time_ns=float(total_time_ns),
         ramp_time_ns=float(ramp_time_ns),
         dt_ns=float(dt_ns),
+        top_destination_rows=int(top_destination_rows),
     )
 
 

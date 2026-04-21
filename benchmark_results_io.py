@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import fields, is_dataclass
+from dataclasses import MISSING, fields, is_dataclass
 from pathlib import Path
 from typing import Any, TypeVar
 
@@ -77,9 +77,17 @@ def load_result_hdf5(
 
         kwargs: dict[str, Any] = {}
         for f in fields(result_type):
-            if f.name not in root:
-                raise ValueError(f"Missing field {f.name!r} in results file {infile}")
-            kwargs[f.name] = _read_value(root[f.name])
+            if f.name in root:
+                kwargs[f.name] = _read_value(root[f.name])
+                continue
+            if f.default is not MISSING:
+                kwargs[f.name] = f.default
+                continue
+            default_factory = f.default_factory
+            if default_factory is not MISSING:
+                kwargs[f.name] = default_factory()
+                continue
+            raise ValueError(f"Missing field {f.name!r} in results file {infile}")
 
     return result_type(**kwargs)
 
