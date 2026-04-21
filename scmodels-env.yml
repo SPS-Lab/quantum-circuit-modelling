@@ -21,9 +21,12 @@ dependencies:
   # Utilities
   - matplotlib
   - sympy
-  
+
   # Python type checker
   - pyright
-  
+
+  # For storing data
+  - h5py
+
   # To run tests
   - pytest

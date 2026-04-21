@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 import sys
 
@@ -9,22 +10,63 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from comparison.cz import run_cz_benchmark
+from benchmark_results_io import (
+    default_results_path_for_figure,
+    load_result_hdf5,
+    save_result_hdf5,
+)
+from comparison.cz import CzBenchmarkResult, run_cz_benchmark
 from plots.cz import plot_cz_benchmark
 from study_config import load_study_config
 
 
 
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--results",
+        type=Path,
+        default=None,
+        help="Path to HDF5 results file (default: figure path with .h5 suffix).",
+    )
+    parser.add_argument(
+        "--plot-only",
+        action="store_true",
+        help="Skip benchmark computation and plot from an existing HDF5 results file.",
+    )
+    return parser.parse_args()
+
+
+def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
+    return path if path.is_absolute() else (repo_root / path)
+
+
 def main() -> None:
+    args = _parse_args()
     repo_root = _REPO_ROOT
     config = load_study_config(
         repo_root / "params" / "system_params.json",
         repo_root / "params" / "static_benchmark_params.json",
     )
-    result = run_cz_benchmark(config)
 
     static_figure = repo_root / config.static_benchmark.outputs.figure
     figure_path = static_figure.with_name("model_comparison_cz_dynamics.pdf")
+    results_path = (
+        _resolve_repo_relative(repo_root, args.results)
+        if args.results is not None
+        else default_results_path_for_figure(figure_path)
+    )
+
+    if args.plot_only:
+        result = load_result_hdf5(
+            results_path,
+            CzBenchmarkResult,
+            expected_benchmark_name="cz",
+        )
+    else:
+        result = run_cz_benchmark(config)
+        save_result_hdf5(result, results_path, benchmark_name="cz")
+
     title = "CZ-relevant dynamics: effective vs Duffing vs circuit"
     plot_cz_benchmark(result, figure_path, title)
 
@@ -55,6 +97,10 @@ def main() -> None:
         print("Hold scan (ns, phase_err_to_pi_rad, score):")
         for h, err, score in zip(result.scan_hold_times_ns, result.scan_phase_error_rad, result.scan_scores):
             print(f"  {h:.6f}, {err:.6e}, {score:.6e}")
+    if args.plot_only:
+        print(f"Loaded results: {results_path}")
+    else:
+        print(f"Wrote results: {results_path}")
     print(f"Wrote figure: {figure_path}")
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 import sys
 
@@ -9,13 +10,38 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from comparison.truncation import run_truncation_benchmark
+from benchmark_results_io import (
+    default_results_path_for_figure,
+    load_result_hdf5,
+    save_result_hdf5,
+)
+from comparison.truncation import TruncationBenchmarkResult, run_truncation_benchmark
 from plots.truncation import plot_truncation_benchmark
 from study_config import load_study_config
 
 
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--results",
+        type=Path,
+        default=None,
+        help="Path to HDF5 results file (default: figure path with .h5 suffix).",
+    )
+    parser.add_argument(
+        "--plot-only",
+        action="store_true",
+        help="Skip benchmark computation and plot from an existing HDF5 results file.",
+    )
+    return parser.parse_args()
+
+
+def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
+    return path if path.is_absolute() else (repo_root / path)
+
 
 def main() -> None:
+    args = _parse_args()
     repo_root = _REPO_ROOT
     config = load_study_config(
         repo_root / "params" / "system_params.json",
@@ -23,21 +49,35 @@ def main() -> None:
     )
     trunc_cfg = config.truncation_benchmark
 
-    result = run_truncation_benchmark(
-        config,
-        duffing_ncut_values=list(trunc_cfg.duffing_ncut_values),
-        fixed_flux=float(trunc_cfg.fixed_flux),
-        duffing_truncated_dim=int(trunc_cfg.duffing_truncated_dim),
-        lowest_excited_levels_to_report=int(trunc_cfg.lowest_excited_levels_to_plot),
-        circuit_reference_ncut=int(trunc_cfg.circuit_reference_ncut),
-        duffing_calibration_mode=str(trunc_cfg.duffing_calibration_mode),
-    )
-
     configured_figure = Path(trunc_cfg.outputs.figure)
     if configured_figure.is_absolute():
         figure_path = configured_figure
     else:
         figure_path = repo_root / configured_figure
+    results_path = (
+        _resolve_repo_relative(repo_root, args.results)
+        if args.results is not None
+        else default_results_path_for_figure(figure_path)
+    )
+
+    if args.plot_only:
+        result = load_result_hdf5(
+            results_path,
+            TruncationBenchmarkResult,
+            expected_benchmark_name="truncation",
+        )
+    else:
+        result = run_truncation_benchmark(
+            config,
+            duffing_ncut_values=list(trunc_cfg.duffing_ncut_values),
+            fixed_flux=float(trunc_cfg.fixed_flux),
+            duffing_truncated_dim=int(trunc_cfg.duffing_truncated_dim),
+            lowest_excited_levels_to_report=int(trunc_cfg.lowest_excited_levels_to_plot),
+            circuit_reference_ncut=int(trunc_cfg.circuit_reference_ncut),
+            duffing_calibration_mode=str(trunc_cfg.duffing_calibration_mode),
+        )
+        save_result_hdf5(result, results_path, benchmark_name="truncation")
+
     title = (
         "Fixed-flux truncation benchmark: Duffing vs circuit "
         f"(flux={result.flux:.6f}, target={result.sweep_target})"
@@ -82,6 +122,10 @@ def main() -> None:
         if not (float(rel_pct) == float(rel_pct)):  # NaN check
             rel_text = "nan%"
         print(f"  E{int(level)}: {float(diff):.12e} ({rel_text} of circuit)")
+    if args.plot_only:
+        print(f"Loaded results: {results_path}")
+    else:
+        print(f"Wrote results: {results_path}")
     print(f"Wrote figure: {figure_path}")
 
 

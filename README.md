@@ -33,6 +33,16 @@ Run the static benchmark:
 python scripts/run_static_benchmark.py
 ```
 
+This writes:
+- figure: `static_benchmark.outputs.figure`
+- results: same path with `.h5` suffix
+
+To replot without rerunning the benchmark:
+
+```bash
+python scripts/run_static_benchmark.py --plot-only
+```
+
 This reads:
 
 - `params/system_params.json` (device/system parameters)
@@ -56,6 +66,13 @@ The CZ benchmark:
 - propagates effective + Duffing models with `numpy/scipy`,
 - propagates the circuit model with `scqubits` Hamiltonians + `qutip`,
 - focuses on CZ behavior/statevector from `|++>` and writes a CZ figure next to the configured static figure path.
+- writes CZ results to an `.h5` file next to that figure.
+
+Replot from saved CZ data only:
+
+```bash
+python scripts/run_cz_benchmark.py --plot-only
+```
 
 Run the leakage benchmark (from `|11>`):
 
@@ -64,6 +81,13 @@ python scripts/run_leakage_benchmark.py
 ```
 
 The leakage benchmark reuses the same calibrated pulse and reports/plots leakage-focused dynamics separately.
+It also writes an `.h5` results file next to the leakage figure.
+
+Replot from saved leakage data only:
+
+```bash
+python scripts/run_leakage_benchmark.py --plot-only
+```
 
 Run the fixed-flux truncation benchmark (`J`, `zeta` vs Duffing `ncut`):
 
@@ -87,3 +111,17 @@ This benchmark:
 - and prints `Duffing - circuit` numerically at the maximum Duffing `ncut`
   for those reported excited levels, including relative difference as percent
   of circuit energy.
+- writes truncation results to an `.h5` file next to the configured truncation figure.
+
+Replot from saved truncation data only:
+
+```bash
+python scripts/run_truncation_benchmark.py --plot-only
+```
+
+All scripts support `--results <path>` to override the default HDF5 path.
+You can also rerender all plots from existing results:
+
+```bash
+python scripts/run_all_benchmarks.py --plot-only
+```
