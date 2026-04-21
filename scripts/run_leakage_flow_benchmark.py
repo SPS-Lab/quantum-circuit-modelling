@@ -1,4 +1,4 @@
-"""Run CZ benchmark with parameters loaded from /params."""
+"""Run combined leakage/population + transition-flow benchmark with /params config."""
 
 from __future__ import annotations
 
@@ -15,10 +15,9 @@ from benchmark_results_io import (
     load_result_hdf5,
     save_result_hdf5,
 )
-from comparison.cz import CzBenchmarkResult, run_cz_benchmark
-from plotting.cz import plot_cz_benchmark
+from comparison.leakage_flow import LeakageFlowBenchmarkResult, run_leakage_flow_benchmark
+from plotting.leakage_flow import plot_leakage_flow_benchmark
 from study_config import load_study_config
-
 
 
 def _parse_args() -> argparse.Namespace:
@@ -48,15 +47,15 @@ def main() -> None:
         repo_root / "params" / "system_params.json",
         repo_root / "params" / "static_benchmark_params.json",
     )
-    cz_cfg = config.cz_benchmark
-    target_total_time_ns = float(cz_cfg.total_time_ns)
-    ramp_time_ns = float(cz_cfg.ramp_time_ns)
-    dt_ns = float(cz_cfg.dt_ns)
+
+    lf_cfg = config.leakage_flow_benchmark
+    target_total_time_ns = float(lf_cfg.total_time_ns)
+    ramp_time_ns = float(lf_cfg.ramp_time_ns)
     hold_time_ns = target_total_time_ns - 2.0 * ramp_time_ns
-    enable_hold_time_scan = bool(cz_cfg.enable_hold_time_scan)
+    dt_ns = float(lf_cfg.dt_ns)
 
     static_figure = repo_root / config.static_benchmark.outputs.figure
-    figure_path = static_figure.with_name("model_comparison_cz_dynamics.pdf")
+    figure_path = static_figure.with_name("model_comparison_leakage_flow.pdf")
     results_path = (
         _resolve_repo_relative(repo_root, args.results)
         if args.results is not None
@@ -66,52 +65,37 @@ def main() -> None:
     if args.plot_only:
         result = load_result_hdf5(
             results_path,
-            CzBenchmarkResult,
-            expected_benchmark_name="cz",
+            LeakageFlowBenchmarkResult,
+            expected_benchmark_name="leakage_flow",
         )
     else:
-        result = run_cz_benchmark(
+        result = run_leakage_flow_benchmark(
             config,
             ramp_time_ns=ramp_time_ns,
-            hold_time_ns=None if enable_hold_time_scan else hold_time_ns,
+            hold_time_ns=hold_time_ns,
             dt_ns=dt_ns,
-            enable_hold_time_scan=enable_hold_time_scan,
-            scan_dt_ns=float(cz_cfg.scan_dt_ns),
-            scan_max_hold_ns=float(cz_cfg.scan_max_hold_ns),
-            scan_leakage_penalty=float(cz_cfg.scan_leakage_penalty),
+            population_min_average=float(lf_cfg.population_min_average),
+            transition_min_integrated_abs=float(lf_cfg.transition_min_integrated_abs),
+            max_population_rows=int(lf_cfg.max_population_rows),
+            max_transition_rows=int(lf_cfg.max_transition_rows),
         )
-        save_result_hdf5(result, results_path, benchmark_name="cz")
+        save_result_hdf5(result, results_path, benchmark_name="leakage_flow")
 
-    title = "CZ benchmark: flux, cphase, and computational population-phase"
-    plot_cz_benchmark(result, figure_path, title)
+    title = (
+        "Leakage/flow benchmark from |1,0,1>: "
+        "population+phase states and canonical signed transitions"
+    )
+    plot_leakage_flow_benchmark(result, figure_path, title)
 
-    print("CZ benchmark summary:")
-    cz_summary_keys = [
-        "effective_final_conditional_phase_rad",
-        "duffing_final_conditional_phase_rad",
-        "circuit_final_conditional_phase_rad",
-        "circuit_final_phase_error_to_pi_rad",
-        "effective_final_phase_error_vs_circuit_rad",
-        "duffing_final_phase_error_vs_circuit_rad",
-        "effective_populations_rmse_vs_circuit",
-        "duffing_populations_rmse_vs_circuit",
-        "ramp_time_ns",
-        "hold_time_ns",
-        "dt_ns",
-    ]
-    for key in cz_summary_keys:
-        if key in result.summary:
-            print(f"  {key}: {result.summary[key]:.6e}")
+    print("Leakage/flow benchmark summary:")
+    for key, value in result.summary.items():
+        print(f"  {key}: {value:.6e}")
     print(
         "Selected pulse: "
         f"sweep_target={result.sweep_target}, idle_flux={result.idle_flux:.6f}, "
         f"target_flux={result.target_flux:.6f}, ramp_time_ns={result.ramp_time_ns:.3f}, "
         f"hold_time_ns={result.hold_time_ns:.3f}, dt_ns={result.dt_ns:.3f}"
     )
-    if result.scan_hold_times_ns.size > 0:
-        print("Hold scan (ns, phase_err_to_pi_rad, score):")
-        for h, err, score in zip(result.scan_hold_times_ns, result.scan_phase_error_rad, result.scan_scores):
-            print(f"  {h:.6f}, {err:.6e}, {score:.6e}")
     if args.plot_only:
         print(f"Loaded results: {results_path}")
     else:

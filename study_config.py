@@ -154,6 +154,28 @@ class TruncationBenchmarkConfig:
 
 
 @dataclass(frozen=True)
+class CzBenchmarkConfig:
+    total_time_ns: float
+    ramp_time_ns: float
+    dt_ns: float
+    enable_hold_time_scan: bool
+    scan_dt_ns: float
+    scan_max_hold_ns: float
+    scan_leakage_penalty: float
+
+
+@dataclass(frozen=True)
+class LeakageFlowBenchmarkConfig:
+    total_time_ns: float
+    ramp_time_ns: float
+    dt_ns: float
+    population_min_average: float
+    transition_min_integrated_abs: float
+    max_population_rows: int
+    max_transition_rows: int
+
+
+@dataclass(frozen=True)
 class LeakageBenchmarkConfig:
     total_time_ns: float
     ramp_time_ns: float
@@ -173,6 +195,8 @@ class StateToStateLeakageBenchmarkConfig:
 class StudyConfig:
     system: SystemParams
     static_benchmark: StaticBenchmarkConfig
+    cz_benchmark: CzBenchmarkConfig
+    leakage_flow_benchmark: LeakageFlowBenchmarkConfig
     truncation_benchmark: TruncationBenchmarkConfig
     leakage_benchmark: LeakageBenchmarkConfig
     state_to_state_leakage_benchmark: StateToStateLeakageBenchmarkConfig
@@ -483,6 +507,126 @@ def _parse_truncation_benchmark(
     )
 
 
+def _parse_cz_benchmark(study_payload: dict[str, Any]) -> CzBenchmarkConfig:
+    cz = study_payload.get("cz_benchmark")
+    default_total_time_ns = 70.0
+    default_ramp_time_ns = 8.0
+    default_dt_ns = 0.02
+    default_enable_hold_time_scan = False
+    default_scan_dt_ns = 2.0
+    default_scan_max_hold_ns = 300.0
+    default_scan_leakage_penalty = 0.25
+
+    if cz is None:
+        total_time_ns = float(default_total_time_ns)
+        ramp_time_ns = float(default_ramp_time_ns)
+        dt_ns = float(default_dt_ns)
+        enable_hold_time_scan = bool(default_enable_hold_time_scan)
+        scan_dt_ns = float(default_scan_dt_ns)
+        scan_max_hold_ns = float(default_scan_max_hold_ns)
+        scan_leakage_penalty = float(default_scan_leakage_penalty)
+    else:
+        if not isinstance(cz, dict):
+            raise TypeError("study.cz_benchmark must be an object")
+        total_time_ns = float(cz.get("total_time_ns", default_total_time_ns))
+        ramp_time_ns = float(cz.get("ramp_time_ns", default_ramp_time_ns))
+        dt_ns = float(cz.get("dt_ns", default_dt_ns))
+        enable_hold_time_scan = bool(cz.get("enable_hold_time_scan", default_enable_hold_time_scan))
+        scan_dt_ns = float(cz.get("scan_dt_ns", default_scan_dt_ns))
+        scan_max_hold_ns = float(cz.get("scan_max_hold_ns", default_scan_max_hold_ns))
+        scan_leakage_penalty = float(cz.get("scan_leakage_penalty", default_scan_leakage_penalty))
+
+    if total_time_ns <= 0.0:
+        raise ValueError("study.cz_benchmark.total_time_ns must be positive")
+    if ramp_time_ns <= 0.0:
+        raise ValueError("study.cz_benchmark.ramp_time_ns must be positive")
+    if dt_ns <= 0.0:
+        raise ValueError("study.cz_benchmark.dt_ns must be positive")
+    if scan_dt_ns <= 0.0:
+        raise ValueError("study.cz_benchmark.scan_dt_ns must be positive")
+    if scan_max_hold_ns < 0.0:
+        raise ValueError("study.cz_benchmark.scan_max_hold_ns must be >= 0")
+    if scan_leakage_penalty < 0.0:
+        raise ValueError("study.cz_benchmark.scan_leakage_penalty must be >= 0")
+    if total_time_ns < 2.0 * ramp_time_ns:
+        raise ValueError(
+            "study.cz_benchmark.total_time_ns must be >= 2 * ramp_time_ns "
+            "for a ramp-hold-ramp pulse"
+        )
+
+    return CzBenchmarkConfig(
+        total_time_ns=float(total_time_ns),
+        ramp_time_ns=float(ramp_time_ns),
+        dt_ns=float(dt_ns),
+        enable_hold_time_scan=bool(enable_hold_time_scan),
+        scan_dt_ns=float(scan_dt_ns),
+        scan_max_hold_ns=float(scan_max_hold_ns),
+        scan_leakage_penalty=float(scan_leakage_penalty),
+    )
+
+
+def _parse_leakage_flow_benchmark(study_payload: dict[str, Any]) -> LeakageFlowBenchmarkConfig:
+    lf = study_payload.get("leakage_flow_benchmark")
+    default_total_time_ns = 8.0
+    default_ramp_time_ns = 2.0
+    default_dt_ns = 0.02
+    default_population_min_average = 1e-4
+    default_transition_min_integrated_abs = 1e-4
+    default_max_population_rows = 24
+    default_max_transition_rows = 24
+
+    if lf is None:
+        total_time_ns = float(default_total_time_ns)
+        ramp_time_ns = float(default_ramp_time_ns)
+        dt_ns = float(default_dt_ns)
+        population_min_average = float(default_population_min_average)
+        transition_min_integrated_abs = float(default_transition_min_integrated_abs)
+        max_population_rows = int(default_max_population_rows)
+        max_transition_rows = int(default_max_transition_rows)
+    else:
+        if not isinstance(lf, dict):
+            raise TypeError("study.leakage_flow_benchmark must be an object")
+        total_time_ns = float(lf.get("total_time_ns", default_total_time_ns))
+        ramp_time_ns = float(lf.get("ramp_time_ns", default_ramp_time_ns))
+        dt_ns = float(lf.get("dt_ns", default_dt_ns))
+        population_min_average = float(lf.get("population_min_average", default_population_min_average))
+        transition_min_integrated_abs = float(
+            lf.get("transition_min_integrated_abs", default_transition_min_integrated_abs)
+        )
+        max_population_rows = int(lf.get("max_population_rows", default_max_population_rows))
+        max_transition_rows = int(lf.get("max_transition_rows", default_max_transition_rows))
+
+    if total_time_ns <= 0.0:
+        raise ValueError("study.leakage_flow_benchmark.total_time_ns must be positive")
+    if ramp_time_ns <= 0.0:
+        raise ValueError("study.leakage_flow_benchmark.ramp_time_ns must be positive")
+    if dt_ns <= 0.0:
+        raise ValueError("study.leakage_flow_benchmark.dt_ns must be positive")
+    if population_min_average < 0.0:
+        raise ValueError("study.leakage_flow_benchmark.population_min_average must be >= 0")
+    if transition_min_integrated_abs < 0.0:
+        raise ValueError("study.leakage_flow_benchmark.transition_min_integrated_abs must be >= 0")
+    if max_population_rows < 1:
+        raise ValueError("study.leakage_flow_benchmark.max_population_rows must be >= 1")
+    if max_transition_rows < 1:
+        raise ValueError("study.leakage_flow_benchmark.max_transition_rows must be >= 1")
+    if total_time_ns < 2.0 * ramp_time_ns:
+        raise ValueError(
+            "study.leakage_flow_benchmark.total_time_ns must be >= 2 * ramp_time_ns "
+            "for a ramp-hold-ramp pulse"
+        )
+
+    return LeakageFlowBenchmarkConfig(
+        total_time_ns=float(total_time_ns),
+        ramp_time_ns=float(ramp_time_ns),
+        dt_ns=float(dt_ns),
+        population_min_average=float(population_min_average),
+        transition_min_integrated_abs=float(transition_min_integrated_abs),
+        max_population_rows=int(max_population_rows),
+        max_transition_rows=int(max_transition_rows),
+    )
+
+
 def _parse_leakage_benchmark(study_payload: dict[str, Any]) -> LeakageBenchmarkConfig:
     lb = study_payload.get("leakage_benchmark")
     default_total_time_ns = 70.0
@@ -575,6 +719,8 @@ def load_study_config(system_params_path: Path, study_params_path: Path) -> Stud
     return StudyConfig(
         system=_parse_system(system_payload),
         static_benchmark=static_config,
+        cz_benchmark=_parse_cz_benchmark(study_payload),
+        leakage_flow_benchmark=_parse_leakage_flow_benchmark(study_payload),
         truncation_benchmark=_parse_truncation_benchmark(study_payload, static_config=static_config),
         leakage_benchmark=_parse_leakage_benchmark(study_payload),
         state_to_state_leakage_benchmark=_parse_state_to_state_leakage_benchmark(study_payload),

@@ -13,9 +13,12 @@ if str(_ROOT) not in sys.path:
 
 from comparison.cz import run_cz_benchmark
 from comparison.leakage import run_leakage_benchmark
+from comparison.leakage_flow import run_leakage_flow_benchmark
 from comparison.state_to_state_leakage import run_state_to_state_leakage_benchmark
 from comparison.static import run_static_benchmark
 from models.dressed import extract_model1_parameters_from_4x4_stack
+from plotting.cz import plot_cz_benchmark
+from plotting.leakage_flow import plot_leakage_flow_benchmark
 from study_config import load_study_config
 from models.effective import fit_single_harmonic_parameters
 
@@ -76,6 +79,19 @@ def test_load_study_config() -> None:
     assert cfg.truncation_benchmark.lowest_excited_levels_to_plot >= 1
     assert cfg.truncation_benchmark.circuit_reference_ncut > 0
     assert cfg.truncation_benchmark.duffing_calibration_mode in {"fixed", "analytic-per-flux", "per-flux"}
+    assert cfg.cz_benchmark.total_time_ns > 0.0
+    assert cfg.cz_benchmark.ramp_time_ns > 0.0
+    assert cfg.cz_benchmark.dt_ns > 0.0
+    assert cfg.cz_benchmark.scan_dt_ns > 0.0
+    assert cfg.cz_benchmark.scan_max_hold_ns >= 0.0
+    assert cfg.cz_benchmark.scan_leakage_penalty >= 0.0
+    assert cfg.leakage_flow_benchmark.total_time_ns > 0.0
+    assert cfg.leakage_flow_benchmark.ramp_time_ns > 0.0
+    assert cfg.leakage_flow_benchmark.dt_ns > 0.0
+    assert cfg.leakage_flow_benchmark.population_min_average >= 0.0
+    assert cfg.leakage_flow_benchmark.transition_min_integrated_abs >= 0.0
+    assert cfg.leakage_flow_benchmark.max_population_rows >= 1
+    assert cfg.leakage_flow_benchmark.max_transition_rows >= 1
     assert cfg.leakage_benchmark.total_time_ns > 0.0
     assert cfg.leakage_benchmark.ramp_time_ns > 0.0
     assert cfg.leakage_benchmark.dt_ns > 0.0
@@ -296,3 +312,77 @@ def test_state_to_state_leakage_benchmark_runs_with_small_config(tmp_path: Path)
     assert np.all(cir_curr_matrix >= -1e-12)
     assert np.allclose(duf_curr_matrix, np.clip(duf_signed_matrix, 0.0, None), atol=1e-12)
     assert np.allclose(cir_curr_matrix, np.clip(cir_signed_matrix, 0.0, None), atol=1e-12)
+
+
+def test_cz_plot_writes_pdf(tmp_path: Path) -> None:
+    pytest.importorskip("qutip")
+
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_path, study_path)
+
+    out = run_cz_benchmark(
+        cfg,
+        ramp_time_ns=4.0,
+        hold_time_ns=12.0,
+        dt_ns=1.0,
+        enable_hold_time_scan=False,
+    )
+    outfile = tmp_path / "cz_benchmark.pdf"
+    plot_cz_benchmark(out, outfile, title="test")
+    assert outfile.exists()
+
+
+def test_leakage_flow_benchmark_runs_with_small_config(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_path, study_path)
+
+    out = run_leakage_flow_benchmark(
+        cfg,
+        ramp_time_ns=2.0,
+        hold_time_ns=4.0,
+        dt_ns=1.0,
+        population_min_average=1e-5,
+        transition_min_integrated_abs=1e-5,
+        max_population_rows=12,
+        max_transition_rows=12,
+    )
+
+    assert out.times_ns.shape == (9,)
+    assert out.effective_population_state_amplitudes_11.shape[0] == out.times_ns.size
+    assert out.duffing_population_state_amplitudes_11.shape[0] == out.times_ns.size
+    assert out.circuit_population_state_amplitudes_11.shape[0] == out.times_ns.size
+    assert out.effective_transition_signed_currents_11.shape[0] == out.times_ns.size
+    assert out.duffing_transition_signed_currents_11.shape[0] == out.times_ns.size
+    assert out.circuit_transition_signed_currents_11.shape[0] == out.times_ns.size
+    assert out.effective_transition_labels_11.size > 0
+    assert out.duffing_transition_labels_11.size > 0
+    assert out.circuit_transition_labels_11.size > 0
+    assert np.all(np.isfinite(out.effective_leakage_11))
+    assert np.all(np.isfinite(out.duffing_leakage_11))
+    assert np.all(np.isfinite(out.circuit_leakage_11))
+    assert np.all(out.effective_leakage_11 >= -1e-12)
+    assert np.all(out.duffing_leakage_11 >= -1e-12)
+    assert np.all(out.circuit_leakage_11 >= -1e-12)
+
+
+def test_leakage_flow_plot_writes_pdf(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_path, study_path)
+
+    out = run_leakage_flow_benchmark(
+        cfg,
+        ramp_time_ns=2.0,
+        hold_time_ns=4.0,
+        dt_ns=1.0,
+        population_min_average=1e-5,
+        transition_min_integrated_abs=1e-5,
+        max_population_rows=12,
+        max_transition_rows=12,
+    )
+
+    outfile = tmp_path / "leakage_flow_benchmark.pdf"
+    plot_leakage_flow_benchmark(out, outfile, title="test")
+    assert outfile.exists()
