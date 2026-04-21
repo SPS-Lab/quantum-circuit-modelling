@@ -16,7 +16,7 @@ from benchmark_results_io import (
     save_result_hdf5,
 )
 from comparison.leakage import LeakageBenchmarkResult, run_leakage_benchmark
-from plots.leakage import plot_leakage_benchmark
+from plotting.leakage import plot_leakage_benchmark
 from study_config import load_study_config
 
 

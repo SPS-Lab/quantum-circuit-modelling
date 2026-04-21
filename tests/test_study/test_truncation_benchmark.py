@@ -12,7 +12,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from comparison.truncation import run_truncation_benchmark
-from plots.truncation import plot_truncation_benchmark
+from plotting.truncation import plot_truncation_benchmark
 from study_config import load_study_config
 
 

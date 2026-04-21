@@ -16,7 +16,7 @@ from benchmark_results_io import (
     save_result_hdf5,
 )
 from comparison.truncation import TruncationBenchmarkResult, run_truncation_benchmark
-from plots.truncation import plot_truncation_benchmark
+from plotting.truncation import plot_truncation_benchmark
 from study_config import load_study_config
 
 

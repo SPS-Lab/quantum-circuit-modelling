@@ -21,7 +21,7 @@ The paper-aligned workflow is organized by responsibility:
 
 - `models`: model builders (`effective`, `duffing`, `circuit`)
 - `comparison`: benchmark logic (`static`, `cz`, `leakage`)
-- `plots`: plotting only
+- `plotting`: plotting only
 - `study_config.py`: typed config loading/validation
 - `params`: all runtime parameters consumed by main scripts
 

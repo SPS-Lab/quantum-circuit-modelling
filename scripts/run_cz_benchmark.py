@@ -16,7 +16,7 @@ from benchmark_results_io import (
     save_result_hdf5,
 )
 from comparison.cz import CzBenchmarkResult, run_cz_benchmark
-from plots.cz import plot_cz_benchmark
+from plotting.cz import plot_cz_benchmark
 from study_config import load_study_config
 
 
