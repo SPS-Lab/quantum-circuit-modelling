@@ -105,6 +105,28 @@ def _set_y_ticks(ax: plt.Axes, labels: list[str], *, transition: bool, tick_font
     ax.tick_params(axis="y", labelsize=tick_font_size, pad=2.5)
 
 
+def _overlay_flux_track(
+    ax: plt.Axes,
+    *,
+    times_ns: np.ndarray,
+    pulse_flux_values: np.ndarray,
+    idle_flux: float,
+    target_flux: float,
+    n_rows: int,
+) -> None:
+    t = np.asarray(times_ns, dtype=float).ravel()
+    flux = np.asarray(pulse_flux_values, dtype=float).ravel()
+    n_rows_eff = max(1, int(n_rows))
+    if t.size == 0 or flux.size == 0 or t.size != flux.size:
+        return
+    flux_lo = float(min(np.min(flux), float(idle_flux), float(target_flux)))
+    flux_hi = float(max(np.max(flux), float(idle_flux), float(target_flux)))
+    flux_span = float(max(1e-15, flux_hi - flux_lo))
+    flux_norm = np.clip((flux - flux_lo) / flux_span, 0.0, 1.0)
+    y_flux = -0.5 + flux_norm * float(n_rows_eff - 1)
+    ax.plot(t, y_flux, color="black", linewidth=1.0, alpha=0.35, zorder=4)
+
+
 def plot_leakage_flow_benchmark(
     result: LeakageFlowBenchmarkResult,
     outfile: Path,
@@ -171,6 +193,7 @@ def plot_leakage_flow_benchmark(
                 origin="lower",
                 interpolation="nearest",
                 extent=(float(t[0]), float(t[-1]), -0.5, pop_rgb_duf.shape[0] - 0.5),
+                zorder=2,
             )
             _set_y_ticks(ax_pop_duf, pop_labels, transition=False, tick_font_size=tick_font_size)
         else:
@@ -184,6 +207,7 @@ def plot_leakage_flow_benchmark(
                 origin="lower",
                 interpolation="nearest",
                 extent=(float(t[0]), float(t[-1]), -0.5, pop_rgb_cir.shape[0] - 0.5),
+                zorder=2,
             )
             _set_y_ticks(ax_pop_cir, pop_labels, transition=False, tick_font_size=tick_font_size)
         else:
@@ -199,6 +223,7 @@ def plot_leakage_flow_benchmark(
             vmin=-vabs,
             vmax=vabs,
             cmap=transition_cmap,
+            zorder=2,
         )
         _set_y_ticks(ax_tr_duf, tr_labels, transition=True, tick_font_size=tick_font_size)
 
@@ -211,8 +236,42 @@ def plot_leakage_flow_benchmark(
             vmin=-vabs,
             vmax=vabs,
             cmap=transition_cmap,
+            zorder=2,
         )
         _set_y_ticks(ax_tr_cir, tr_labels, transition=True, tick_font_size=tick_font_size)
+
+        _overlay_flux_track(
+            ax_pop_duf,
+            times_ns=t,
+            pulse_flux_values=result.pulse_flux_values,
+            idle_flux=float(result.idle_flux),
+            target_flux=float(result.target_flux),
+            n_rows=max(1, pop_rgb_duf.shape[0]),
+        )
+        _overlay_flux_track(
+            ax_pop_cir,
+            times_ns=t,
+            pulse_flux_values=result.pulse_flux_values,
+            idle_flux=float(result.idle_flux),
+            target_flux=float(result.target_flux),
+            n_rows=max(1, pop_rgb_cir.shape[0]),
+        )
+        _overlay_flux_track(
+            ax_tr_duf,
+            times_ns=t,
+            pulse_flux_values=result.pulse_flux_values,
+            idle_flux=float(result.idle_flux),
+            target_flux=float(result.target_flux),
+            n_rows=max(1, tr_duf.shape[1]),
+        )
+        _overlay_flux_track(
+            ax_tr_cir,
+            times_ns=t,
+            pulse_flux_values=result.pulse_flux_values,
+            idle_flux=float(result.idle_flux),
+            target_flux=float(result.target_flux),
+            n_rows=max(1, tr_cir.shape[1]),
+        )
 
         ax_pop_duf.set_title("Duffing population+phase")
         ax_pop_cir.set_title("Circuit population+phase")
