@@ -82,6 +82,10 @@ python scripts/run_leakage_benchmark.py
 
 The leakage benchmark reuses the same calibrated pulse and reports/plots leakage-focused dynamics separately.
 It also writes an `.h5` results file next to the leakage figure.
+Leakage pulse timing is configured in `params/static_benchmark_params.json` under:
+- `leakage_benchmark.total_time_ns`
+- `leakage_benchmark.ramp_time_ns`
+- `leakage_benchmark.dt_ns`
 
 Replot from saved leakage data only:
 

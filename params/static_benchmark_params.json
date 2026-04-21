@@ -58,5 +58,10 @@
     "outputs": {
       "figure": "results/model_comparison_truncation_static_metrics.pdf"
     }
+  },
+  "leakage_benchmark": {
+    "total_time_ns": 70.0,
+    "ramp_time_ns": 8.0,
+    "dt_ns": 1.0
   }
 }

@@ -154,10 +154,18 @@ class TruncationBenchmarkConfig:
 
 
 @dataclass(frozen=True)
+class LeakageBenchmarkConfig:
+    total_time_ns: float
+    ramp_time_ns: float
+    dt_ns: float
+
+
+@dataclass(frozen=True)
 class StudyConfig:
     system: SystemParams
     static_benchmark: StaticBenchmarkConfig
     truncation_benchmark: TruncationBenchmarkConfig
+    leakage_benchmark: LeakageBenchmarkConfig
 
 
 
@@ -465,6 +473,42 @@ def _parse_truncation_benchmark(
     )
 
 
+def _parse_leakage_benchmark(study_payload: dict[str, Any]) -> LeakageBenchmarkConfig:
+    lb = study_payload.get("leakage_benchmark")
+    default_total_time_ns = 70.0
+    default_ramp_time_ns = 8.0
+    default_dt_ns = 1.0
+
+    if lb is None:
+        total_time_ns = float(default_total_time_ns)
+        ramp_time_ns = float(default_ramp_time_ns)
+        dt_ns = float(default_dt_ns)
+    else:
+        if not isinstance(lb, dict):
+            raise TypeError("study.leakage_benchmark must be an object")
+        total_time_ns = float(lb.get("total_time_ns", default_total_time_ns))
+        ramp_time_ns = float(lb.get("ramp_time_ns", default_ramp_time_ns))
+        dt_ns = float(lb.get("dt_ns", default_dt_ns))
+
+    if total_time_ns <= 0.0:
+        raise ValueError("study.leakage_benchmark.total_time_ns must be positive")
+    if ramp_time_ns <= 0.0:
+        raise ValueError("study.leakage_benchmark.ramp_time_ns must be positive")
+    if dt_ns <= 0.0:
+        raise ValueError("study.leakage_benchmark.dt_ns must be positive")
+    if total_time_ns < 2.0 * ramp_time_ns:
+        raise ValueError(
+            "study.leakage_benchmark.total_time_ns must be >= 2 * ramp_time_ns "
+            "for a ramp-hold-ramp pulse"
+        )
+
+    return LeakageBenchmarkConfig(
+        total_time_ns=float(total_time_ns),
+        ramp_time_ns=float(ramp_time_ns),
+        dt_ns=float(dt_ns),
+    )
+
+
 
 def load_study_config(system_params_path: Path, study_params_path: Path) -> StudyConfig:
     system_payload = _load_json(system_params_path)
@@ -474,6 +518,7 @@ def load_study_config(system_params_path: Path, study_params_path: Path) -> Stud
         system=_parse_system(system_payload),
         static_benchmark=static_config,
         truncation_benchmark=_parse_truncation_benchmark(study_payload, static_config=static_config),
+        leakage_benchmark=_parse_leakage_benchmark(study_payload),
     )
 
 

@@ -48,6 +48,11 @@ def main() -> None:
         repo_root / "params" / "system_params.json",
         repo_root / "params" / "static_benchmark_params.json",
     )
+    leakage_cfg = config.leakage_benchmark
+    target_total_time_ns = float(leakage_cfg.total_time_ns)
+    ramp_time_ns = float(leakage_cfg.ramp_time_ns)
+    hold_time_ns = target_total_time_ns - 2.0 * ramp_time_ns
+    dt_ns = float(leakage_cfg.dt_ns)
 
     static_figure = repo_root / config.static_benchmark.outputs.figure
     figure_path = static_figure.with_name("model_comparison_leakage.pdf")
@@ -64,7 +69,12 @@ def main() -> None:
             expected_benchmark_name="leakage",
         )
     else:
-        result = run_leakage_benchmark(config)
+        result = run_leakage_benchmark(
+            config,
+            ramp_time_ns=ramp_time_ns,
+            hold_time_ns=hold_time_ns,
+            dt_ns=dt_ns,
+        )
         save_result_hdf5(result, results_path, benchmark_name="leakage")
 
     title = "Leakage benchmark from |11>: effective vs Duffing vs circuit"
