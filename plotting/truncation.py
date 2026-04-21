@@ -9,7 +9,9 @@ import numpy as np
 
 from comparison.truncation import TruncationBenchmarkResult
 from plotting.style import (
+    BENCHMARK_TIGHT_LAYOUT_RECT,
     DEFAULT_PLOT_FONT_SIZE,
+    MODEL_LEGEND_BBOX_TO_ANCHOR,
     MODEL_ALPHA_CIRCUIT,
     MODEL_ALPHA_DUFFING,
     benchmark_plot_style,
@@ -84,8 +86,8 @@ def plot_truncation_benchmark(
         ax_diff.set_xlabel("Duffing transmon ncut")
         ax_diff.grid(True, alpha=0.3)
 
-        fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 0.985))
-        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.95))
+        fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
+        fig.tight_layout(rect=BENCHMARK_TIGHT_LAYOUT_RECT)
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(outfile, format="pdf")

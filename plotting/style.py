@@ -12,6 +12,9 @@ DEFAULT_PLOT_FONT_SIZE: float = 22.0 # Should be > 18 and < 25 w current style
 MODEL_ALPHA_CIRCUIT: float = 1.0
 MODEL_ALPHA_DUFFING: float = 0.72
 MODEL_ALPHA_EFFECTIVE: float = 0.45
+# Controls vertical separation between the top model legend and subplots.
+MODEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.01)
+BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.93)
 
 MODEL_ALPHAS: dict[str, float] = {
     "circuit": MODEL_ALPHA_CIRCUIT,
