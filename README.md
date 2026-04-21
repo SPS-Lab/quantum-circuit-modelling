@@ -20,7 +20,7 @@ python print_versions.py
 The paper-aligned workflow is organized by responsibility:
 
 - `models`: model builders (`effective`, `duffing`, `circuit`)
-- `comparison`: benchmark logic (`static`, `cz`, `leakage`)
+- `comparison`: benchmark logic (`static`, `cz`, `leakage`, `state_to_state_leakage`)
 - `plotting`: plotting only
 - `study_config.py`: typed config loading/validation
 - `params`: all runtime parameters consumed by main scripts
@@ -93,6 +93,35 @@ Replot from saved leakage data only:
 
 ```bash
 python scripts/run_leakage_benchmark.py --plot-only
+```
+
+Run the state-to-state leakage-current benchmark (from `|11>`):
+
+```bash
+python scripts/run_state_to_state_leakage_benchmark.py
+```
+
+This benchmark reuses the calibrated CZ pulse and computes directed
+computational-to-leakage pair currents
+`J_{a->b}(t) = 2 Im(psi_a^* (2 pi H_ab) psi_b)` for Duffing and circuit
+models. It stores both:
+- positive outward component (`comp -> leak`)
+- signed current (negative values are return flow `leak -> comp`)
+
+It plots signed transitions (`Top-N + other transitions`) with a diverging
+colormap and includes a net signed comp<->leak current trace.
+
+Timing/plot settings are read from
+`params/static_benchmark_params.json` under:
+- `state_to_state_leakage_benchmark.total_time_ns`
+- `state_to_state_leakage_benchmark.ramp_time_ns`
+- `state_to_state_leakage_benchmark.dt_ns`
+- `state_to_state_leakage_benchmark.top_transition_rows`
+
+Replot from saved state-to-state leakage data only:
+
+```bash
+python scripts/run_state_to_state_leakage_benchmark.py --plot-only
 ```
 
 Run the fixed-flux truncation benchmark (`J`, `zeta` vs Duffing `ncut`):

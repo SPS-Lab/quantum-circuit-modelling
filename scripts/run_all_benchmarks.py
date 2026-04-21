@@ -12,6 +12,7 @@ _SCRIPTS_DIR = _REPO_ROOT / "scripts"
 _BENCHMARK_SCRIPTS = (
     "run_static_benchmark.py",
     "run_leakage_benchmark.py",
+    "run_state_to_state_leakage_benchmark.py",
     "run_cz_benchmark.py",
     "run_truncation_benchmark.py",
 )
