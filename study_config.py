@@ -572,8 +572,8 @@ def _parse_leakage_flow_benchmark(study_payload: dict[str, Any]) -> LeakageFlowB
     default_dt_ns = 0.02
     default_population_min_average = 1e-4
     default_transition_min_integrated_abs = 1e-4
-    default_max_population_rows = 24
-    default_max_transition_rows = 24
+    default_max_population_rows = 12
+    default_max_transition_rows = 12
 
     if lf is None:
         total_time_ns = float(default_total_time_ns)

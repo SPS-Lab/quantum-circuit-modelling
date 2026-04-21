@@ -353,19 +353,18 @@ def test_leakage_flow_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     )
 
     assert out.times_ns.shape == (9,)
-    assert out.effective_population_state_amplitudes_11.shape[0] == out.times_ns.size
     assert out.duffing_population_state_amplitudes_11.shape[0] == out.times_ns.size
     assert out.circuit_population_state_amplitudes_11.shape[0] == out.times_ns.size
-    assert out.effective_transition_signed_currents_11.shape[0] == out.times_ns.size
     assert out.duffing_transition_signed_currents_11.shape[0] == out.times_ns.size
     assert out.circuit_transition_signed_currents_11.shape[0] == out.times_ns.size
-    assert out.effective_transition_labels_11.size > 0
-    assert out.duffing_transition_labels_11.size > 0
-    assert out.circuit_transition_labels_11.size > 0
-    assert np.all(np.isfinite(out.effective_leakage_11))
+    assert out.population_state_labels_11.size > 0
+    assert out.transition_labels_11.size > 0
+    assert out.duffing_population_state_amplitudes_11.shape[1] == out.population_state_labels_11.size
+    assert out.circuit_population_state_amplitudes_11.shape[1] == out.population_state_labels_11.size
+    assert out.duffing_transition_signed_currents_11.shape[1] == out.transition_labels_11.size
+    assert out.circuit_transition_signed_currents_11.shape[1] == out.transition_labels_11.size
     assert np.all(np.isfinite(out.duffing_leakage_11))
     assert np.all(np.isfinite(out.circuit_leakage_11))
-    assert np.all(out.effective_leakage_11 >= -1e-12)
     assert np.all(out.duffing_leakage_11 >= -1e-12)
     assert np.all(out.circuit_leakage_11 >= -1e-12)
 

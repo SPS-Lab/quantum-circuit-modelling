@@ -74,8 +74,8 @@
     "dt_ns": 0.02,
     "population_min_average": 0.0001,
     "transition_min_integrated_abs": 0.0001,
-    "max_population_rows": 24,
-    "max_transition_rows": 24
+    "max_population_rows": 12,
+    "max_transition_rows": 12
   },
   "leakage_benchmark": {
     "total_time_ns": 20.0,

@@ -10,7 +10,6 @@ from scipy.linalg import expm
 from comparison.cz import (
     TWO_PI,
     _idle_flux_for_target,
-    _interpolate_effective_parameters,
     _pick_target_flux_from_static,
     _ramp_hold_ramp_flux_pulse,
 )
@@ -18,7 +17,6 @@ from comparison.static import run_static_benchmark
 from models import (
     build_circuit_model_stack,
     build_duffing_model_stack,
-    build_effective_hamiltonian_stack,
     computational_state_indices,
 )
 from study_config import StudyConfig
@@ -34,19 +32,12 @@ class LeakageFlowBenchmarkResult:
     ramp_time_ns: float
     hold_time_ns: float
     dt_ns: float
-    effective_population_state_labels_11: np.ndarray
-    duffing_population_state_labels_11: np.ndarray
-    circuit_population_state_labels_11: np.ndarray
-    effective_population_state_amplitudes_11: np.ndarray
+    population_state_labels_11: np.ndarray
     duffing_population_state_amplitudes_11: np.ndarray
     circuit_population_state_amplitudes_11: np.ndarray
-    effective_transition_labels_11: np.ndarray
-    duffing_transition_labels_11: np.ndarray
-    circuit_transition_labels_11: np.ndarray
-    effective_transition_signed_currents_11: np.ndarray
+    transition_labels_11: np.ndarray
     duffing_transition_signed_currents_11: np.ndarray
     circuit_transition_signed_currents_11: np.ndarray
-    effective_leakage_11: np.ndarray
     duffing_leakage_11: np.ndarray
     circuit_leakage_11: np.ndarray
     summary: dict[str, float]
@@ -117,6 +108,74 @@ def _canonical_state_order_qcq(n1: int, nc: int, n2: int) -> tuple[np.ndarray, n
 def _encode_labels(labels: np.ndarray) -> np.ndarray:
     text = np.asarray(labels, dtype=str).ravel()
     return np.asarray([s.encode("utf-8") for s in text], dtype="S")
+
+
+def _decode_labels(labels: np.ndarray) -> list[str]:
+    arr = np.asarray(labels).ravel()
+    out: list[str] = []
+    for x in arr:
+        if isinstance(x, (bytes, np.bytes_)):
+            out.append(bytes(x).decode("utf-8"))
+        else:
+            out.append(str(x))
+    return out
+
+
+def _parse_state_label(label: str) -> tuple[int, int, int]:
+    text = str(label).strip()
+    if not (text.startswith("|") and text.endswith(">")):
+        raise ValueError(f"Invalid state label {label!r}")
+    parts = text[1:-1].split(",")
+    if len(parts) != 3:
+        raise ValueError(f"Invalid state label {label!r}")
+    return int(parts[0]), int(parts[1]), int(parts[2])
+
+
+def _state_sort_key(label: str) -> tuple[int, int, int, int]:
+    i, j, k = _parse_state_label(label)
+    return (i + j + k, i, j, k)
+
+
+def _transition_sort_key(label: str) -> tuple[int, int, int, int, int, int, int, int]:
+    text = str(label).strip()
+    if "->" not in text:
+        raise ValueError(f"Invalid transition label {label!r}")
+    src, dst = text.split("->", 1)
+    i1, j1, k1 = _parse_state_label(src.strip())
+    i2, j2, k2 = _parse_state_label(dst.strip())
+    return (i1 + j1 + k1, i1, j1, k1, i2 + j2 + k2, i2, j2, k2)
+
+
+def _union_state_labels(labels_a: np.ndarray, labels_b: np.ndarray) -> np.ndarray:
+    merged = sorted(set(_decode_labels(labels_a)) | set(_decode_labels(labels_b)), key=_state_sort_key)
+    return np.asarray(merged, dtype=str)
+
+
+def _union_transition_labels(labels_a: np.ndarray, labels_b: np.ndarray) -> np.ndarray:
+    merged = sorted(set(_decode_labels(labels_a)) | set(_decode_labels(labels_b)), key=_transition_sort_key)
+    return np.asarray(merged, dtype=str)
+
+
+def _align_by_union_labels(
+    union_labels: np.ndarray,
+    model_labels: np.ndarray,
+    model_traces: np.ndarray,
+) -> np.ndarray:
+    labels_u = _decode_labels(union_labels)
+    labels_m = _decode_labels(model_labels)
+    traces = np.asarray(model_traces)
+    if traces.ndim != 2:
+        raise ValueError(f"model_traces must be 2D (n_time, n_rows), got {traces.shape}")
+    if len(labels_m) != traces.shape[1]:
+        raise ValueError("model_labels size must match model_traces second axis")
+
+    out = np.zeros((traces.shape[0], len(labels_u)), dtype=traces.dtype)
+    label_to_col = {label: idx for idx, label in enumerate(labels_m)}
+    for j, label in enumerate(labels_u):
+        idx = label_to_col.get(label)
+        if idx is not None:
+            out[:, j] = traces[:, idx]
+    return out
 
 
 def _select_population_states(
@@ -262,13 +321,6 @@ def run_leakage_flow_benchmark(
         target_flux=float(target_flux),
     )
 
-    effective_params = _interpolate_effective_parameters(
-        np.asarray(static_result.flux_values, dtype=float),
-        static_result.effective_parameters,
-        np.asarray(pulse_flux, dtype=float),
-    )
-    H_effective = build_effective_hamiltonian_stack(effective_params)
-
     duffing_stack = build_duffing_model_stack(
         flux_values=pulse_flux,
         system_params=config.system,
@@ -285,7 +337,6 @@ def run_leakage_flow_benchmark(
         sweep_target=sweep_target,
     ).hamiltonian_stack
 
-    idx_eff_init = _idx_qcq(2, 1, 2, 1, 0, 1)
     n_q_duf = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit)
     n_c_duf = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler)
     idx_duf_init = _idx_qcq(n_q_duf, n_c_duf, n_q_duf, 1, 0, 1)
@@ -294,53 +345,37 @@ def run_leakage_flow_benchmark(
     n_c_cir = int(config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim)
     idx_cir_init = _idx_qcq(n_q1_cir, n_c_cir, n_q2_cir, 1, 0, 1)
 
-    psi_eff = _simulate_state_trajectory(H_effective, times_ns, initial_index=idx_eff_init)
     psi_duf = _simulate_state_trajectory(duffing_stack, times_ns, initial_index=idx_duf_init)
     psi_cir = _simulate_state_trajectory(circuit_stack, times_ns, initial_index=idx_cir_init)
 
-    idx_eff_ord, labels_eff_ord = _canonical_state_order_qcq(2, 1, 2)
     idx_duf_ord, labels_duf_ord = _canonical_state_order_qcq(n_q_duf, n_c_duf, n_q_duf)
     idx_cir_ord, labels_cir_ord = _canonical_state_order_qcq(n_q1_cir, n_c_cir, n_q2_cir)
 
-    H_eff_ord = np.asarray(H_effective[:, idx_eff_ord][:, :, idx_eff_ord], dtype=complex)
     H_duf_ord = np.asarray(duffing_stack[:, idx_duf_ord][:, :, idx_duf_ord], dtype=complex)
     H_cir_ord = np.asarray(circuit_stack[:, idx_cir_ord][:, :, idx_cir_ord], dtype=complex)
 
-    psi_eff_ord = np.asarray(psi_eff[:, idx_eff_ord], dtype=complex)
     psi_duf_ord = np.asarray(psi_duf[:, idx_duf_ord], dtype=complex)
     psi_cir_ord = np.asarray(psi_cir[:, idx_cir_ord], dtype=complex)
 
-    pop_labels_eff, pop_amp_eff = _select_population_states(
-        psi_eff_ord,
-        labels_eff_ord,
-        times_ns,
-        min_average_population=population_min_average,
-        max_rows=max_population_rows,
-    )
-    pop_labels_duf, pop_amp_duf = _select_population_states(
+    pop_labels_duf_local, pop_amp_duf_local = _select_population_states(
         psi_duf_ord,
         labels_duf_ord,
         times_ns,
         min_average_population=population_min_average,
         max_rows=max_population_rows,
     )
-    pop_labels_cir, pop_amp_cir = _select_population_states(
+    pop_labels_cir_local, pop_amp_cir_local = _select_population_states(
         psi_cir_ord,
         labels_cir_ord,
         times_ns,
         min_average_population=population_min_average,
         max_rows=max_population_rows,
     )
+    pop_labels_union = _union_state_labels(pop_labels_duf_local, pop_labels_cir_local)
+    pop_amp_duf = _align_by_union_labels(pop_labels_union, pop_labels_duf_local, pop_amp_duf_local)
+    pop_amp_cir = _align_by_union_labels(pop_labels_union, pop_labels_cir_local, pop_amp_cir_local)
 
-    tr_labels_eff, tr_curr_eff = _select_signed_pair_transitions(
-        H_eff_ord,
-        psi_eff_ord,
-        labels_eff_ord,
-        times_ns,
-        min_integrated_abs=transition_min_integrated_abs,
-        max_rows=max_transition_rows,
-    )
-    tr_labels_duf, tr_curr_duf = _select_signed_pair_transitions(
+    tr_labels_duf_local, tr_curr_duf_local = _select_signed_pair_transitions(
         H_duf_ord,
         psi_duf_ord,
         labels_duf_ord,
@@ -348,7 +383,7 @@ def run_leakage_flow_benchmark(
         min_integrated_abs=transition_min_integrated_abs,
         max_rows=max_transition_rows,
     )
-    tr_labels_cir, tr_curr_cir = _select_signed_pair_transitions(
+    tr_labels_cir_local, tr_curr_cir_local = _select_signed_pair_transitions(
         H_cir_ord,
         psi_cir_ord,
         labels_cir_ord,
@@ -356,30 +391,22 @@ def run_leakage_flow_benchmark(
         min_integrated_abs=transition_min_integrated_abs,
         max_rows=max_transition_rows,
     )
+    tr_labels_union = _union_transition_labels(tr_labels_duf_local, tr_labels_cir_local)
+    tr_curr_duf = _align_by_union_labels(tr_labels_union, tr_labels_duf_local, tr_curr_duf_local)
+    tr_curr_cir = _align_by_union_labels(tr_labels_union, tr_labels_cir_local, tr_curr_cir_local)
 
-    eff_comp_idx = np.array([0, 1, 2, 3], dtype=int)
     duf_comp_idx = computational_state_indices(n_q_duf, n_c_duf)
     cir_comp_idx = computational_state_indices(n_q1_cir, n_c_cir)
-    eff_leakage = _leakage_from_computational(psi_eff, eff_comp_idx)
     duf_leakage = _leakage_from_computational(psi_duf, duf_comp_idx)
     cir_leakage = _leakage_from_computational(psi_cir, cir_comp_idx)
 
     summary = {
-        "effective_max_leakage_11": float(np.max(eff_leakage)),
         "duffing_max_leakage_11": float(np.max(duf_leakage)),
         "circuit_max_leakage_11": float(np.max(cir_leakage)),
-        "effective_final_leakage_11": float(eff_leakage[-1]),
         "duffing_final_leakage_11": float(duf_leakage[-1]),
         "circuit_final_leakage_11": float(cir_leakage[-1]),
-        "effective_population_states_shown": float(pop_labels_eff.size),
-        "duffing_population_states_shown": float(pop_labels_duf.size),
-        "circuit_population_states_shown": float(pop_labels_cir.size),
-        "effective_transitions_shown": float(tr_labels_eff.size),
-        "duffing_transitions_shown": float(tr_labels_duf.size),
-        "circuit_transitions_shown": float(tr_labels_cir.size),
-        "effective_total_abs_transition_current": float(
-            sum(_time_integral(np.abs(tr_curr_eff[:, i]), times_ns) for i in range(tr_curr_eff.shape[1]))
-        ),
+        "union_population_states_shown": float(pop_labels_union.size),
+        "union_transitions_shown": float(tr_labels_union.size),
         "duffing_total_abs_transition_current": float(
             sum(_time_integral(np.abs(tr_curr_duf[:, i]), times_ns) for i in range(tr_curr_duf.shape[1]))
         ),
@@ -400,19 +427,12 @@ def run_leakage_flow_benchmark(
         ramp_time_ns=float(ramp_time_ns),
         hold_time_ns=float(hold_time_ns),
         dt_ns=float(dt_ns),
-        effective_population_state_labels_11=_encode_labels(pop_labels_eff),
-        duffing_population_state_labels_11=_encode_labels(pop_labels_duf),
-        circuit_population_state_labels_11=_encode_labels(pop_labels_cir),
-        effective_population_state_amplitudes_11=np.asarray(pop_amp_eff, dtype=complex),
+        population_state_labels_11=_encode_labels(pop_labels_union),
         duffing_population_state_amplitudes_11=np.asarray(pop_amp_duf, dtype=complex),
         circuit_population_state_amplitudes_11=np.asarray(pop_amp_cir, dtype=complex),
-        effective_transition_labels_11=_encode_labels(tr_labels_eff),
-        duffing_transition_labels_11=_encode_labels(tr_labels_duf),
-        circuit_transition_labels_11=_encode_labels(tr_labels_cir),
-        effective_transition_signed_currents_11=np.asarray(tr_curr_eff, dtype=float),
+        transition_labels_11=_encode_labels(tr_labels_union),
         duffing_transition_signed_currents_11=np.asarray(tr_curr_duf, dtype=float),
         circuit_transition_signed_currents_11=np.asarray(tr_curr_cir, dtype=float),
-        effective_leakage_11=np.asarray(eff_leakage, dtype=float),
         duffing_leakage_11=np.asarray(duf_leakage, dtype=float),
         circuit_leakage_11=np.asarray(cir_leakage, dtype=float),
         summary=summary,

@@ -100,29 +100,20 @@ def plot_leakage_flow_benchmark(
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float).ravel()
 
-    pop_labels_eff = _decode_labels(result.effective_population_state_labels_11)
-    pop_labels_duf = _decode_labels(result.duffing_population_state_labels_11)
-    pop_labels_cir = _decode_labels(result.circuit_population_state_labels_11)
+    pop_labels = _decode_labels(result.population_state_labels_11)
+    tr_labels = _decode_labels(result.transition_labels_11)
 
-    tr_labels_eff = _decode_labels(result.effective_transition_labels_11)
-    tr_labels_duf = _decode_labels(result.duffing_transition_labels_11)
-    tr_labels_cir = _decode_labels(result.circuit_transition_labels_11)
-
-    pop_amp_eff = np.asarray(result.effective_population_state_amplitudes_11, dtype=complex)
     pop_amp_duf = np.asarray(result.duffing_population_state_amplitudes_11, dtype=complex)
     pop_amp_cir = np.asarray(result.circuit_population_state_amplitudes_11, dtype=complex)
 
-    tr_eff = np.asarray(result.effective_transition_signed_currents_11, dtype=float)
     tr_duf = np.asarray(result.duffing_transition_signed_currents_11, dtype=float)
     tr_cir = np.asarray(result.circuit_transition_signed_currents_11, dtype=float)
 
-    pop_rgb_eff = _phase_population_rgb(pop_amp_eff, pop_labels_eff)
-    pop_rgb_duf = _phase_population_rgb(pop_amp_duf, pop_labels_duf)
-    pop_rgb_cir = _phase_population_rgb(pop_amp_cir, pop_labels_cir)
+    pop_rgb_duf = _phase_population_rgb(pop_amp_duf, pop_labels)
+    pop_rgb_cir = _phase_population_rgb(pop_amp_cir, pop_labels)
 
     vabs = float(
         max(
-            np.max(np.abs(tr_eff), initial=0.0),
             np.max(np.abs(tr_duf), initial=0.0),
             np.max(np.abs(tr_cir), initial=0.0),
             1e-12,
@@ -131,39 +122,24 @@ def plot_leakage_flow_benchmark(
     tick_font_size = max(8.0, 0.42 * float(font_size))
 
     with benchmark_plot_style(font_size):
-        fig = plt.figure(figsize=(16.0, 10.5))
+        fig = plt.figure(figsize=(13.5, 10.2))
         gs = fig.add_gridspec(
             2,
-            4,
-            width_ratios=(1.0, 1.0, 1.0, 0.08),
+            3,
+            width_ratios=(1.0, 1.0, 0.08),
             height_ratios=(1.0, 1.0),
             hspace=0.28,
             wspace=0.30,
         )
 
-        ax_pop_eff = fig.add_subplot(gs[0, 0])
-        ax_pop_duf = fig.add_subplot(gs[0, 1], sharex=ax_pop_eff)
-        ax_pop_cir = fig.add_subplot(gs[0, 2], sharex=ax_pop_eff)
-        ax_tr_eff = fig.add_subplot(gs[1, 0], sharex=ax_pop_eff)
-        ax_tr_duf = fig.add_subplot(gs[1, 1], sharex=ax_pop_eff)
-        ax_tr_cir = fig.add_subplot(gs[1, 2], sharex=ax_pop_eff)
+        ax_pop_duf = fig.add_subplot(gs[0, 0])
+        ax_pop_cir = fig.add_subplot(gs[0, 1], sharex=ax_pop_duf)
+        ax_tr_duf = fig.add_subplot(gs[1, 0], sharex=ax_pop_duf)
+        ax_tr_cir = fig.add_subplot(gs[1, 1], sharex=ax_pop_duf)
 
-        cbar_grid = gs[:, 3].subgridspec(2, 1, hspace=0.45, height_ratios=(1.0, 1.0))
+        cbar_grid = gs[:, 2].subgridspec(2, 1, hspace=0.45, height_ratios=(1.0, 1.0))
         ax_cbar_phase = fig.add_subplot(cbar_grid[0, 0])
         ax_cbar_tr = fig.add_subplot(cbar_grid[1, 0])
-
-        if pop_rgb_eff.size > 0:
-            ax_pop_eff.imshow(
-                pop_rgb_eff,
-                aspect="auto",
-                origin="lower",
-                interpolation="nearest",
-                extent=(float(t[0]), float(t[-1]), -0.5, pop_rgb_eff.shape[0] - 0.5),
-            )
-            _set_y_ticks(ax_pop_eff, pop_labels_eff, transition=False, tick_font_size=tick_font_size)
-        else:
-            ax_pop_eff.text(0.5, 0.5, "No states selected", ha="center", va="center", transform=ax_pop_eff.transAxes)
-            ax_pop_eff.set_yticks([])
 
         if pop_rgb_duf.size > 0:
             ax_pop_duf.imshow(
@@ -173,7 +149,7 @@ def plot_leakage_flow_benchmark(
                 interpolation="nearest",
                 extent=(float(t[0]), float(t[-1]), -0.5, pop_rgb_duf.shape[0] - 0.5),
             )
-            _set_y_ticks(ax_pop_duf, pop_labels_duf, transition=False, tick_font_size=tick_font_size)
+            _set_y_ticks(ax_pop_duf, pop_labels, transition=False, tick_font_size=tick_font_size)
         else:
             ax_pop_duf.text(0.5, 0.5, "No states selected", ha="center", va="center", transform=ax_pop_duf.transAxes)
             ax_pop_duf.set_yticks([])
@@ -186,24 +162,12 @@ def plot_leakage_flow_benchmark(
                 interpolation="nearest",
                 extent=(float(t[0]), float(t[-1]), -0.5, pop_rgb_cir.shape[0] - 0.5),
             )
-            _set_y_ticks(ax_pop_cir, pop_labels_cir, transition=False, tick_font_size=tick_font_size)
+            _set_y_ticks(ax_pop_cir, pop_labels, transition=False, tick_font_size=tick_font_size)
         else:
             ax_pop_cir.text(0.5, 0.5, "No states selected", ha="center", va="center", transform=ax_pop_cir.transAxes)
             ax_pop_cir.set_yticks([])
 
-        im_tr_eff = ax_tr_eff.imshow(
-            tr_eff.T if tr_eff.size > 0 else np.zeros((1, t.size), dtype=float),
-            aspect="auto",
-            origin="lower",
-            interpolation="nearest",
-            extent=(float(t[0]), float(t[-1]), -0.5, max(0, tr_eff.shape[1] - 1) + 0.5),
-            vmin=-vabs,
-            vmax=vabs,
-            cmap="coolwarm",
-        )
-        _set_y_ticks(ax_tr_eff, tr_labels_eff, transition=True, tick_font_size=tick_font_size)
-
-        ax_tr_duf.imshow(
+        im_tr = ax_tr_duf.imshow(
             tr_duf.T if tr_duf.size > 0 else np.zeros((1, t.size), dtype=float),
             aspect="auto",
             origin="lower",
@@ -213,7 +177,7 @@ def plot_leakage_flow_benchmark(
             vmax=vabs,
             cmap="coolwarm",
         )
-        _set_y_ticks(ax_tr_duf, tr_labels_duf, transition=True, tick_font_size=tick_font_size)
+        _set_y_ticks(ax_tr_duf, tr_labels, transition=True, tick_font_size=tick_font_size)
 
         ax_tr_cir.imshow(
             tr_cir.T if tr_cir.size > 0 else np.zeros((1, t.size), dtype=float),
@@ -225,19 +189,16 @@ def plot_leakage_flow_benchmark(
             vmax=vabs,
             cmap="coolwarm",
         )
-        _set_y_ticks(ax_tr_cir, tr_labels_cir, transition=True, tick_font_size=tick_font_size)
+        _set_y_ticks(ax_tr_cir, tr_labels, transition=True, tick_font_size=tick_font_size)
 
-        ax_pop_eff.set_title("Effective population+phase")
         ax_pop_duf.set_title("Duffing population+phase")
         ax_pop_cir.set_title("Circuit population+phase")
-        ax_tr_eff.set_title("Effective transitions")
         ax_tr_duf.set_title("Duffing transitions")
         ax_tr_cir.set_title("Circuit transitions")
 
-        ax_pop_eff.set_ylabel("States")
-        ax_tr_eff.set_ylabel("Transitions")
+        ax_pop_duf.set_ylabel("States")
+        ax_tr_duf.set_ylabel("Transitions")
 
-        ax_tr_eff.set_xlabel("Time (ns)")
         ax_tr_duf.set_xlabel("Time (ns)")
         ax_tr_cir.set_xlabel("Time (ns)")
 
@@ -249,7 +210,7 @@ def plot_leakage_flow_benchmark(
         cbar_phase.set_label("Phase hue (rad)")
         ax_cbar_phase.set_title("Brightness = population", fontsize=max(9.0, 0.62 * float(font_size)))
 
-        cbar_tr = fig.colorbar(im_tr_eff, cax=ax_cbar_tr)
+        cbar_tr = fig.colorbar(im_tr, cax=ax_cbar_tr)
         cbar_tr.set_label("Signed current (1/ns)")
 
         fig.suptitle(title)

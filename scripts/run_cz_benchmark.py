@@ -82,7 +82,7 @@ def main() -> None:
         )
         save_result_hdf5(result, results_path, benchmark_name="cz")
 
-    title = "CZ benchmark: flux, cphase, and computational population-phase"
+    title = "CZ Benchmark: Flux And CPhase"
     plot_cz_benchmark(result, figure_path, title)
 
     print("CZ benchmark summary:")

@@ -93,12 +93,13 @@ Run the combined leakage/flow benchmark (from `|1,0,1>`):
 python scripts/run_leakage_flow_benchmark.py
 ```
 
-This benchmark uses a short pulse and writes one figure with 6 heatmaps:
-- top row: population+phase heatmaps for effective, Duffing, and circuit models
-- bottom row: signed transition-current heatmaps for effective, Duffing, and circuit models
+This benchmark uses a short pulse and writes one figure with 4 heatmaps:
+- top row: population+phase heatmaps for Duffing and circuit models
+- bottom row: signed transition-current heatmaps for Duffing and circuit models
 
 Transition channels follow a fixed canonical ordering rule:
 `(q1 + c + q2, q1, c, q2)` (excitation-first then lexicographic), and each row is directed `|a> -> |b>` with that ordering.
+Rows are aligned between Duffing and circuit by taking the union of states/transitions selected by each model.
 
 Timing/selection settings are read from `params/static_benchmark_params.json` under:
 - `leakage_flow_benchmark.total_time_ns`
