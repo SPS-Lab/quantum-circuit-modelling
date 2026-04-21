@@ -9,14 +9,14 @@ import numpy as np
 
 from comparison.leakage import LeakageBenchmarkResult
 from plotting.style import (
+    BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_RECT,
+    BENCHMARK_TIGHT_LAYOUT_W_PAD,
     DEFAULT_PLOT_FONT_SIZE,
     MODEL_LEGEND_BBOX_TO_ANCHOR,
-    MODEL_ALPHA_CIRCUIT,
-    MODEL_ALPHA_DUFFING,
-    MODEL_ALPHA_EFFECTIVE,
     benchmark_plot_style,
     model_legend_handles,
+    model_plot_kwargs,
 )
 
 
@@ -41,10 +41,10 @@ def plot_leakage_benchmark(
         ax_flux.set_ylabel(r"Flux bias ($\Phi/\Phi_0$)")
         ax_flux.grid(True, alpha=0.3)
 
-        ax_leak.plot(t, result.circuit_leakage_11, color="k", linewidth=2.0, alpha=MODEL_ALPHA_CIRCUIT)
-        ax_leak.plot(t, result.duffing_leakage_11, color="k", linewidth=2.0, alpha=MODEL_ALPHA_DUFFING)
-        ax_leak.plot(t, result.effective_leakage_11, color="k", linewidth=2.0, alpha=MODEL_ALPHA_EFFECTIVE)
-        ax_leak.set_ylabel(r"Leakage from $|11\rangle$")
+        ax_leak.plot(t, result.circuit_leakage_11, color="k", linewidth=2.0, **model_plot_kwargs("circuit"))
+        ax_leak.plot(t, result.duffing_leakage_11, color="k", linewidth=2.0, **model_plot_kwargs("duffing"))
+        ax_leak.plot(t, result.effective_leakage_11, color="k", linewidth=2.0, **model_plot_kwargs("effective"))
+        ax_leak.set_ylabel(r"Leakage")
         ax_leak.grid(True, alpha=0.3)
 
         ax_inter.plot(
@@ -52,20 +52,24 @@ def plot_leakage_benchmark(
             result.circuit_state_011_11,
             color="C1",
             linewidth=2.0,
-            alpha=MODEL_ALPHA_CIRCUIT,
+            **model_plot_kwargs("circuit"),
         )
         ax_inter.plot(
             t,
             result.duffing_state_011_11,
             color="C1",
             linewidth=2.0,
-            alpha=MODEL_ALPHA_DUFFING,
+            **model_plot_kwargs("duffing"),
         )
         ax_inter.set_ylabel("Population")
         ax_inter.grid(True, alpha=0.3)
         ax_inter.set_xlabel("Time (ns)")
         fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
-        fig.tight_layout(rect=BENCHMARK_TIGHT_LAYOUT_RECT)
+        fig.tight_layout(
+            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
+            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
+            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
+        )
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(outfile, format="pdf")

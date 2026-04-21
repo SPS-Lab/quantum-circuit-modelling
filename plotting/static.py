@@ -1,4 +1,4 @@
-"""Plotting for the static benchmark."""
+"""Plotting for the static benchmark. All numerics in GHz."""
 
 from __future__ import annotations
 
@@ -10,14 +10,20 @@ from matplotlib.lines import Line2D
 
 from comparison.static import StaticBenchmarkResult
 from plotting.style import (
+    BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_RECT,
+    BENCHMARK_TIGHT_LAYOUT_W_PAD,
     DEFAULT_PLOT_FONT_SIZE,
     MODEL_LEGEND_BBOX_TO_ANCHOR,
     MODEL_ALPHA_CIRCUIT,
     MODEL_ALPHA_DUFFING,
-    MODEL_ALPHA_EFFECTIVE,
+    STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
+    STATIC_LEVEL_LEGEND_FONT_SCALE,
+    STATIC_LEVEL_LEGEND_LOC,
+    STATIC_LEVEL_LEGEND_NCOL,
     benchmark_plot_style,
     model_legend_handles,
+    model_plot_kwargs,
 )
 
 
@@ -56,10 +62,10 @@ def plot_static_benchmark(
 
         for i in (1, 2, 3):
             color = f"C{i - 1}"
-            axE.plot(flux, result.circuit_relative_energies[:, i], color=color, linewidth=1.8, alpha=MODEL_ALPHA_CIRCUIT)
-            axE.plot(flux, result.duffing_relative_energies[:, i], color=color, linewidth=1.8, alpha=MODEL_ALPHA_DUFFING)
-            axE.plot(flux, result.effective_relative_energies[:, i], color=color, linewidth=1.8, alpha=MODEL_ALPHA_EFFECTIVE)
-        axE.set_ylabel("Energy (GHz, rel. ground)")
+            axE.plot(flux, result.circuit_relative_energies[:, i], color=color, linewidth=1.8, **model_plot_kwargs("circuit"))
+            axE.plot(flux, result.duffing_relative_energies[:, i], color=color, linewidth=1.8, **model_plot_kwargs("duffing"))
+            axE.plot(flux, result.effective_relative_energies[:, i], color=color, linewidth=1.8, **model_plot_kwargs("effective"))
+        axE.set_ylabel("Energy rel. ground")
         axE.grid(True, alpha=0.3)
         axE.legend(
             handles=[
@@ -68,38 +74,49 @@ def plot_static_benchmark(
                 Line2D([0], [0], color="C2", linewidth=1.8, label=r"$E_{3}$"),
                 Line2D([0], [0], color="0.55", linewidth=1.1, alpha=0.4, label="lower levels"),
             ],
-            loc="best",
-            ncol=2,
+            loc=STATIC_LEVEL_LEGEND_LOC,
+            bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
+            ncol=STATIC_LEVEL_LEGEND_NCOL,
+            fontsize=font_size * STATIC_LEVEL_LEGEND_FONT_SCALE,
+            framealpha=0.9,
+            borderpad=0.25,
+            labelspacing=0.25,
+            handlelength=1.4,
+            columnspacing=0.9,
         )
 
-        axErr.plot(flux, result.effective_error_rmse, color="k", linewidth=1.8, alpha=MODEL_ALPHA_EFFECTIVE)
-        axErr.plot(flux, result.duffing_error_rmse, color="k", linewidth=1.8, alpha=MODEL_ALPHA_DUFFING)
+        axErr.plot(flux, result.effective_error_rmse, color="k", linewidth=1.8, **model_plot_kwargs("effective"))
+        axErr.plot(flux, result.duffing_error_rmse, color="k", linewidth=1.8, **model_plot_kwargs("duffing"))
         y_max = float(max(np.max(result.effective_error_rmse), np.max(result.duffing_error_rmse)))
         if np.any(result.near_mask):
             axErr.fill_between(flux, 0.0, y_max * 1.05, where=result.near_mask, color="C3", alpha=0.08)
         if np.any(result.idle_mask):
             axErr.fill_between(flux, 0.0, y_max * 1.05, where=result.idle_mask, color="C0", alpha=0.05)
-        axErr.set_ylabel("Per-flux RMSE (GHz)")
+        axErr.set_ylabel("Per-flux RMSE")
         axErr.grid(True, alpha=0.3)
 
-        axJ.plot(flux, result.circuit_parameters["J"], color="C1", linewidth=1.8, alpha=MODEL_ALPHA_CIRCUIT)
-        axJ.plot(flux, result.duffing_parameters["J"], color="C1", linewidth=1.8, alpha=MODEL_ALPHA_DUFFING)
-        axJ.plot(flux, result.effective_parameters["J"], color="C1", linewidth=1.8, alpha=MODEL_ALPHA_EFFECTIVE)
+        axJ.plot(flux, result.circuit_parameters["J"], color="C1", linewidth=1.8, **model_plot_kwargs("circuit"))
+        axJ.plot(flux, result.duffing_parameters["J"], color="C1", linewidth=1.8, **model_plot_kwargs("duffing"))
+        axJ.plot(flux, result.effective_parameters["J"], color="C1", linewidth=1.8, **model_plot_kwargs("effective"))
         axJ.axhline(0.0, color="0.35", linewidth=1.0)
-        axJ.set_ylabel(r"Exchange $J$ (GHz)")
+        axJ.set_ylabel(r"Exchange $J$")
         axJ.grid(True, alpha=0.3)
 
-        axZeta.plot(flux, result.circuit_parameters["zeta"], color="C2", linewidth=1.8, alpha=MODEL_ALPHA_CIRCUIT)
-        axZeta.plot(flux, result.duffing_parameters["zeta"], color="C2", linewidth=1.8, alpha=MODEL_ALPHA_DUFFING)
-        axZeta.plot(flux, result.effective_parameters["zeta"], color="C2", linewidth=1.8, alpha=MODEL_ALPHA_EFFECTIVE)
+        axZeta.plot(flux, result.circuit_parameters["zeta"], color="C2", linewidth=1.8, **model_plot_kwargs("circuit"))
+        axZeta.plot(flux, result.duffing_parameters["zeta"], color="C2", linewidth=1.8, **model_plot_kwargs("duffing"))
+        axZeta.plot(flux, result.effective_parameters["zeta"], color="C2", linewidth=1.8, **model_plot_kwargs("effective"))
         axZeta.axhline(0.0, color="0.35", linewidth=1.0)
-        axZeta.set_ylabel(r"Residual ZZ $\zeta$ (GHz)")
+        axZeta.set_ylabel(r"Residual ZZ $\zeta$")
         axZeta.grid(True, alpha=0.3)
 
         axes[1, 0].set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
         axes[1, 1].set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
         fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
-        fig.tight_layout(rect=BENCHMARK_TIGHT_LAYOUT_RECT)
+        fig.tight_layout(
+            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
+            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
+            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
+        )
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(outfile, format="pdf")
