@@ -225,6 +225,7 @@ def _select_signed_pair_transitions(
     *,
     min_integrated_abs: float,
     max_rows: int,
+    state_signs: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     H = np.asarray(H_stack, dtype=complex)
     psi = np.asarray(psi_ordered, dtype=complex)
@@ -243,6 +244,12 @@ def _select_signed_pair_transitions(
         raise ValueError("psi_ordered state axis must match H_stack dimension")
     if labels.size != d:
         raise ValueError("labels_ordered size must match H_stack dimension")
+    sign_traces = None if state_signs is None else np.asarray(state_signs, dtype=float)
+    if sign_traces is not None and sign_traces.shape != (t.size, d):
+        raise ValueError(
+            "state_signs must have shape (n_time, n_states) matching times/state axes, "
+            f"got {sign_traces.shape}, expected {(t.size, d)}"
+        )
 
     iu, ju = np.triu_indices(d, k=1)
     n_pairs = int(iu.size)
@@ -274,6 +281,9 @@ def _select_signed_pair_transitions(
     keep = keep[order]
 
     traces = np.zeros((t.size, keep.size), dtype=float)
+    pair_sign = None
+    if sign_traces is not None:
+        pair_sign = np.asarray(sign_traces[:, iu[keep]] * sign_traces[:, ju[keep]], dtype=float)
     for m in range(t.size):
         psi_m = psi[m]
         directed = np.asarray(
@@ -282,9 +292,130 @@ def _select_signed_pair_transitions(
         )
         vals = np.asarray(directed[iu, ju], dtype=float)
         traces[m, :] = vals[keep]
+    if pair_sign is not None:
+        traces *= pair_sign
 
     labels_out = np.array([f"{labels[iu[k]]}->{labels[ju[k]]}" for k in keep], dtype=str)
     return labels_out, traces
+
+
+def _track_transmon_eigenvector_signs(
+    flux_values: np.ndarray,
+    *,
+    EJmax: float,
+    EC: float,
+    d: float,
+    ng: float,
+    ncut: int,
+    truncated_dim: int,
+) -> np.ndarray:
+    flux = np.asarray(flux_values, dtype=float).ravel()
+    n_time = int(flux.size)
+    n_level = int(truncated_dim)
+    signs = np.ones((n_time, n_level), dtype=float)
+    if n_time == 0 or n_level <= 0:
+        return signs
+
+    try:
+        import scqubits as scq
+    except Exception:
+        # Fallback keeps legacy behavior if scqubits cannot be imported.
+        return signs
+
+    prev_evecs: np.ndarray | None = None
+    evec_cache: dict[float, np.ndarray] = {}
+    for m, fl in enumerate(flux):
+        key = float(fl)
+        evecs = evec_cache.get(key)
+        if evecs is None:
+            tr = scq.TunableTransmon(
+                EJmax=float(EJmax),
+                EC=float(EC),
+                d=float(d),
+                flux=key,
+                ng=float(ng),
+                ncut=int(ncut),
+                truncated_dim=n_level,
+                id_str="gauge_track",
+            )
+            _, evecs = tr.eigensys(evals_count=n_level)
+            evec_cache[key] = np.asarray(evecs, dtype=complex)
+        if prev_evecs is not None:
+            overlap = np.sum(np.conjugate(prev_evecs) * evecs, axis=0)
+            phase = np.where(np.abs(overlap) > 1e-12, overlap / np.abs(overlap), 1.0 + 0.0j)
+            step_sign = np.sign(np.real(phase))
+            step_sign[step_sign == 0.0] = 1.0
+            signs[m, :] = signs[m - 1, :] * step_sign
+        prev_evecs = evecs
+    return signs
+
+
+def _pulse_qubit_flux_arrays(
+    pulse_flux: np.ndarray,
+    *,
+    sweep_target: str,
+    q1_idle_flux: float,
+    q2_idle_flux: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    flux = np.asarray(pulse_flux, dtype=float).ravel()
+    if sweep_target == "q1":
+        return np.asarray(flux, dtype=float), np.full(flux.shape, float(q2_idle_flux), dtype=float)
+    if sweep_target == "q2":
+        return np.full(flux.shape, float(q1_idle_flux), dtype=float), np.asarray(flux, dtype=float)
+    if sweep_target == "coupler":
+        return (
+            np.full(flux.shape, float(q1_idle_flux), dtype=float),
+            np.full(flux.shape, float(q2_idle_flux), dtype=float),
+        )
+    raise ValueError(f"Unsupported sweep_target {sweep_target!r}")
+
+
+def _circuit_qcq_state_signs_ordered(
+    pulse_flux: np.ndarray,
+    *,
+    sweep_target: str,
+    config: StudyConfig,
+    ordered_indices: np.ndarray,
+) -> np.ndarray:
+    flux_q1, flux_q2 = _pulse_qubit_flux_arrays(
+        pulse_flux,
+        sweep_target=sweep_target,
+        q1_idle_flux=float(config.system.q1.flux),
+        q2_idle_flux=float(config.system.q2.flux),
+    )
+    n_q1 = int(config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim)
+    n_q2 = int(config.static_benchmark.circuit_model.hilbert_truncation.q2_truncated_dim)
+    n_c = int(config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim)
+
+    s_q1 = _track_transmon_eigenvector_signs(
+        flux_q1,
+        EJmax=float(config.system.q1.EJmax),
+        EC=float(config.system.q1.EC),
+        d=float(config.system.q1.d),
+        ng=float(config.system.q1.ng),
+        ncut=int(config.system.q1.ncut),
+        truncated_dim=n_q1,
+    )
+    s_q2 = _track_transmon_eigenvector_signs(
+        flux_q2,
+        EJmax=float(config.system.q2.EJmax),
+        EC=float(config.system.q2.EC),
+        d=float(config.system.q2.d),
+        ng=float(config.system.q2.ng),
+        ncut=int(config.system.q2.ncut),
+        truncated_dim=n_q2,
+    )
+
+    n_time = int(np.asarray(pulse_flux, dtype=float).size)
+    d_total = int(n_q1 * n_c * n_q2)
+    signs = np.ones((n_time, d_total), dtype=float)
+    for i in range(n_q1):
+        for j in range(n_c):
+            for k in range(n_q2):
+                idx = _idx_qcq(n_q1, n_c, n_q2, i, j, k)
+                signs[:, idx] = s_q1[:, i] * s_q2[:, k]
+    order = np.asarray(ordered_indices, dtype=int).ravel()
+    return np.asarray(signs[:, order], dtype=float)
 
 
 def _leakage_from_computational(
@@ -383,6 +514,12 @@ def run_leakage_flow_benchmark(
         min_integrated_abs=transition_min_integrated_abs,
         max_rows=max_transition_rows,
     )
+    cir_state_signs_ord = _circuit_qcq_state_signs_ordered(
+        pulse_flux,
+        sweep_target=sweep_target,
+        config=config,
+        ordered_indices=idx_cir_ord,
+    )
     tr_labels_cir_local, tr_curr_cir_local = _select_signed_pair_transitions(
         H_cir_ord,
         psi_cir_ord,
@@ -390,6 +527,7 @@ def run_leakage_flow_benchmark(
         times_ns,
         min_integrated_abs=transition_min_integrated_abs,
         max_rows=max_transition_rows,
+        state_signs=cir_state_signs_ord,
     )
     tr_labels_union = _union_transition_labels(tr_labels_duf_local, tr_labels_cir_local)
     tr_curr_duf = _align_by_union_labels(tr_labels_union, tr_labels_duf_local, tr_curr_duf_local)
