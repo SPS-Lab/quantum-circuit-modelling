@@ -16,7 +16,7 @@ from benchmark_results_io import (
     save_result_hdf5,
 )
 from comparison.static import StaticBenchmarkResult, run_static_benchmark
-from plots.static import plot_static_benchmark
+from plotting.static import plot_static_benchmark
 from study_config import load_study_config
 
 

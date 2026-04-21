@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from comparison.truncation import TruncationBenchmarkResult
-from plots.style import (
+from plotting.style import (
     DEFAULT_PLOT_FONT_SIZE,
     MODEL_ALPHA_CIRCUIT,
     MODEL_ALPHA_DUFFING,

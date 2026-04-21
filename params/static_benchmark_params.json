@@ -45,7 +45,7 @@
       "near_ratio": 2.0
     },
     "outputs": {
-      "figure": "figures/regime_map/model_comparison_static.pdf"
+      "figure": "results/model_comparison_static.pdf"
     }
   },
   "truncation_benchmark": {
@@ -56,7 +56,7 @@
     "circuit_reference_ncut": 120,
     "duffing_calibration_mode": "per-flux",
     "outputs": {
-      "figure": "figures/regime_map/model_comparison_truncation_static_metrics.pdf"
+      "figure": "results/model_comparison_truncation_static_metrics.pdf"
     }
   }
 }

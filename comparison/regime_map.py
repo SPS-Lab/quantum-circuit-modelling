@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from comparison.static import run_static_benchmark
-from plots.static import plot_static_benchmark
+from plotting.static import plot_static_benchmark
 from study_config import load_study_config
 
 

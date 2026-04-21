@@ -48,7 +48,7 @@ def _write_small_study_params(tmp_path: Path) -> Path:
     tb["lowest_excited_levels_to_plot"] = 2
     tb["circuit_reference_ncut"] = 35
     tb["duffing_calibration_mode"] = "per-flux"
-    tb["outputs"]["figure"] = "figures/regime_map/test_truncation_benchmark.pdf"
+    tb["outputs"]["figure"] = "results/test_truncation_benchmark.pdf"
     dst = tmp_path / "study_small.json"
     dst.write_text(json.dumps(payload), encoding="utf-8")
     return dst

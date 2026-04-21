@@ -410,7 +410,7 @@ def _parse_truncation_benchmark(
     default_n_levels_to_plot = 6
     default_ref_ncut = 120
     default_mode: DuffingCalibrationMode = "per-flux"
-    default_figure = "figures/regime_map/model_comparison_truncation_static_metrics.pdf"
+    default_figure = "results/model_comparison_truncation_static_metrics.pdf"
 
     if tb is None:
         return TruncationBenchmarkConfig(

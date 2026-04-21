@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 from comparison.static import StaticBenchmarkResult
-from plots.style import (
+from plotting.style import (
     DEFAULT_PLOT_FONT_SIZE,
     MODEL_ALPHA_CIRCUIT,
     MODEL_ALPHA_DUFFING,
