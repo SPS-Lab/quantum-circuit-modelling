@@ -1,4 +1,9 @@
-"""Plotting for the combined leakage/population + transition-flow benchmark."""
+"""
+Plotting for the combined leakage/population + transition-flow benchmark.
+Leakage/flow benchmark from |1,0,1>:
+    population+phase states and canonical signed transitions
+Color strength ~ sqrt(population) for States.
+"""
 
 from __future__ import annotations
 
@@ -226,12 +231,11 @@ def plot_leakage_flow_benchmark(
         cbar_phase.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
         cbar_phase.set_ticklabels(["$-\\pi$", "$-\\pi/2$", "$0$", "$\\pi/2$", "$\\pi$"])
         cbar_phase.set_label("Phase hue (rad)")
-        ax_cbar_phase.set_title("Color strength ~ sqrt(population)", fontsize=max(9.0, 0.62 * float(font_size)))
+        #ax_cbar_phase.set_title("Color strength ~ sqrt(population)", fontsize=max(9.0, 0.62 * float(font_size)))
 
         cbar_tr = fig.colorbar(im_tr, cax=ax_cbar_tr)
         cbar_tr.set_label("Signed current (1/ns)")
 
-        fig.suptitle(title)
         fig.subplots_adjust(left=0.20, right=0.95, bottom=0.08, top=0.92)
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
