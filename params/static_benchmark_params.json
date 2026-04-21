@@ -59,6 +59,24 @@
       "figure": "results/model_comparison_truncation_static_metrics.pdf"
     }
   },
+  "cz_benchmark": {
+    "total_time_ns": 70.0,
+    "ramp_time_ns": 8.0,
+    "dt_ns": 0.5,
+    "enable_hold_time_scan": true,
+    "scan_dt_ns": 2.0,
+    "scan_max_hold_ns": 300.0,
+    "scan_leakage_penalty": 0.25
+  },
+  "leakage_flow_benchmark": {
+    "total_time_ns": 8.0,
+    "ramp_time_ns": 2.0,
+    "dt_ns": 0.02,
+    "population_min_average": 0.0001,
+    "transition_min_integrated_abs": 0.0001,
+    "max_population_rows": 12,
+    "max_transition_rows": 12
+  },
   "leakage_benchmark": {
     "total_time_ns": 20.0,
     "ramp_time_ns": 8.0,

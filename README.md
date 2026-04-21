@@ -20,7 +20,7 @@ python print_versions.py
 The paper-aligned workflow is organized by responsibility:
 
 - `models`: model builders (`effective`, `duffing`, `circuit`)
-- `comparison`: benchmark logic (`static`, `cz`, `leakage`, `state_to_state_leakage`)
+- `comparison`: benchmark logic (`static`, `cz`, `leakage_flow`, `truncation`)
 - `plotting`: plotting only
 - `study_config.py`: typed config loading/validation
 - `params`: all runtime parameters consumed by main scripts
@@ -62,11 +62,24 @@ python scripts/run_cz_benchmark.py
 
 The CZ benchmark:
 - uses a shared flux pulse schedule for all models,
-- uses a ramp-hold-ramp pulse with automatic hold-time scan toward CZ phase (`pi`),
+- uses a ramp-hold-ramp pulse configured under `cz_benchmark`,
 - propagates effective + Duffing models with `numpy/scipy`,
 - propagates the circuit model with `scqubits` Hamiltonians + `qutip`,
-- focuses on CZ behavior/statevector from `|++>` and writes a CZ figure next to the configured static figure path.
+- focuses on CZ behavior/statevector from `|++>`,
+- writes a figure with:
+  - flux vs time,
+  - conditional phase vs time for all models,
+  - three computational heatmaps (effective, Duffing, circuit) where brightness is population and hue is relative phase.
 - writes CZ results to an `.h5` file next to that figure.
+
+Timing/scan settings are read from `params/static_benchmark_params.json` under:
+- `cz_benchmark.total_time_ns`
+- `cz_benchmark.ramp_time_ns`
+- `cz_benchmark.dt_ns`
+- `cz_benchmark.enable_hold_time_scan`
+- `cz_benchmark.scan_dt_ns`
+- `cz_benchmark.scan_max_hold_ns`
+- `cz_benchmark.scan_leakage_penalty`
 
 Replot from saved CZ data only:
 
@@ -74,54 +87,33 @@ Replot from saved CZ data only:
 python scripts/run_cz_benchmark.py --plot-only
 ```
 
-Run the leakage benchmark (from `|11>`):
+Run the combined leakage/flow benchmark (from `|1,0,1>`):
 
 ```bash
-python scripts/run_leakage_benchmark.py
+python scripts/run_leakage_flow_benchmark.py
 ```
 
-The leakage benchmark reuses the same calibrated pulse and reports/plots leakage-focused dynamics separately.
-It now tracks and plots all leakage destination states (outside the computational basis) for Duffing and circuit models.
-It also writes an `.h5` results file next to the leakage figure.
-Leakage pulse timing is configured in `params/static_benchmark_params.json` under:
-- `leakage_benchmark.total_time_ns`
-- `leakage_benchmark.ramp_time_ns`
-- `leakage_benchmark.dt_ns`
-- `leakage_benchmark.top_destination_rows` (number of individual leakage destinations to show before aggregating the rest into `other states`)
+This benchmark uses a short pulse and writes one figure with 4 heatmaps:
+- top row: population+phase heatmaps for Duffing and circuit models
+- bottom row: signed transition-current heatmaps for Duffing and circuit models
 
-Replot from saved leakage data only:
+Transition channels follow a fixed canonical ordering rule:
+`(q1 + c + q2, q1, c, q2)` (excitation-first then lexicographic), and each row is directed `|a> -> |b>` with that ordering.
+Rows are aligned between Duffing and circuit by taking the union of states/transitions selected by each model.
 
-```bash
-python scripts/run_leakage_benchmark.py --plot-only
-```
+Timing/selection settings are read from `params/static_benchmark_params.json` under:
+- `leakage_flow_benchmark.total_time_ns`
+- `leakage_flow_benchmark.ramp_time_ns`
+- `leakage_flow_benchmark.dt_ns`
+- `leakage_flow_benchmark.population_min_average`
+- `leakage_flow_benchmark.transition_min_integrated_abs`
+- `leakage_flow_benchmark.max_population_rows`
+- `leakage_flow_benchmark.max_transition_rows`
 
-Run the state-to-state leakage-current benchmark (from `|11>`):
-
-```bash
-python scripts/run_state_to_state_leakage_benchmark.py
-```
-
-This benchmark reuses the calibrated CZ pulse and computes directed
-computational-to-leakage pair currents
-`J_{a->b}(t) = 2 Im(psi_a^* (2 pi H_ab) psi_b)` for Duffing and circuit
-models. It stores both:
-- positive outward component (`comp -> leak`)
-- signed current (negative values are return flow `leak -> comp`)
-
-It plots signed transitions (`Top-N + other transitions`) with a diverging
-colormap and includes a net signed comp<->leak current trace.
-
-Timing/plot settings are read from
-`params/static_benchmark_params.json` under:
-- `state_to_state_leakage_benchmark.total_time_ns`
-- `state_to_state_leakage_benchmark.ramp_time_ns`
-- `state_to_state_leakage_benchmark.dt_ns`
-- `state_to_state_leakage_benchmark.top_transition_rows`
-
-Replot from saved state-to-state leakage data only:
+Replot from saved leakage/flow data only:
 
 ```bash
-python scripts/run_state_to_state_leakage_benchmark.py --plot-only
+python scripts/run_leakage_flow_benchmark.py --plot-only
 ```
 
 Run the fixed-flux truncation benchmark (`J`, `zeta` vs Duffing `ncut`):

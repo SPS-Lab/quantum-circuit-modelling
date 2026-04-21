@@ -10,10 +10,8 @@ import numpy as np
 from comparison.cz import CzBenchmarkResult
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
-    BENCHMARK_TIGHT_LAYOUT_RECT,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
     DEFAULT_PLOT_FONT_SIZE,
-    MODEL_LEGEND_BBOX_TO_ANCHOR,
     benchmark_plot_style,
     model_legend_handles,
     model_plot_kwargs,
@@ -63,11 +61,10 @@ def plot_cz_benchmark(
     t = np.asarray(result.times_ns, dtype=float)
 
     with benchmark_plot_style(font_size):
-        fig = plt.figure(figsize=(11.0, 8.0))
-        gs = fig.add_gridspec(2, 2, height_ratios=(1.0, 1.1))
+        fig = plt.figure(figsize=(8.5, 6.5))
+        gs = fig.add_gridspec(2, 1, height_ratios=(1.0, 1.2))
         ax_flux = fig.add_subplot(gs[0, 0])
-        ax_phase = fig.add_subplot(gs[0, 1], sharex=ax_flux)
-        ax_p01 = fig.add_subplot(gs[1, :], sharex=ax_flux)
+        ax_phase = fig.add_subplot(gs[1, 0], sharex=ax_flux)
 
         ax_flux.plot(t, result.pulse_flux_values, color="C4", linewidth=2.0)
         ax_flux.axhline(result.idle_flux, color="0.4", linewidth=1.0)
@@ -87,18 +84,18 @@ def plot_cz_benchmark(
             ],
         )
         ax_phase.set_ylabel("CPhase (rad)")
+        ax_phase.set_xlabel("Time (ns)")
         ax_phase.grid(True, alpha=0.3)
 
-        ax_p01.plot(t, result.circuit_populations_plus_plus[:, 1], color="k", linewidth=2.0, **model_plot_kwargs("circuit"))
-        ax_p01.plot(t, result.duffing_populations_plus_plus[:, 1], color="k", linewidth=2.0, **model_plot_kwargs("duffing"))
-        ax_p01.plot(t, result.effective_populations_plus_plus[:, 1], color="k", linewidth=2.0, **model_plot_kwargs("effective"))
-        ax_p01.set_ylabel(r"$P_{01}(t)$")
-        ax_p01.grid(True, alpha=0.3)
-
-        ax_p01.set_xlabel("Time (ns)")
-        fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
+        fig.legend(
+            handles=model_legend_handles(),
+            loc="upper center",
+            ncol=3,
+            frameon=False,
+            bbox_to_anchor=(0.5, 0.955),
+        )
         fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
+            rect=(0.0, 0.0, 1.0, 0.88),
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )
