@@ -104,8 +104,12 @@ python scripts/run_state_to_state_leakage_benchmark.py
 This benchmark reuses the calibrated CZ pulse and computes directed
 computational-to-leakage pair currents
 `J_{a->b}(t) = 2 Im(psi_a^* (2 pi H_ab) psi_b)` for Duffing and circuit
-models. It plots top transitions (`Top-N + other transitions`) and prints
-time-integrated top transitions in the terminal.
+models. It stores both:
+- positive outward component (`comp -> leak`)
+- signed current (negative values are return flow `leak -> comp`)
+
+It plots signed transitions (`Top-N + other transitions`) with a diverging
+colormap and includes a net signed comp<->leak current trace.
 
 Timing/plot settings are read from
 `params/static_benchmark_params.json` under:

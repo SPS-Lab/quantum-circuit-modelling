@@ -275,12 +275,24 @@ def test_state_to_state_leakage_benchmark_runs_with_small_config(tmp_path: Path)
     assert np.all(np.isfinite(out.circuit_leakage_11))
     assert len(out.duffing_comp_to_leak_currents_11) > 0
     assert len(out.circuit_comp_to_leak_currents_11) > 0
+    assert len(out.duffing_comp_to_leak_signed_currents_11) > 0
+    assert len(out.circuit_comp_to_leak_signed_currents_11) > 0
     assert any(key.startswith("|1,0,1>->") for key in out.duffing_comp_to_leak_currents_11.keys())
     assert any(key.startswith("|1,0,1>->") for key in out.circuit_comp_to_leak_currents_11.keys())
+    assert out.duffing_net_comp_to_leak_current_11.shape == out.times_ns.shape
+    assert out.circuit_net_comp_to_leak_current_11.shape == out.times_ns.shape
+    assert np.all(np.isfinite(out.duffing_net_comp_to_leak_current_11))
+    assert np.all(np.isfinite(out.circuit_net_comp_to_leak_current_11))
 
     duf_curr_matrix = np.column_stack([v for _, v in sorted(out.duffing_comp_to_leak_currents_11.items())])
     cir_curr_matrix = np.column_stack([v for _, v in sorted(out.circuit_comp_to_leak_currents_11.items())])
+    duf_signed_matrix = np.column_stack([v for _, v in sorted(out.duffing_comp_to_leak_signed_currents_11.items())])
+    cir_signed_matrix = np.column_stack([v for _, v in sorted(out.circuit_comp_to_leak_signed_currents_11.items())])
     assert duf_curr_matrix.shape[0] == out.times_ns.size
     assert cir_curr_matrix.shape[0] == out.times_ns.size
+    assert duf_signed_matrix.shape == duf_curr_matrix.shape
+    assert cir_signed_matrix.shape == cir_curr_matrix.shape
     assert np.all(duf_curr_matrix >= -1e-12)
     assert np.all(cir_curr_matrix >= -1e-12)
+    assert np.allclose(duf_curr_matrix, np.clip(duf_signed_matrix, 0.0, None), atol=1e-12)
+    assert np.allclose(cir_curr_matrix, np.clip(cir_signed_matrix, 0.0, None), atol=1e-12)

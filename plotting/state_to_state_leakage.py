@@ -40,9 +40,9 @@ def _transitions_to_matrix(
         row = np.asarray(transitions[label], dtype=float).ravel()
         if row.shape != t.shape:
             raise ValueError(f"Transition trace {label!r} shape {row.shape} does not match times {t.shape}")
-        traces[label] = np.clip(row, 0.0, None)
+        traces[label] = row
 
-    labels = sorted(labels, key=lambda lbl: (-_time_integral(traces[lbl], t), lbl))
+    labels = sorted(labels, key=lambda lbl: (-_time_integral(np.abs(traces[lbl]), t), lbl))
     rows = [traces[label] for label in labels]
     return labels, np.vstack(rows)
 
@@ -93,6 +93,19 @@ def _set_ticks(ax: plt.Axes, labels: list[str], *, tick_font_size: float) -> Non
     ax.tick_params(axis="y", labelsize=tick_font_size, pad=2.5)
 
 
+def _net_current_from_transitions(transitions: dict[str, np.ndarray], times_ns: np.ndarray) -> np.ndarray:
+    t = np.asarray(times_ns, dtype=float).ravel()
+    if not transitions:
+        return np.zeros(t.size, dtype=float)
+    stacked = []
+    for value in transitions.values():
+        row = np.asarray(value, dtype=float).ravel()
+        if row.shape != t.shape:
+            raise ValueError(f"Transition trace shape {row.shape} does not match times {t.shape}")
+        stacked.append(row)
+    return np.sum(np.vstack(stacked), axis=0)
+
+
 def plot_state_to_state_leakage_benchmark(
     result: StateToStateLeakageBenchmarkResult,
     outfile: Path,
@@ -102,13 +115,34 @@ def plot_state_to_state_leakage_benchmark(
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    labels_circuit, matrix_circuit = _transitions_to_matrix(result.circuit_comp_to_leak_currents_11, t)
-    labels_duffing, matrix_duffing = _transitions_to_matrix(result.duffing_comp_to_leak_currents_11, t)
+    transitions_circuit = (
+        result.circuit_comp_to_leak_signed_currents_11
+        if result.circuit_comp_to_leak_signed_currents_11
+        else result.circuit_comp_to_leak_currents_11
+    )
+    transitions_duffing = (
+        result.duffing_comp_to_leak_signed_currents_11
+        if result.duffing_comp_to_leak_signed_currents_11
+        else result.duffing_comp_to_leak_currents_11
+    )
+
+    labels_circuit, matrix_circuit = _transitions_to_matrix(transitions_circuit, t)
+    labels_duffing, matrix_duffing = _transitions_to_matrix(transitions_duffing, t)
     labels_circuit, matrix_circuit = _top_n_with_other(labels_circuit, matrix_circuit, top_n=top_transition_rows)
     labels_duffing, matrix_duffing = _top_n_with_other(labels_duffing, matrix_duffing, top_n=top_transition_rows)
 
-    vmax = float(max(np.max(matrix_circuit, initial=0.0), np.max(matrix_duffing, initial=0.0), 1e-12))
+    vabs = float(max(np.max(np.abs(matrix_circuit), initial=0.0), np.max(np.abs(matrix_duffing), initial=0.0), 1e-12))
     tick_font_size = max(8.0, 0.44 * float(font_size))
+    net_circuit = (
+        np.asarray(result.circuit_net_comp_to_leak_current_11, dtype=float).ravel()
+        if np.asarray(result.circuit_net_comp_to_leak_current_11, dtype=float).size == t.size
+        else _net_current_from_transitions(transitions_circuit, t)
+    )
+    net_duffing = (
+        np.asarray(result.duffing_net_comp_to_leak_current_11, dtype=float).ravel()
+        if np.asarray(result.duffing_net_comp_to_leak_current_11, dtype=float).size == t.size
+        else _net_current_from_transitions(transitions_duffing, t)
+    )
 
     with benchmark_plot_style(font_size):
         fig = plt.figure(figsize=(11.0, 10.0))
@@ -131,6 +165,11 @@ def plot_state_to_state_leakage_benchmark(
         ax_leak.plot(t, result.effective_leakage_11, color="k", linewidth=2.0, **model_plot_kwargs("effective"))
         ax_leak.set_ylabel("Leakage")
         ax_leak.grid(True, alpha=0.3)
+        ax_net = ax_leak.twinx()
+        ax_net.plot(t, net_circuit, color="C0", linewidth=1.7, linestyle=":")
+        ax_net.plot(t, net_duffing, color="C1", linewidth=1.7, linestyle=":")
+        ax_net.axhline(0.0, color="0.5", linewidth=1.0, alpha=0.7)
+        ax_net.set_ylabel("Net comp->leak current (1/ns)")
 
         if matrix_circuit.size > 0:
             im_circuit = ax_circuit.imshow(
@@ -139,9 +178,9 @@ def plot_state_to_state_leakage_benchmark(
                 origin="lower",
                 interpolation="nearest",
                 extent=(float(t[0]), float(t[-1]), -0.5, matrix_circuit.shape[0] - 0.5),
-                vmin=0.0,
-                vmax=vmax,
-                cmap="magma",
+                vmin=-vabs,
+                vmax=vabs,
+                cmap="coolwarm",
             )
             _set_ticks(ax_circuit, labels_circuit, tick_font_size=tick_font_size)
         else:
@@ -164,9 +203,9 @@ def plot_state_to_state_leakage_benchmark(
                 origin="lower",
                 interpolation="nearest",
                 extent=(float(t[0]), float(t[-1]), -0.5, matrix_duffing.shape[0] - 0.5),
-                vmin=0.0,
-                vmax=vmax,
-                cmap="magma",
+                vmin=-vabs,
+                vmax=vabs,
+                cmap="coolwarm",
             )
             _set_ticks(ax_duffing, labels_duffing, tick_font_size=tick_font_size)
         else:
@@ -186,7 +225,7 @@ def plot_state_to_state_leakage_benchmark(
         im_for_colorbar = im_circuit if im_circuit is not None else im_duffing
         if im_for_colorbar is not None:
             cbar = fig.colorbar(im_for_colorbar, cax=ax_cbar)
-            cbar.set_label("Positive current (1/ns)")
+            cbar.set_label("Signed current (1/ns)")
         else:
             ax_cbar.axis("off")
 

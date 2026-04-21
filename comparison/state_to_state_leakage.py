@@ -27,8 +27,12 @@ class StateToStateLeakageBenchmarkResult:
     circuit_leakage_11: np.ndarray
     duffing_max_transition_label_11: str
     circuit_max_transition_label_11: str
+    duffing_net_comp_to_leak_current_11: np.ndarray = field(default_factory=lambda: np.zeros(0, dtype=float))
+    circuit_net_comp_to_leak_current_11: np.ndarray = field(default_factory=lambda: np.zeros(0, dtype=float))
     duffing_comp_to_leak_currents_11: dict[str, np.ndarray] = field(default_factory=dict)
     circuit_comp_to_leak_currents_11: dict[str, np.ndarray] = field(default_factory=dict)
+    duffing_comp_to_leak_signed_currents_11: dict[str, np.ndarray] = field(default_factory=dict)
+    circuit_comp_to_leak_signed_currents_11: dict[str, np.ndarray] = field(default_factory=dict)
     summary: dict[str, float] = field(default_factory=dict)
 
 
@@ -82,7 +86,7 @@ def _pair_currents_comp_to_leak_from_11_for_stack(
     n1: int,
     nc: int,
     n2: int,
-) -> tuple[dict[str, np.ndarray], float, float, str]:
+) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray], np.ndarray, float, float, str]:
     t = np.asarray(times_ns, dtype=float).ravel()
     H = np.asarray(stack, dtype=complex)
     if H.ndim != 3 or H.shape[1] != H.shape[2]:
@@ -93,14 +97,15 @@ def _pair_currents_comp_to_leak_from_11_for_stack(
     src_idx, src_labels = _computational_layout(n1, nc, n2)
     dst_idx, dst_labels = _leakage_layout(n1, nc, n2)
     if dst_idx.size == 0:
-        return {}, 0.0, 0.0, ""
+        return {}, {}, np.zeros(t.size, dtype=float), 0.0, 0.0, ""
 
     d = int(H.shape[1])
     psi = np.zeros(d, dtype=complex)
     idx_11 = _idx_qcq(n1, nc, n2, 1, 0, 1)
     psi[idx_11] = 1.0
 
-    currents = np.zeros((t.size, src_idx.size, dst_idx.size), dtype=float)
+    signed_currents = np.zeros((t.size, src_idx.size, dst_idx.size), dtype=float)
+    positive_currents = np.zeros((t.size, src_idx.size, dst_idx.size), dtype=float)
 
     src = src_idx[:, None]
     dst = dst_idx[None, :]
@@ -110,8 +115,9 @@ def _pair_currents_comp_to_leak_from_11_for_stack(
         psi_src = np.conj(psi[src_idx])[:, None]
         psi_dst = psi[dst_idx][None, :]
         # H is in cycles/ns, so TWO_PI converts to angular units for dP/dt currents.
-        directed = 2.0 * np.imag(psi_src * (TWO_PI * H_block) * psi_dst)
-        currents[m, :, :] = np.clip(np.asarray(directed, dtype=float), 0.0, None)
+        directed = np.asarray(2.0 * np.imag(psi_src * (TWO_PI * H_block) * psi_dst), dtype=float)
+        signed_currents[m, :, :] = directed
+        positive_currents[m, :, :] = np.clip(directed, 0.0, None)
 
     _record(0)
     for m in range(t.size - 1):
@@ -125,23 +131,27 @@ def _pair_currents_comp_to_leak_from_11_for_stack(
     integrated = np.zeros((src_idx.size, dst_idx.size), dtype=float)
     for i in range(src_idx.size):
         for j in range(dst_idx.size):
-            integrated[i, j] = _time_integral(currents[:, i, j], t)
+            integrated[i, j] = _time_integral(positive_currents[:, i, j], t)
 
     traces: dict[str, np.ndarray] = {}
+    signed_traces: dict[str, np.ndarray] = {}
     for i, src_label in enumerate(src_labels):
         for j, dst_label in enumerate(dst_labels):
-            traces[f"{src_label}->{dst_label}"] = np.asarray(currents[:, i, j], dtype=float)
+            key = f"{src_label}->{dst_label}"
+            traces[key] = np.asarray(positive_currents[:, i, j], dtype=float)
+            signed_traces[key] = np.asarray(signed_currents[:, i, j], dtype=float)
 
     flat = integrated.reshape(-1)
     if flat.size == 0:
-        return traces, 0.0, 0.0, ""
+        return traces, signed_traces, np.zeros(t.size, dtype=float), 0.0, 0.0, ""
     best_flat = int(np.argmax(flat))
     i_best = int(best_flat // dst_idx.size)
     j_best = int(best_flat % dst_idx.size)
     best_label = f"{src_labels[i_best]}->{dst_labels[j_best]}"
     best_value = float(integrated[i_best, j_best])
     total_value = float(np.sum(integrated))
-    return traces, total_value, best_value, best_label
+    net_signed = np.asarray(np.sum(signed_currents, axis=(1, 2)), dtype=float)
+    return traces, signed_traces, net_signed, total_value, best_value, best_label
 
 
 def _as_state_to_state_result(
@@ -156,7 +166,7 @@ def _as_state_to_state_result(
         duffing_config=config.static_benchmark.duffing_model,
         sweep_target=cz_result.sweep_target,
     ).hamiltonian_stack
-    duf_traces, duf_total, duf_best, duf_best_label = _pair_currents_comp_to_leak_from_11_for_stack(
+    duf_traces, duf_signed_traces, duf_net, duf_total, duf_best, duf_best_label = _pair_currents_comp_to_leak_from_11_for_stack(
         stack=duffing_stack,
         times_ns=cz_result.times_ns,
         n1=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
@@ -171,19 +181,30 @@ def _as_state_to_state_result(
         circuit_config=config.static_benchmark.circuit_model,
         sweep_target=cz_result.sweep_target,
     ).hamiltonian_stack
-    cir_traces, cir_total, cir_best, cir_best_label = _pair_currents_comp_to_leak_from_11_for_stack(
+    cir_traces, cir_signed_traces, cir_net, cir_total, cir_best, cir_best_label = _pair_currents_comp_to_leak_from_11_for_stack(
         stack=circuit_stack,
         times_ns=cz_result.times_ns,
         n1=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
         nc=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
         n2=config.static_benchmark.circuit_model.hilbert_truncation.q2_truncated_dim,
     )
+    t = np.asarray(cz_result.times_ns, dtype=float)
+    duf_leak_change = float(cz_result.duffing_leakage_11[-1] - cz_result.duffing_leakage_11[0])
+    cir_leak_change = float(cz_result.circuit_leakage_11[-1] - cz_result.circuit_leakage_11[0])
+    duf_net_integral = float(_time_integral(duf_net, t))
+    cir_net_integral = float(_time_integral(cir_net, t))
 
     summary = {
         "duffing_total_integrated_comp_to_leak_current_11": float(duf_total),
         "circuit_total_integrated_comp_to_leak_current_11": float(cir_total),
         "duffing_max_integrated_transition_current_11": float(duf_best),
         "circuit_max_integrated_transition_current_11": float(cir_best),
+        "duffing_integrated_net_comp_to_leak_current_11": duf_net_integral,
+        "circuit_integrated_net_comp_to_leak_current_11": cir_net_integral,
+        "duffing_leakage_change_11": duf_leak_change,
+        "circuit_leakage_change_11": cir_leak_change,
+        "duffing_net_current_minus_leakage_change_11": float(duf_net_integral - duf_leak_change),
+        "circuit_net_current_minus_leakage_change_11": float(cir_net_integral - cir_leak_change),
         "ramp_time_ns": float(cz_result.ramp_time_ns),
         "hold_time_ns": float(cz_result.hold_time_ns),
         "dt_ns": float(cz_result.dt_ns),
@@ -201,10 +222,14 @@ def _as_state_to_state_result(
         effective_leakage_11=np.asarray(cz_result.effective_leakage_11, dtype=float),
         duffing_leakage_11=np.asarray(cz_result.duffing_leakage_11, dtype=float),
         circuit_leakage_11=np.asarray(cz_result.circuit_leakage_11, dtype=float),
+        duffing_net_comp_to_leak_current_11=np.asarray(duf_net, dtype=float),
+        circuit_net_comp_to_leak_current_11=np.asarray(cir_net, dtype=float),
         duffing_max_transition_label_11=str(duf_best_label),
         circuit_max_transition_label_11=str(cir_best_label),
         duffing_comp_to_leak_currents_11=duf_traces,
         circuit_comp_to_leak_currents_11=cir_traces,
+        duffing_comp_to_leak_signed_currents_11=duf_signed_traces,
+        circuit_comp_to_leak_signed_currents_11=cir_signed_traces,
         summary=summary,
     )
 
