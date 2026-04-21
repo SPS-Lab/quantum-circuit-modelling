@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib import colors as mcolors
 from matplotlib.colors import hsv_to_rgb
 import numpy as np
 
@@ -71,11 +72,18 @@ def _phase_population_rgb(
 
     phase = np.angle(amp_rel)
 
+    # Phase as hue, with population controlling color-strength over a light-gray
+    # background so near-zero population stays visible as light rows (not black).
     hue = (phase + np.pi) / (2.0 * np.pi)
-    saturation = np.ones_like(hue)
-    value = pop
-    hsv = np.stack((hue, saturation, value), axis=-1)
-    rgb = hsv_to_rgb(hsv)
+    sat = np.full_like(hue, 0.85, dtype=float)
+    val = np.full_like(hue, 0.95, dtype=float)
+    hsv_hue = np.stack((hue, sat, val), axis=-1)
+    rgb_hue = hsv_to_rgb(hsv_hue)
+
+    # Nonlinear contrast boost for low-but-nonzero populations.
+    weight = np.sqrt(np.clip(pop, 0.0, 1.0))[..., np.newaxis]
+    bg = np.full_like(rgb_hue, 0.92, dtype=float)
+    rgb = (1.0 - weight) * bg + weight * rgb_hue
     return np.transpose(rgb, (1, 0, 2))
 
 
@@ -122,6 +130,16 @@ def plot_leakage_flow_benchmark(
     tick_font_size = max(8.0, 0.42 * float(font_size))
 
     with benchmark_plot_style(font_size):
+        transition_cmap = mcolors.LinearSegmentedColormap.from_list(
+            "transition_blue_gray_red",
+            [
+                (0.0, "#2b6cb0"),
+                (0.5, (0.92, 0.92, 0.92)),
+                (1.0, "#c53030"),
+            ],
+            N=256,
+        )
+
         fig = plt.figure(figsize=(13.5, 10.2))
         gs = fig.add_gridspec(
             2,
@@ -175,7 +193,7 @@ def plot_leakage_flow_benchmark(
             extent=(float(t[0]), float(t[-1]), -0.5, max(0, tr_duf.shape[1] - 1) + 0.5),
             vmin=-vabs,
             vmax=vabs,
-            cmap="coolwarm",
+            cmap=transition_cmap,
         )
         _set_y_ticks(ax_tr_duf, tr_labels, transition=True, tick_font_size=tick_font_size)
 
@@ -187,7 +205,7 @@ def plot_leakage_flow_benchmark(
             extent=(float(t[0]), float(t[-1]), -0.5, max(0, tr_cir.shape[1] - 1) + 0.5),
             vmin=-vabs,
             vmax=vabs,
-            cmap="coolwarm",
+            cmap=transition_cmap,
         )
         _set_y_ticks(ax_tr_cir, tr_labels, transition=True, tick_font_size=tick_font_size)
 
@@ -208,7 +226,7 @@ def plot_leakage_flow_benchmark(
         cbar_phase.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
         cbar_phase.set_ticklabels(["$-\\pi$", "$-\\pi/2$", "$0$", "$\\pi/2$", "$\\pi$"])
         cbar_phase.set_label("Phase hue (rad)")
-        ax_cbar_phase.set_title("Brightness = population", fontsize=max(9.0, 0.62 * float(font_size)))
+        ax_cbar_phase.set_title("Color strength ~ sqrt(population)", fontsize=max(9.0, 0.62 * float(font_size)))
 
         cbar_tr = fig.colorbar(im_tr, cax=ax_cbar_tr)
         cbar_tr.set_label("Signed current (1/ns)")
