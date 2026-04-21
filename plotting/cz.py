@@ -57,26 +57,25 @@ def _set_phase_axis_pi_ticks(ax: plt.Axes, phase_arrays: list[np.ndarray]) -> No
 
 def _computational_hsv_rgb(
     statevector: np.ndarray,
-    *,
-    reference_index: int = 0,
-    reference_floor: float = 1e-10,
 ) -> np.ndarray:
     psi = np.asarray(statevector, dtype=complex)
     if psi.ndim != 2 or psi.shape[1] != 4:
         raise ValueError(f"statevector must be (n_time, 4), got {psi.shape}")
 
     pop = np.clip(np.abs(psi) ** 2, 0.0, 1.0)
-    phase_ref = np.zeros(psi.shape[0], dtype=float)
-
-    idx_ref = int(reference_index)
-    for m in range(psi.shape[0]):
-        if pop[m, idx_ref] >= float(reference_floor):
-            use_idx = idx_ref
+    psi_rel = np.array(psi, copy=True)
+    phase_at_time = np.zeros(psi.shape[0], dtype=float)
+    min_overlap = 1e-12
+    # Parallel-transport gauge: fix global phase by maximizing overlap with
+    # previous time-step state so phase evolution is as smooth as possible.
+    for m in range(1, psi.shape[0]):
+        overlap = np.vdot(psi_rel[m - 1], psi[m])
+        if abs(overlap) >= min_overlap:
+            phase_at_time[m] = float(np.angle(overlap))
         else:
-            use_idx = int(np.argmax(pop[m, :]))
-        phase_ref[m] = float(np.angle(psi[m, use_idx]))
+            phase_at_time[m] = phase_at_time[m - 1]
+        psi_rel[m] = psi[m] * np.exp(-1.0j * phase_at_time[m])
 
-    psi_rel = psi * np.exp(-1.0j * phase_ref)[:, np.newaxis]
     phase = np.angle(psi_rel)
     hue = (phase + np.pi) / (2.0 * np.pi)
     saturation = np.ones_like(hue)

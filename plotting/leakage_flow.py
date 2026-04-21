@@ -47,9 +47,6 @@ def _transition_label_math(label: str) -> str:
 def _phase_population_rgb(
     amplitudes: np.ndarray,
     labels: list[str],
-    *,
-    preferred_reference_label: str = "|1,0,1>",
-    reference_floor: float = 1e-10,
 ) -> np.ndarray:
     amp = np.asarray(amplitudes, dtype=complex)
     if amp.ndim != 2:
@@ -60,21 +57,18 @@ def _phase_population_rgb(
         return np.zeros((0, n_time, 3), dtype=float)
 
     pop = np.clip(np.abs(amp) ** 2, 0.0, 1.0)
-
-    ref_idx = 0
-    if preferred_reference_label in labels:
-        ref_idx = int(labels.index(preferred_reference_label))
-
-    phase_ref = np.zeros(n_time, dtype=float)
-    for m in range(n_time):
-        if pop[m, ref_idx] >= float(reference_floor):
-            use_idx = ref_idx
+    amp_rel = np.array(amp, copy=True)
+    phase_at_time = np.zeros(n_time, dtype=float)
+    min_overlap = 1e-12
+    # Parallel-transport gauge: set global phase from step-to-step overlap.
+    for m in range(1, n_time):
+        overlap = np.vdot(amp_rel[m - 1], amp[m])
+        if abs(overlap) >= min_overlap:
+            phase_at_time[m] = float(np.angle(overlap))
         else:
-            use_idx = int(np.argmax(pop[m, :]))
-        phase_ref[m] = float(np.angle(amp[m, use_idx]))
+            phase_at_time[m] = phase_at_time[m - 1]
+        amp_rel[m] = amp[m] * np.exp(-1.0j * phase_at_time[m])
 
-    phase_rot = np.exp(-1.0j * phase_ref)[:, np.newaxis]
-    amp_rel = amp * phase_rot
     phase = np.angle(amp_rel)
 
     hue = (phase + np.pi) / (2.0 * np.pi)
