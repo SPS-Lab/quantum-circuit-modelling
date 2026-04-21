@@ -6,8 +6,27 @@ from contextlib import contextmanager
 from typing import Iterator
 
 import matplotlib as mpl
+from matplotlib.lines import Line2D
 
-DEFAULT_PLOT_FONT_SIZE: float = 13.0
+DEFAULT_PLOT_FONT_SIZE: float = 22.0 # Should be > 18 and < 25 w current style
+MODEL_ALPHA_CIRCUIT: float = 1.0
+MODEL_ALPHA_DUFFING: float = 0.72
+MODEL_ALPHA_EFFECTIVE: float = 0.45
+
+MODEL_ALPHAS: dict[str, float] = {
+    "circuit": MODEL_ALPHA_CIRCUIT,
+    "duffing": MODEL_ALPHA_DUFFING,
+    "effective": MODEL_ALPHA_EFFECTIVE,
+}
+
+
+def model_legend_handles() -> list[Line2D]:
+    """Legend handles that encode model identity via transparency only."""
+    return [
+        Line2D([0], [0], color="k", linewidth=2.2, alpha=MODEL_ALPHA_CIRCUIT, label="circuit"),
+        Line2D([0], [0], color="k", linewidth=2.2, alpha=MODEL_ALPHA_DUFFING, label="duffing"),
+        Line2D([0], [0], color="k", linewidth=2.2, alpha=MODEL_ALPHA_EFFECTIVE, label="effective"),
+    ]
 
 
 @contextmanager

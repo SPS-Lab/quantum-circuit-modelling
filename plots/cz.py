@@ -8,7 +8,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from comparison.cz import CzBenchmarkResult
-from plots.style import DEFAULT_PLOT_FONT_SIZE, benchmark_plot_style
+from plots.style import (
+    DEFAULT_PLOT_FONT_SIZE,
+    MODEL_ALPHA_CIRCUIT,
+    MODEL_ALPHA_DUFFING,
+    MODEL_ALPHA_EFFECTIVE,
+    benchmark_plot_style,
+    model_legend_handles,
+)
 
 
 def plot_cz_benchmark(
@@ -20,48 +27,33 @@ def plot_cz_benchmark(
     t = np.asarray(result.times_ns, dtype=float)
 
     with benchmark_plot_style(font_size):
-        fig, axes = plt.subplots(2, 2, figsize=(11.0, 8.0), sharex=True)
-        ax_flux, ax_phase, ax_prob, ax_p01 = axes.ravel()
+        fig = plt.figure(figsize=(11.0, 8.0))
+        gs = fig.add_gridspec(2, 2, height_ratios=(1.0, 1.1))
+        ax_flux = fig.add_subplot(gs[0, 0])
+        ax_phase = fig.add_subplot(gs[0, 1], sharex=ax_flux)
+        ax_p01 = fig.add_subplot(gs[1, :], sharex=ax_flux)
 
         ax_flux.plot(t, result.pulse_flux_values, color="C4", linewidth=2.0)
-        ax_flux.axhline(result.idle_flux, color="0.4", linestyle=":", linewidth=1.0, label="idle")
-        ax_flux.axhline(result.target_flux, color="0.3", linestyle="--", linewidth=1.0, label="target")
+        ax_flux.axhline(result.idle_flux, color="0.4", linewidth=1.0)
+        ax_flux.axhline(result.target_flux, color="0.3", linewidth=1.0)
         ax_flux.set_ylabel(r"Flux bias ($\Phi/\Phi_0$)")
-        ax_flux.set_title(f"Shared CZ pulse ({result.sweep_target} sweep)")
         ax_flux.grid(True, alpha=0.3)
-        ax_flux.legend(loc="best")
 
-        ax_phase.plot(t, result.circuit_conditional_phase, color="k", linewidth=2.0, label="circuit")
-        ax_phase.plot(t, result.duffing_conditional_phase, color="C0", linestyle="--", linewidth=1.8, label="duffing")
-        ax_phase.plot(t, result.effective_conditional_phase, color="C3", linestyle=":", linewidth=1.8, label="effective")
+        ax_phase.plot(t, result.circuit_conditional_phase, color="k", linewidth=2.0, alpha=MODEL_ALPHA_CIRCUIT)
+        ax_phase.plot(t, result.duffing_conditional_phase, color="k", linewidth=2.0, alpha=MODEL_ALPHA_DUFFING)
+        ax_phase.plot(t, result.effective_conditional_phase, color="k", linewidth=2.0, alpha=MODEL_ALPHA_EFFECTIVE)
         ax_phase.set_ylabel("Conditional phase (rad)")
-        ax_phase.set_title("Accumulated conditional phase")
         ax_phase.grid(True, alpha=0.3)
-        ax_phase.legend(loc="best")
 
-        psi = np.asarray(result.circuit_statevector_plus_plus, dtype=complex)  # (n_time, 4)
-        prob = np.abs(psi) ** 2
-        ax_prob.plot(t, prob[:, 0], color="C1", linewidth=1.5, label=r"$P_{00}$")
-        ax_prob.plot(t, prob[:, 1], color="C2", linewidth=1.5, label=r"$P_{01}$")
-        ax_prob.plot(t, prob[:, 2], color="C3", linewidth=1.5, label=r"$P_{10}$")
-        ax_prob.plot(t, prob[:, 3], color="k", linewidth=1.8, label=r"$P_{11}$")
-        ax_prob.set_ylabel("Population")
-        ax_prob.set_title(r"Circuit populations from $|++\rangle$")
-        ax_prob.grid(True, alpha=0.3)
-        ax_prob.legend(loc="best", ncol=2)
-
-        ax_p01.plot(t, result.circuit_populations_plus_plus[:, 1], color="k", linewidth=2.0, label="circuit")
-        ax_p01.plot(t, result.duffing_populations_plus_plus[:, 1], color="C0", linestyle="--", linewidth=1.8, label="duffing")
-        ax_p01.plot(t, result.effective_populations_plus_plus[:, 1], color="C3", linestyle=":", linewidth=1.8, label="effective")
+        ax_p01.plot(t, result.circuit_populations_plus_plus[:, 1], color="k", linewidth=2.0, alpha=MODEL_ALPHA_CIRCUIT)
+        ax_p01.plot(t, result.duffing_populations_plus_plus[:, 1], color="k", linewidth=2.0, alpha=MODEL_ALPHA_DUFFING)
+        ax_p01.plot(t, result.effective_populations_plus_plus[:, 1], color="k", linewidth=2.0, alpha=MODEL_ALPHA_EFFECTIVE)
         ax_p01.set_ylabel(r"$P_{01}(t)$")
-        ax_p01.set_title(r"Population $P_{01}$ from $|++\rangle$")
         ax_p01.grid(True, alpha=0.3)
-        ax_p01.legend(loc="best")
 
-        axes[1, 0].set_xlabel("Time (ns)")
-        axes[1, 1].set_xlabel("Time (ns)")
-        fig.suptitle(title)
-        fig.tight_layout()
+        ax_p01.set_xlabel("Time (ns)")
+        fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 0.985))
+        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.95))
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(outfile, format="pdf")

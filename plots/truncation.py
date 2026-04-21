@@ -8,7 +8,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from comparison.truncation import TruncationBenchmarkResult
-from plots.style import DEFAULT_PLOT_FONT_SIZE, benchmark_plot_style
+from plots.style import (
+    DEFAULT_PLOT_FONT_SIZE,
+    MODEL_ALPHA_CIRCUIT,
+    MODEL_ALPHA_DUFFING,
+    benchmark_plot_style,
+    model_legend_handles,
+)
 
 
 def plot_truncation_benchmark(
@@ -28,31 +34,25 @@ def plot_truncation_benchmark(
         ax_levels = fig.add_subplot(gs[1, 0], sharex=ax_j)
         ax_diff = fig.add_subplot(gs[1, 1], sharex=ax_j)
 
-        ax_j.plot(x, result.duffing_j, color="C0", marker="o", linewidth=1.8, label="duffing")
+        ax_j.plot(x, result.duffing_j, color="C0", marker="o", linewidth=1.8, alpha=MODEL_ALPHA_DUFFING)
         ax_j.axhline(
             result.circuit_j,
-            color="k",
-            linestyle="--",
+            color="C0",
             linewidth=1.4,
-            label=f"circuit (ncut={result.circuit_reference_ncut})",
+            alpha=MODEL_ALPHA_CIRCUIT,
         )
         ax_j.set_ylabel(r"Exchange $J$ (GHz)")
-        ax_j.set_title(r"$J$ vs Duffing transmon ncut")
         ax_j.grid(True, alpha=0.3)
-        ax_j.legend(loc="best")
 
-        ax_zeta.plot(x, result.duffing_zeta, color="C2", marker="o", linewidth=1.8, label="duffing")
+        ax_zeta.plot(x, result.duffing_zeta, color="C2", marker="o", linewidth=1.8, alpha=MODEL_ALPHA_DUFFING)
         ax_zeta.axhline(
             result.circuit_zeta,
-            color="k",
-            linestyle="--",
+            color="C2",
             linewidth=1.4,
-            label=f"circuit (ncut={result.circuit_reference_ncut})",
+            alpha=MODEL_ALPHA_CIRCUIT,
         )
         ax_zeta.set_ylabel(r"Residual ZZ $\zeta$ (GHz)")
-        ax_zeta.set_title(r"$\zeta$ vs Duffing transmon ncut")
         ax_zeta.grid(True, alpha=0.3)
-        ax_zeta.legend(loc="best")
 
         ax_j.set_xlabel("Duffing transmon ncut")
         ax_zeta.set_xlabel("Duffing transmon ncut")
@@ -65,24 +65,18 @@ def plot_truncation_benchmark(
             for i in range(1, 1 + n_excited_to_show):
                 color = f"C{(i - 1) % 10}"
                 label = rf"$E_{{{i}}}$"
-                ax_levels.plot(x, rel_duf[:, i], color=color, linewidth=1.6, alpha=0.95, label=label)
-                ax_levels.axhline(rel_cir[i], color=color, linestyle="--", linewidth=1.2, alpha=0.9)
+                ax_levels.plot(x, rel_duf[:, i], color=color, linewidth=1.6, alpha=MODEL_ALPHA_DUFFING, label=label)
+                ax_levels.axhline(rel_cir[i], color=color, linewidth=1.2, alpha=MODEL_ALPHA_CIRCUIT)
 
                 ax_diff.plot(x, rel_duf[:, i] - rel_cir[i], color=color, linewidth=1.6, alpha=0.95, label=label)
 
-            ax_levels.plot([], [], color="0.2", linewidth=1.8, label="duffing")
-            ax_levels.plot([], [], color="0.2", linestyle="--", linewidth=1.3, label=f"circuit (ncut={result.circuit_reference_ncut})")
-            ax_levels.set_title(f"Lowest excited levels (showing {n_excited_to_show})")
-            ax_levels.legend(loc="best", ncol=2)
+            ax_levels.legend(loc="best", ncol=2, title="Levels")
 
-            ax_diff.axhline(0.0, color="0.35", linestyle=":", linewidth=1.0)
-            ax_diff.set_title(r"Level Difference: Duffing - circuit")
-            ax_diff.legend(loc="best", ncol=2)
+            ax_diff.axhline(0.0, color="0.35", linewidth=1.0)
+            ax_diff.legend(loc="best", ncol=2, title="Levels")
         else:
             ax_levels.text(0.5, 0.5, "Not enough levels to display", transform=ax_levels.transAxes, ha="center", va="center")
-            ax_levels.set_title("Lowest full-spectrum levels")
             ax_diff.text(0.5, 0.5, "Not enough levels to display", transform=ax_diff.transAxes, ha="center", va="center")
-            ax_diff.set_title("Level Difference")
         ax_levels.set_ylabel("Energy (GHz, rel. ground)")
         ax_levels.set_xlabel("Duffing transmon ncut")
         ax_levels.grid(True, alpha=0.3)
@@ -90,8 +84,8 @@ def plot_truncation_benchmark(
         ax_diff.set_xlabel("Duffing transmon ncut")
         ax_diff.grid(True, alpha=0.3)
 
-        fig.suptitle(title)
-        fig.tight_layout()
+        fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 0.985))
+        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.95))
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(outfile, format="pdf")
