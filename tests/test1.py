@@ -1,4 +1,4 @@
-"""Legacy script entrypoint migrated to the refactored study pipeline."""
+"""Script entrypoint for a compact static-benchmark summary check."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def main() -> None:
         system_params_path=_ROOT / "params" / "system_params.json",
         study_params_path=_ROOT / "params" / "benchmark_params.json",
     )
-    print("Migrated legacy test1 summary:")
+    print("Test1 summary:")
     for key, value in out["summary"].items():
         print(f"  {key}: {float(value):.6e}")
 

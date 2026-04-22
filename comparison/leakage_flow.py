@@ -51,10 +51,7 @@ def _time_integral(values: np.ndarray, times_ns: np.ndarray) -> float:
     t = np.asarray(times_ns, dtype=float).ravel()
     if y.shape != t.shape:
         raise ValueError("values and times_ns must have matching shape")
-    try:
-        return float(np.trapezoid(y, x=t))
-    except AttributeError:  # pragma: no cover - compatibility fallback
-        return float(np.trapz(y, x=t))
+    return float(np.trapezoid(y, x=t))
 
 
 def _simulate_state_trajectory(
@@ -197,10 +194,7 @@ def _select_population_states(
 
     pop = np.abs(psi) ** 2
     total_time = float(max(1e-15, t[-1] - t[0]))
-    try:
-        integrated = np.trapezoid(pop, x=t, axis=0)
-    except AttributeError:  # pragma: no cover - compatibility fallback
-        integrated = np.trapz(pop, x=t, axis=0)
+    integrated = np.trapezoid(pop, x=t, axis=0)
     avg = np.asarray(integrated / total_time, dtype=float)
 
     min_avg = float(max(0.0, min_average_population))
@@ -316,11 +310,7 @@ def _track_transmon_eigenvector_signs(
     if n_time == 0 or n_level <= 0:
         return signs
 
-    try:
-        import scqubits as scq
-    except Exception:
-        # Fallback keeps legacy behavior if scqubits cannot be imported.
-        return signs
+    import scqubits as scq
 
     prev_evecs: np.ndarray | None = None
     evec_cache: dict[float, np.ndarray] = {}

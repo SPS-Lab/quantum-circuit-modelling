@@ -44,10 +44,7 @@ def _time_integral(values: np.ndarray, times_ns: np.ndarray) -> float:
     t = np.asarray(times_ns, dtype=float).ravel()
     if y.shape != t.shape:
         raise ValueError("values and times_ns must have the same shape")
-    try:
-        return float(np.trapezoid(y, x=t))
-    except AttributeError:  # pragma: no cover - compatibility fallback
-        return float(np.trapz(y, x=t))
+    return float(np.trapezoid(y, x=t))
 
 
 def _computational_layout(n1: int, nc: int, n2: int) -> tuple[np.ndarray, list[str]]:

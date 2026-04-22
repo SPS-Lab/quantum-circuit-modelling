@@ -29,7 +29,6 @@ class TransmonSystemParams:
     flux: float
     ng: float
     ncut: int
-    truncated_dim: int
     id_str: str
 
 
@@ -37,7 +36,6 @@ class TransmonSystemParams:
 class OscillatorSystemParams:
     E_osc: float
     kappa_over_2pi: float
-    truncated_dim: int
     id_str: str
 
 
@@ -213,41 +211,6 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _merge_external_study_sections(
-    study_payload: dict[str, Any],
-    *,
-    study_params_path: Path,
-) -> dict[str, Any]:
-    moved = study_payload.get("moved_out_of_run_all")
-    if not isinstance(moved, dict):
-        return study_payload
-
-    file_value = moved.get("file")
-    if not isinstance(file_value, str) or not file_value.strip():
-        return study_payload
-
-    external_path = Path(file_value.strip())
-    if not external_path.is_absolute():
-        external_path = (study_params_path.parent / external_path).resolve()
-    if not external_path.exists():
-        return study_payload
-
-    external_payload = _load_json(external_path)
-    sections = moved.get("sections")
-    if isinstance(sections, list):
-        section_names = [str(name) for name in sections]
-    else:
-        section_names = [str(name) for name in external_payload.keys()]
-
-    merged = dict(study_payload)
-    for name in section_names:
-        if name in merged:
-            continue
-        if name in external_payload:
-            merged[name] = external_payload[name]
-    return merged
-
-
 def _deep_merge_dict(base: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
     merged: dict[str, Any] = dict(base)
     for key, value in update.items():
@@ -292,16 +255,6 @@ def _flatten_run_all_benchmark_params(payload: dict[str, Any]) -> dict[str, Any]
             + ", ".join(unknown_categories)
         )
     return normalized
-
-
-def _normalize_study_payload(
-    raw_study_payload: dict[str, Any],
-    *,
-    study_params_path: Path,
-) -> dict[str, Any]:
-    payload = _merge_external_study_sections(raw_study_payload, study_params_path=study_params_path)
-    return _flatten_run_all_benchmark_params(payload)
-
 
 
 def _require_dict(parent: dict[str, Any], key: str, path: str) -> dict[str, Any]:
@@ -371,7 +324,6 @@ def _parse_system(system_payload: dict[str, Any]) -> SystemParams:
         flux=_require_float(q1p, "flux", "system.parameters.q1"),
         ng=_require_float(q1p, "ng", "system.parameters.q1"),
         ncut=_require_int(q1p, "ncut", "system.parameters.q1"),
-        truncated_dim=_require_int(q1p, "truncated_dim", "system.parameters.q1"),
         id_str=_require_str(q1p, "id_str", "system.parameters.q1"),
     )
     q2 = TransmonSystemParams(
@@ -381,13 +333,11 @@ def _parse_system(system_payload: dict[str, Any]) -> SystemParams:
         flux=_require_float(q2p, "flux", "system.parameters.q2"),
         ng=_require_float(q2p, "ng", "system.parameters.q2"),
         ncut=_require_int(q2p, "ncut", "system.parameters.q2"),
-        truncated_dim=_require_int(q2p, "truncated_dim", "system.parameters.q2"),
         id_str=_require_str(q2p, "id_str", "system.parameters.q2"),
     )
     c = OscillatorSystemParams(
         E_osc=_require_float(cp, "E_osc", "system.parameters.c"),
         kappa_over_2pi=_require_float(cp, "kappa_over_2pi", "system.parameters.c"),
-        truncated_dim=_require_int(cp, "truncated_dim", "system.parameters.c"),
         id_str=_require_str(cp, "id_str", "system.parameters.c"),
     )
     interactions = InteractionSystemParams(
@@ -698,7 +648,7 @@ def _parse_state_to_state_leakage_benchmark(study_payload: dict[str, Any]) -> St
 def load_study_config(system_params_path: Path, study_params_path: Path) -> StudyConfig:
     system_payload = _load_json(system_params_path)
     raw_study_payload = _load_json(study_params_path)
-    study_payload = _normalize_study_payload(raw_study_payload, study_params_path=study_params_path)
+    study_payload = _flatten_run_all_benchmark_params(raw_study_payload)
     static_config = _parse_static_benchmark(study_payload)
     return StudyConfig(
         system=_parse_system(system_payload),

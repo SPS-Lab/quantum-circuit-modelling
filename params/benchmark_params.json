@@ -1,4 +1,13 @@
 {
+  "parameter_notes": {
+    "static_benchmark.duffing_model.transmon_spectral_extraction.ncut": "Used only when static_benchmark.duffing_model.calibration_mode is 'fixed' or 'per-flux'. Ignored for 'analytic-per-flux'.",
+    "static_benchmark.duffing_model.transmon_spectral_extraction.truncated_dim": "Used only when static_benchmark.duffing_model.calibration_mode is 'fixed' or 'per-flux'. Ignored for 'analytic-per-flux'.",
+    "truncation_benchmark.duffing_ncut_values": "Used only when truncation_benchmark.duffing_calibration_mode is 'fixed' or 'per-flux'. Not used for 'analytic-per-flux'.",
+    "truncation_benchmark.duffing_truncated_dim": "Used only when truncation_benchmark.duffing_calibration_mode is 'fixed' or 'per-flux'. Not used for 'analytic-per-flux'.",
+    "cz_benchmark.scan_dt_ns": "Used only when cz_benchmark.enable_hold_time_scan is true.",
+    "cz_benchmark.scan_max_hold_ns": "Used only when cz_benchmark.enable_hold_time_scan is true.",
+    "cz_benchmark.scan_leakage_penalty": "Used only when cz_benchmark.enable_hold_time_scan is true."
+  },
   "run_all_benchmark_params": {
     "shared_static_cz_leakage_flow_truncation": {
       "static_benchmark": {
@@ -78,7 +87,7 @@
         "ramp_time_ns": 8.0,
         "dt_ns": 0.5,
         "enable_hold_time_scan": true,
-        "scan_dt_ns": 2.0,
+        "scan_dt_ns": 10.0,
         "scan_max_hold_ns": 300.0,
         "scan_leakage_penalty": 0.25,
         "outputs": {
@@ -101,11 +110,16 @@
       }
     }
   },
-  "moved_out_of_run_all": {
-    "file": "benchmark_params_non_run_all.json",
-    "sections": [
-      "leakage_benchmark",
-      "state_to_state_leakage_benchmark"
-    ]
+  "leakage_benchmark": {
+    "total_time_ns": 20.0,
+    "ramp_time_ns": 8.0,
+    "dt_ns": 0.02,
+    "top_destination_rows": 5
+  },
+  "state_to_state_leakage_benchmark": {
+    "total_time_ns": 8.0,
+    "ramp_time_ns": 2.0,
+    "dt_ns": 0.02,
+    "top_transition_rows": 6
   }
 }

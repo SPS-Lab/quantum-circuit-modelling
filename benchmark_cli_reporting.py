@@ -46,19 +46,14 @@ class CliReporter:
 def build_common_truncation_lines(config: StudyConfig) -> list[str]:
     """Human-readable truncation settings used across benchmarks."""
     sb = config.static_benchmark
+    calibration_mode = str(sb.duffing_model.calibration_mode)
     lines = [
         "Truncation settings:",
-        "  System basis:",
-        f"    q1 transmon: ncut={int(config.system.q1.ncut)}, truncated_dim={int(config.system.q1.truncated_dim)}",
-        f"    q2 transmon: ncut={int(config.system.q2.ncut)}, truncated_dim={int(config.system.q2.truncated_dim)}",
-        f"    coupler oscillator: truncated_dim={int(config.system.c.truncated_dim)}",
+        "  System basis cutoffs:",
+        f"    q1 transmon charge cutoff: ncut={int(config.system.q1.ncut)}",
+        f"    q2 transmon charge cutoff: ncut={int(config.system.q2.ncut)}",
         "  Duffing calibration extraction:",
-        (
-            "    transmon_spectral_extraction: "
-            f"ncut={int(sb.duffing_model.transmon_spectral_extraction.ncut)}, "
-            f"truncated_dim={int(sb.duffing_model.transmon_spectral_extraction.truncated_dim)}, "
-            f"calibration_mode={str(sb.duffing_model.calibration_mode)}"
-        ),
+        f"    calibration_mode={calibration_mode}",
         "  Dressed-subspace model truncation:",
         (
             "    duffing hilbert_truncation: "
@@ -77,6 +72,15 @@ def build_common_truncation_lines(config: StudyConfig) -> list[str]:
             f"selection_mode={str(sb.dressed_subspace.selection_mode)}"
         ),
     ]
+    if calibration_mode in ("fixed", "per-flux"):
+        lines.insert(
+            6,
+            (
+                "    transmon_spectral_extraction: "
+                f"ncut={int(sb.duffing_model.transmon_spectral_extraction.ncut)}, "
+                f"truncated_dim={int(sb.duffing_model.transmon_spectral_extraction.truncated_dim)}"
+            ),
+        )
     return lines
 
 
@@ -84,12 +88,15 @@ def build_truncation_benchmark_extra_lines(config: StudyConfig) -> list[str]:
     """Extra truncation-sweep settings specific to truncation benchmark."""
     tb = config.truncation_benchmark
     ncut_values = ", ".join(str(int(v)) for v in tb.duffing_ncut_values)
-    return [
+    mode = str(tb.duffing_calibration_mode)
+    lines = [
         "Truncation benchmark sweep settings:",
         f"  fixed_flux={float(tb.fixed_flux):.6f}",
-        f"  duffing_ncut_values=[{ncut_values}]",
-        f"  duffing_truncated_dim={int(tb.duffing_truncated_dim)}",
+        f"  duffing_calibration_mode={mode}",
         f"  circuit_reference_ncut={int(tb.circuit_reference_ncut)}",
-        f"  duffing_calibration_mode={str(tb.duffing_calibration_mode)}",
         f"  lowest_excited_levels_to_plot={int(tb.lowest_excited_levels_to_plot)}",
     ]
+    if mode in ("fixed", "per-flux"):
+        lines.insert(2, f"  duffing_ncut_values=[{ncut_values}]")
+        lines.insert(3, f"  duffing_truncated_dim={int(tb.duffing_truncated_dim)}")
+    return lines

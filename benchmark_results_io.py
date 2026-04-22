@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import MISSING, fields, is_dataclass
+from dataclasses import fields, is_dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TypeVar
@@ -96,21 +96,27 @@ def load_result_hdf5(
         raise TypeError("load_result_hdf5 expects a dataclass type")
 
     with h5py.File(infile, "r") as h5:
-        schema_version = _attr_text(h5.attrs.get("schema_version", ""))
-        if schema_version and schema_version != _SCHEMA_VERSION:
+        if "schema_version" not in h5.attrs:
+            raise ValueError(f"Missing required file attribute 'schema_version' in {infile}")
+        schema_version = _attr_text(h5.attrs["schema_version"])
+        if schema_version != _SCHEMA_VERSION:
             raise ValueError(
                 f"Unsupported schema_version {schema_version!r}; expected {_SCHEMA_VERSION!r}"
             )
 
-        benchmark_name = _attr_text(h5.attrs.get("benchmark_name", ""))
-        if benchmark_name and benchmark_name != expected_benchmark_name:
+        if "benchmark_name" not in h5.attrs:
+            raise ValueError(f"Missing required file attribute 'benchmark_name' in {infile}")
+        benchmark_name = _attr_text(h5.attrs["benchmark_name"])
+        if benchmark_name != expected_benchmark_name:
             raise ValueError(
                 f"Results file benchmark {benchmark_name!r} does not match "
                 f"expected {expected_benchmark_name!r}"
             )
-        result_class = _attr_text(h5.attrs.get("result_class", ""))
+        if "result_class" not in h5.attrs:
+            raise ValueError(f"Missing required file attribute 'result_class' in {infile}")
+        result_class = _attr_text(h5.attrs["result_class"])
         expected_class = result_type.__name__
-        if result_class and result_class != expected_class:
+        if result_class != expected_class:
             raise ValueError(
                 f"Results file class {result_class!r} does not match expected {expected_class!r}"
             )
@@ -121,17 +127,9 @@ def load_result_hdf5(
 
         kwargs: dict[str, Any] = {}
         for f in fields(result_type):
-            if f.name in root:
-                kwargs[f.name] = _read_value(root[f.name])
-                continue
-            if f.default is not MISSING:
-                kwargs[f.name] = f.default
-                continue
-            default_factory = f.default_factory
-            if default_factory is not MISSING:
-                kwargs[f.name] = default_factory()
-                continue
-            raise ValueError(f"Missing field {f.name!r} in results file {infile}")
+            if f.name not in root:
+                raise ValueError(f"Missing field {f.name!r} in results file {infile}")
+            kwargs[f.name] = _read_value(root[f.name])
 
     return result_type(**kwargs)
 

@@ -14,12 +14,12 @@ from study_config import load_study_config
 
 
 
-def _as_legacy_result(
+def _as_regime_map_result(
     *,
     selection_mode: str,
     result,
 ) -> dict[str, Any]:
-    """Map static-benchmark output to legacy regime-map keys."""
+    """Map static benchmark output to the regime-map result payload."""
     return {
         "flux": result.flux_values,
         "E1_rel": result.effective_relative_energies,
@@ -79,7 +79,7 @@ def compare_model1_model2_against_scqubits(
     )
     plot_static_benchmark(result, figure_path, plot_title)
 
-    return _as_legacy_result(
+    return _as_regime_map_result(
         selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
         result=result,
     )
