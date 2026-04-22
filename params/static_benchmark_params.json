@@ -6,7 +6,7 @@
       "num_points": 61
     },
     "flux_control": {
-      "sweep_target": "q1"
+      "sweep_target": "q2"
     },
     "coupler_frequency": {
       "wc0": 6.902,
