@@ -162,6 +162,7 @@ class CzBenchmarkConfig:
     scan_dt_ns: float
     scan_max_hold_ns: float
     scan_leakage_penalty: float
+    outputs: OutputConfig
 
 
 @dataclass(frozen=True)
@@ -173,6 +174,7 @@ class LeakageFlowBenchmarkConfig:
     transition_min_integrated_abs: float
     max_population_rows: int
     max_transition_rows: int
+    outputs: OutputConfig
 
 
 @dataclass(frozen=True)
@@ -260,7 +262,6 @@ def _deep_merge_dict(base: dict[str, Any], update: dict[str, Any]) -> dict[str, 
 _RUN_ALL_BENCHMARK_CATEGORY_ORDER: tuple[str, ...] = (
     "shared_static_cz_leakage_flow_truncation",
     "shared_static_and_cz",
-    "shared_static_cz_leakage_flow",
     "static_only",
     "truncation_only",
     "cz_only",
@@ -284,13 +285,12 @@ def _flatten_run_all_benchmark_params(payload: dict[str, Any]) -> dict[str, Any]
             raise TypeError(f"study.run_all_benchmark_params.{category} must be an object")
         normalized = _deep_merge_dict(normalized, category_payload)
 
-    # Also merge any additional categories not in the canonical order.
-    for category, category_payload in grouped.items():
-        if category in _RUN_ALL_BENCHMARK_CATEGORY_ORDER:
-            continue
-        if not isinstance(category_payload, dict):
-            raise TypeError(f"study.run_all_benchmark_params.{category} must be an object")
-        normalized = _deep_merge_dict(normalized, category_payload)
+    unknown_categories = sorted(set(grouped.keys()) - set(_RUN_ALL_BENCHMARK_CATEGORY_ORDER))
+    if unknown_categories:
+        raise ValueError(
+            "Unknown study.run_all_benchmark_params categories: "
+            + ", ".join(unknown_categories)
+        )
     return normalized
 
 
@@ -356,16 +356,6 @@ def _require_list(parent: dict[str, Any], key: str, path: str) -> list[Any]:
     return value
 
 
-def _optional_float(parent: dict[str, Any], key: str) -> float | None:
-    if key not in parent:
-        return None
-    value = parent[key]
-    if value is None:
-        return None
-    return float(value)
-
-
-
 def _parse_system(system_payload: dict[str, Any]) -> SystemParams:
     p = _require_dict(system_payload, "parameters", "system")
 
@@ -412,7 +402,7 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
     sb = _require_dict(study_payload, "static_benchmark", "study")
 
     flux = _require_dict(sb, "flux_sweep", "study.static_benchmark")
-    flux_control = sb.get("flux_control")
+    flux_control = _require_dict(sb, "flux_control", "study.static_benchmark")
     coupler = _require_dict(sb, "coupler_frequency", "study.static_benchmark")
     dressed = _require_dict(sb, "dressed_subspace", "study.static_benchmark")
     duffing = _require_dict(sb, "duffing_model", "study.static_benchmark")
@@ -436,22 +426,17 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
     if fit_basis not in ("single-harmonic",):
         raise ValueError("study.static_benchmark.effective_model.fit_basis must be 'single-harmonic'")
 
-    calibration_mode = str(duffing.get("calibration_mode", "analytic-per-flux")).strip().lower()
+    calibration_mode = _require_str(duffing, "calibration_mode", "study.static_benchmark.duffing_model").strip().lower()
     if calibration_mode not in ("fixed", "analytic-per-flux", "per-flux"):
         raise ValueError(
             "study.static_benchmark.duffing_model.calibration_mode must be "
             "'fixed', 'analytic-per-flux', or 'per-flux'"
         )
 
-    if flux_control is None:
-        sweep_target: SweepTarget = "coupler"
-    else:
-        if not isinstance(flux_control, dict):
-            raise TypeError("study.static_benchmark.flux_control must be an object")
-        sweep_target_str = _require_str(flux_control, "sweep_target", "study.static_benchmark.flux_control")
-        if sweep_target_str not in ("coupler", "q1", "q2"):
-            raise ValueError("study.static_benchmark.flux_control.sweep_target must be 'coupler', 'q1', or 'q2'")
-        sweep_target = sweep_target_str
+    sweep_target_str = _require_str(flux_control, "sweep_target", "study.static_benchmark.flux_control")
+    if sweep_target_str not in ("coupler", "q1", "q2"):
+        raise ValueError("study.static_benchmark.flux_control.sweep_target must be 'coupler', 'q1', or 'q2'")
+    sweep_target: SweepTarget = sweep_target_str
 
     q1_trunc = _require_int(c_hilbert, "q1_truncated_dim", "study.static_benchmark.circuit_model.hilbert_truncation")
     q2_trunc = _require_int(c_hilbert, "q2_truncated_dim", "study.static_benchmark.circuit_model.hilbert_truncation")
@@ -528,105 +513,51 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
     )
 
 
-def _parse_truncation_benchmark(
-    study_payload: dict[str, Any],
-    *,
-    static_config: StaticBenchmarkConfig,
-) -> TruncationBenchmarkConfig:
-    tb = study_payload.get("truncation_benchmark")
+def _parse_truncation_benchmark(study_payload: dict[str, Any]) -> TruncationBenchmarkConfig:
+    tb = _require_dict(study_payload, "truncation_benchmark", "study")
 
-    default_fixed_flux = 0.5 * (
-        float(static_config.flux_sweep.start)
-        + float(static_config.flux_sweep.stop)
-    )
-    default_ncuts = (8, 10, 12, 16, 20, 24, 30, 40, 50, 60, 80, 100)
-    default_trunc_dim = int(static_config.duffing_model.transmon_spectral_extraction.truncated_dim)
-    default_n_levels_to_plot = 6
-    default_ref_ncut = 120
-    default_mode: DuffingCalibrationMode = "per-flux"
-    default_figure = "results/model_comparison_truncation_static_metrics.pdf"
-
-    if tb is None:
-        return TruncationBenchmarkConfig(
-            fixed_flux=float(default_fixed_flux),
-            duffing_ncut_values=tuple(int(x) for x in default_ncuts),
-            duffing_truncated_dim=int(default_trunc_dim),
-            lowest_excited_levels_to_plot=int(default_n_levels_to_plot),
-            circuit_reference_ncut=int(default_ref_ncut),
-            duffing_calibration_mode=default_mode,
-            outputs=OutputConfig(figure=default_figure),
-        )
-    if not isinstance(tb, dict):
-        raise TypeError("study.truncation_benchmark must be an object")
-
-    fixed_flux_val = _optional_float(tb, "fixed_flux")
     ncuts_raw = _require_list(tb, "duffing_ncut_values", "study.truncation_benchmark")
     ncuts = tuple(int(v) for v in ncuts_raw)
     if len(ncuts) == 0:
         raise ValueError("study.truncation_benchmark.duffing_ncut_values must be non-empty")
     if any(v < 1 for v in ncuts):
         raise ValueError("study.truncation_benchmark.duffing_ncut_values must contain positive integers")
-    trunc_dim = int(tb.get("duffing_truncated_dim", default_trunc_dim))
+    trunc_dim = _require_int(tb, "duffing_truncated_dim", "study.truncation_benchmark")
     if trunc_dim < 3:
         raise ValueError("study.truncation_benchmark.duffing_truncated_dim must be >= 3")
-    n_levels_to_plot = int(tb.get("lowest_excited_levels_to_plot", default_n_levels_to_plot))
+    n_levels_to_plot = _require_int(tb, "lowest_excited_levels_to_plot", "study.truncation_benchmark")
     if n_levels_to_plot < 1:
         raise ValueError("study.truncation_benchmark.lowest_excited_levels_to_plot must be >= 1")
 
-    mode = str(tb.get("duffing_calibration_mode", default_mode)).strip().lower()
+    mode = _require_str(tb, "duffing_calibration_mode", "study.truncation_benchmark").strip().lower()
     if mode not in ("fixed", "analytic-per-flux", "per-flux"):
         raise ValueError(
             "study.truncation_benchmark.duffing_calibration_mode must be "
             "'fixed', 'analytic-per-flux', or 'per-flux'"
         )
-
-    outputs = tb.get("outputs")
-    if outputs is None:
-        figure = default_figure
-    else:
-        if not isinstance(outputs, dict):
-            raise TypeError("study.truncation_benchmark.outputs must be an object")
-        figure = _require_str(outputs, "figure", "study.truncation_benchmark.outputs")
+    outputs = _require_dict(tb, "outputs", "study.truncation_benchmark")
 
     return TruncationBenchmarkConfig(
-        fixed_flux=float(default_fixed_flux if fixed_flux_val is None else fixed_flux_val),
+        fixed_flux=_require_float(tb, "fixed_flux", "study.truncation_benchmark"),
         duffing_ncut_values=ncuts,
         duffing_truncated_dim=trunc_dim,
         lowest_excited_levels_to_plot=n_levels_to_plot,
         circuit_reference_ncut=_require_int(tb, "circuit_reference_ncut", "study.truncation_benchmark"),
         duffing_calibration_mode=mode,
-        outputs=OutputConfig(figure=figure),
+        outputs=OutputConfig(figure=_require_str(outputs, "figure", "study.truncation_benchmark.outputs")),
     )
 
 
 def _parse_cz_benchmark(study_payload: dict[str, Any]) -> CzBenchmarkConfig:
-    cz = study_payload.get("cz_benchmark")
-    default_total_time_ns = 70.0
-    default_ramp_time_ns = 8.0
-    default_dt_ns = 0.02
-    default_enable_hold_time_scan = False
-    default_scan_dt_ns = 2.0
-    default_scan_max_hold_ns = 300.0
-    default_scan_leakage_penalty = 0.25
-
-    if cz is None:
-        total_time_ns = float(default_total_time_ns)
-        ramp_time_ns = float(default_ramp_time_ns)
-        dt_ns = float(default_dt_ns)
-        enable_hold_time_scan = bool(default_enable_hold_time_scan)
-        scan_dt_ns = float(default_scan_dt_ns)
-        scan_max_hold_ns = float(default_scan_max_hold_ns)
-        scan_leakage_penalty = float(default_scan_leakage_penalty)
-    else:
-        if not isinstance(cz, dict):
-            raise TypeError("study.cz_benchmark must be an object")
-        total_time_ns = float(cz.get("total_time_ns", default_total_time_ns))
-        ramp_time_ns = float(cz.get("ramp_time_ns", default_ramp_time_ns))
-        dt_ns = float(cz.get("dt_ns", default_dt_ns))
-        enable_hold_time_scan = bool(cz.get("enable_hold_time_scan", default_enable_hold_time_scan))
-        scan_dt_ns = float(cz.get("scan_dt_ns", default_scan_dt_ns))
-        scan_max_hold_ns = float(cz.get("scan_max_hold_ns", default_scan_max_hold_ns))
-        scan_leakage_penalty = float(cz.get("scan_leakage_penalty", default_scan_leakage_penalty))
+    cz = _require_dict(study_payload, "cz_benchmark", "study")
+    outputs = _require_dict(cz, "outputs", "study.cz_benchmark")
+    total_time_ns = _require_float(cz, "total_time_ns", "study.cz_benchmark")
+    ramp_time_ns = _require_float(cz, "ramp_time_ns", "study.cz_benchmark")
+    dt_ns = _require_float(cz, "dt_ns", "study.cz_benchmark")
+    enable_hold_time_scan = _require_bool(cz, "enable_hold_time_scan", "study.cz_benchmark")
+    scan_dt_ns = _require_float(cz, "scan_dt_ns", "study.cz_benchmark")
+    scan_max_hold_ns = _require_float(cz, "scan_max_hold_ns", "study.cz_benchmark")
+    scan_leakage_penalty = _require_float(cz, "scan_leakage_penalty", "study.cz_benchmark")
 
     if total_time_ns <= 0.0:
         raise ValueError("study.cz_benchmark.total_time_ns must be positive")
@@ -654,39 +585,24 @@ def _parse_cz_benchmark(study_payload: dict[str, Any]) -> CzBenchmarkConfig:
         scan_dt_ns=float(scan_dt_ns),
         scan_max_hold_ns=float(scan_max_hold_ns),
         scan_leakage_penalty=float(scan_leakage_penalty),
+        outputs=OutputConfig(figure=_require_str(outputs, "figure", "study.cz_benchmark.outputs")),
     )
 
 
 def _parse_leakage_flow_benchmark(study_payload: dict[str, Any]) -> LeakageFlowBenchmarkConfig:
-    lf = study_payload.get("leakage_flow_benchmark")
-    default_total_time_ns = 8.0
-    default_ramp_time_ns = 2.0
-    default_dt_ns = 0.02
-    default_population_min_average = 1e-4
-    default_transition_min_integrated_abs = 1e-4
-    default_max_population_rows = 12
-    default_max_transition_rows = 12
-
-    if lf is None:
-        total_time_ns = float(default_total_time_ns)
-        ramp_time_ns = float(default_ramp_time_ns)
-        dt_ns = float(default_dt_ns)
-        population_min_average = float(default_population_min_average)
-        transition_min_integrated_abs = float(default_transition_min_integrated_abs)
-        max_population_rows = int(default_max_population_rows)
-        max_transition_rows = int(default_max_transition_rows)
-    else:
-        if not isinstance(lf, dict):
-            raise TypeError("study.leakage_flow_benchmark must be an object")
-        total_time_ns = float(lf.get("total_time_ns", default_total_time_ns))
-        ramp_time_ns = float(lf.get("ramp_time_ns", default_ramp_time_ns))
-        dt_ns = float(lf.get("dt_ns", default_dt_ns))
-        population_min_average = float(lf.get("population_min_average", default_population_min_average))
-        transition_min_integrated_abs = float(
-            lf.get("transition_min_integrated_abs", default_transition_min_integrated_abs)
-        )
-        max_population_rows = int(lf.get("max_population_rows", default_max_population_rows))
-        max_transition_rows = int(lf.get("max_transition_rows", default_max_transition_rows))
+    lf = _require_dict(study_payload, "leakage_flow_benchmark", "study")
+    outputs = _require_dict(lf, "outputs", "study.leakage_flow_benchmark")
+    total_time_ns = _require_float(lf, "total_time_ns", "study.leakage_flow_benchmark")
+    ramp_time_ns = _require_float(lf, "ramp_time_ns", "study.leakage_flow_benchmark")
+    dt_ns = _require_float(lf, "dt_ns", "study.leakage_flow_benchmark")
+    population_min_average = _require_float(lf, "population_min_average", "study.leakage_flow_benchmark")
+    transition_min_integrated_abs = _require_float(
+        lf,
+        "transition_min_integrated_abs",
+        "study.leakage_flow_benchmark",
+    )
+    max_population_rows = _require_int(lf, "max_population_rows", "study.leakage_flow_benchmark")
+    max_transition_rows = _require_int(lf, "max_transition_rows", "study.leakage_flow_benchmark")
 
     if total_time_ns <= 0.0:
         raise ValueError("study.leakage_flow_benchmark.total_time_ns must be positive")
@@ -716,28 +632,16 @@ def _parse_leakage_flow_benchmark(study_payload: dict[str, Any]) -> LeakageFlowB
         transition_min_integrated_abs=float(transition_min_integrated_abs),
         max_population_rows=int(max_population_rows),
         max_transition_rows=int(max_transition_rows),
+        outputs=OutputConfig(figure=_require_str(outputs, "figure", "study.leakage_flow_benchmark.outputs")),
     )
 
 
 def _parse_leakage_benchmark(study_payload: dict[str, Any]) -> LeakageBenchmarkConfig:
-    lb = study_payload.get("leakage_benchmark")
-    default_total_time_ns = 70.0
-    default_ramp_time_ns = 8.0
-    default_dt_ns = 1.0
-    default_top_destination_rows = 10
-
-    if lb is None:
-        total_time_ns = float(default_total_time_ns)
-        ramp_time_ns = float(default_ramp_time_ns)
-        dt_ns = float(default_dt_ns)
-        top_destination_rows = int(default_top_destination_rows)
-    else:
-        if not isinstance(lb, dict):
-            raise TypeError("study.leakage_benchmark must be an object")
-        total_time_ns = float(lb.get("total_time_ns", default_total_time_ns))
-        ramp_time_ns = float(lb.get("ramp_time_ns", default_ramp_time_ns))
-        dt_ns = float(lb.get("dt_ns", default_dt_ns))
-        top_destination_rows = int(lb.get("top_destination_rows", default_top_destination_rows))
+    lb = _require_dict(study_payload, "leakage_benchmark", "study")
+    total_time_ns = _require_float(lb, "total_time_ns", "study.leakage_benchmark")
+    ramp_time_ns = _require_float(lb, "ramp_time_ns", "study.leakage_benchmark")
+    dt_ns = _require_float(lb, "dt_ns", "study.leakage_benchmark")
+    top_destination_rows = _require_int(lb, "top_destination_rows", "study.leakage_benchmark")
 
     if total_time_ns <= 0.0:
         raise ValueError("study.leakage_benchmark.total_time_ns must be positive")
@@ -762,24 +666,11 @@ def _parse_leakage_benchmark(study_payload: dict[str, Any]) -> LeakageBenchmarkC
 
 
 def _parse_state_to_state_leakage_benchmark(study_payload: dict[str, Any]) -> StateToStateLeakageBenchmarkConfig:
-    sb = study_payload.get("state_to_state_leakage_benchmark")
-    default_total_time_ns = 70.0
-    default_ramp_time_ns = 8.0
-    default_dt_ns = 1.0
-    default_top_transition_rows = 10
-
-    if sb is None:
-        total_time_ns = float(default_total_time_ns)
-        ramp_time_ns = float(default_ramp_time_ns)
-        dt_ns = float(default_dt_ns)
-        top_transition_rows = int(default_top_transition_rows)
-    else:
-        if not isinstance(sb, dict):
-            raise TypeError("study.state_to_state_leakage_benchmark must be an object")
-        total_time_ns = float(sb.get("total_time_ns", default_total_time_ns))
-        ramp_time_ns = float(sb.get("ramp_time_ns", default_ramp_time_ns))
-        dt_ns = float(sb.get("dt_ns", default_dt_ns))
-        top_transition_rows = int(sb.get("top_transition_rows", default_top_transition_rows))
+    sb = _require_dict(study_payload, "state_to_state_leakage_benchmark", "study")
+    total_time_ns = _require_float(sb, "total_time_ns", "study.state_to_state_leakage_benchmark")
+    ramp_time_ns = _require_float(sb, "ramp_time_ns", "study.state_to_state_leakage_benchmark")
+    dt_ns = _require_float(sb, "dt_ns", "study.state_to_state_leakage_benchmark")
+    top_transition_rows = _require_int(sb, "top_transition_rows", "study.state_to_state_leakage_benchmark")
 
     if total_time_ns <= 0.0:
         raise ValueError("study.state_to_state_leakage_benchmark.total_time_ns must be positive")
@@ -814,7 +705,7 @@ def load_study_config(system_params_path: Path, study_params_path: Path) -> Stud
         static_benchmark=static_config,
         cz_benchmark=_parse_cz_benchmark(study_payload),
         leakage_flow_benchmark=_parse_leakage_flow_benchmark(study_payload),
-        truncation_benchmark=_parse_truncation_benchmark(study_payload, static_config=static_config),
+        truncation_benchmark=_parse_truncation_benchmark(study_payload),
         leakage_benchmark=_parse_leakage_benchmark(study_payload),
         state_to_state_leakage_benchmark=_parse_state_to_state_leakage_benchmark(study_payload),
     )

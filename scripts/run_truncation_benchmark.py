@@ -15,9 +15,13 @@ from benchmark_results_io import (
     load_result_hdf5,
     save_result_hdf5,
 )
+from benchmark_cli_reporting import (
+    CliReporter,
+    build_common_truncation_lines,
+    build_truncation_benchmark_extra_lines,
+)
 from comparison.truncation import TruncationBenchmarkResult, run_truncation_benchmark
 from plotting.truncation import plot_truncation_benchmark
-from runtime_utils import run_main_with_timing
 from study_config import load_study_config
 
 
@@ -44,6 +48,7 @@ def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
 def main() -> None:
     args = _parse_args()
     repo_root = _REPO_ROOT
+    reporter = CliReporter(benchmark_name="truncation", script_name=Path(__file__).name)
     config = load_study_config(
         repo_root / "params" / "system_params.json",
         repo_root / "params" / "benchmark_params.json",
@@ -90,27 +95,31 @@ def main() -> None:
         lowest_excited_levels_to_plot=int(trunc_cfg.lowest_excited_levels_to_plot),
     )
 
-    print("Truncation benchmark summary:")
+    for line in build_common_truncation_lines(config):
+        reporter.line(line)
+    for line in build_truncation_benchmark_extra_lines(config):
+        reporter.line(line)
+    reporter.line("Truncation benchmark summary:")
     for key, value in result.summary.items():
-        print(f"  {key}: {value:.6e}")
+        reporter.line(f"  {key}: {value:.6e}")
 
-    print("Per-ncut metrics (GHz):")
+    reporter.line("Per-ncut metrics (GHz):")
     for ncut, trunc_dim, j, zeta in zip(
         result.duffing_ncut_values,
         result.duffing_effective_truncated_dim_values,
         result.duffing_j,
         result.duffing_zeta,
     ):
-        print(
+        reporter.line(
             f"  ncut={int(ncut):4d}, trunc_dim={int(trunc_dim):3d}: "
             f"J={j:.6e}, zeta={zeta:.6e}"
         )
-    print(
+    reporter.line(
         "Circuit reference (GHz): "
         f"ncut={result.circuit_reference_ncut}, "
         f"J={result.circuit_j:.6e}, zeta={result.circuit_zeta:.6e}"
     )
-    print(
+    reporter.line(
         "Duffing - circuit at max Duffing ncut "
         f"(ncut={result.max_duffing_ncut}) for reported excited levels (GHz):"
     )
@@ -122,13 +131,15 @@ def main() -> None:
         rel_text = f"{float(rel_pct):.6f}%"
         if not (float(rel_pct) == float(rel_pct)):  # NaN check
             rel_text = "nan%"
-        print(f"  E{int(level)}: {float(diff):.12e} ({rel_text} of circuit)")
+        reporter.line(f"  E{int(level)}: {float(diff):.12e} ({rel_text} of circuit)")
     if args.plot_only:
-        print(f"Loaded results: {results_path}")
+        reporter.line(f"Loaded results: {results_path}")
     else:
-        print(f"Wrote results: {results_path}")
-    print(f"Wrote figure: {figure_path}")
+        reporter.line(f"Wrote results: {results_path}")
+    reporter.line(f"Wrote figure: {figure_path}")
+    reporter.add_runtime_line()
+    reporter.persist(results_path)
 
 
 if __name__ == "__main__":
-    run_main_with_timing(main)
+    main()

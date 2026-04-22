@@ -48,18 +48,14 @@
         }
       }
     },
-    "shared_static_cz_leakage_flow": {
-      "static_benchmark": {
-        "outputs": {
-          "figure": "results/model_comparison_static.pdf"
-        }
-      }
-    },
     "static_only": {
       "static_benchmark": {
         "regime_thresholds": {
           "idle_ratio": 6.0,
           "near_ratio": 2.0
+        },
+        "outputs": {
+          "figure": "results/model_comparison_static.pdf"
         }
       }
     },
@@ -84,7 +80,10 @@
         "enable_hold_time_scan": true,
         "scan_dt_ns": 2.0,
         "scan_max_hold_ns": 300.0,
-        "scan_leakage_penalty": 0.25
+        "scan_leakage_penalty": 0.25,
+        "outputs": {
+          "figure": "results/model_comparison_cz_dynamics.pdf"
+        }
       }
     },
     "leakage_flow_only": {
@@ -95,7 +94,10 @@
         "population_min_average": 0.0001,
         "transition_min_integrated_abs": 0.0001,
         "max_population_rows": 12,
-        "max_transition_rows": 12
+        "max_transition_rows": 12,
+        "outputs": {
+          "figure": "results/model_comparison_leakage_flow.pdf"
+        }
       }
     }
   },

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import MISSING, fields, is_dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TypeVar
 
@@ -10,6 +11,7 @@ import h5py
 import numpy as np
 
 _RESULT_GROUP = "result"
+_META_GROUP = "meta"
 _SCHEMA_VERSION = "benchmark_result_v1"
 _DICT_KIND = "dict"
 
@@ -36,9 +38,51 @@ def save_result_hdf5(
         h5.attrs["schema_version"] = _SCHEMA_VERSION
         h5.attrs["benchmark_name"] = str(benchmark_name)
         h5.attrs["result_class"] = type(result).__name__
+        h5.attrs["saved_utc_iso"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
         root = h5.create_group(_RESULT_GROUP)
         for f in fields(result):
             _write_value(root, f.name, getattr(result, f.name))
+
+
+def save_cli_report_hdf5(
+    outfile: Path,
+    *,
+    benchmark_name: str,
+    script_name: str,
+    lines: list[str],
+    started_utc_iso: str,
+    finished_utc_iso: str,
+) -> None:
+    """Append a CLI report for one script run to an HDF5 results file."""
+    outfile.parent.mkdir(parents=True, exist_ok=True)
+    utf8 = h5py.string_dtype(encoding="utf-8")
+    line_array = np.asarray([str(line) for line in lines], dtype=utf8)
+    text_blob = "\n".join(str(line) for line in lines)
+
+    with h5py.File(outfile, "a") as h5:
+        meta = h5.require_group(_META_GROUP)
+        reports = meta.require_group("cli_reports")
+        run_index = len(reports)
+        run_group = reports.create_group(f"run_{run_index:04d}")
+        run_group.attrs["benchmark_name"] = str(benchmark_name)
+        run_group.attrs["script_name"] = str(script_name)
+        run_group.attrs["started_utc_iso"] = str(started_utc_iso)
+        run_group.attrs["finished_utc_iso"] = str(finished_utc_iso)
+        run_group.attrs["line_count"] = int(len(lines))
+        run_group.create_dataset("lines", data=line_array)
+        run_group.create_dataset("text", data=np.array(text_blob, dtype=utf8))
+
+        if "last_cli_report_lines" in meta:
+            del meta["last_cli_report_lines"]
+        if "last_cli_report_text" in meta:
+            del meta["last_cli_report_text"]
+        meta.create_dataset("last_cli_report_lines", data=line_array)
+        meta.create_dataset("last_cli_report_text", data=np.array(text_blob, dtype=utf8))
+        meta.attrs["last_cli_report_benchmark_name"] = str(benchmark_name)
+        meta.attrs["last_cli_report_script_name"] = str(script_name)
+        meta.attrs["last_cli_report_started_utc_iso"] = str(started_utc_iso)
+        meta.attrs["last_cli_report_finished_utc_iso"] = str(finished_utc_iso)
+        meta.attrs["last_cli_report_line_count"] = int(len(lines))
 
 
 def load_result_hdf5(

@@ -15,9 +15,9 @@ from benchmark_results_io import (
     load_result_hdf5,
     save_result_hdf5,
 )
+from benchmark_cli_reporting import CliReporter, build_common_truncation_lines
 from comparison.static import StaticBenchmarkResult, run_static_benchmark
 from plotting.static import plot_static_benchmark
-from runtime_utils import run_main_with_timing
 from study_config import load_study_config
 
 
@@ -45,6 +45,7 @@ def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
 def main() -> None:
     args = _parse_args()
     repo_root = _REPO_ROOT
+    reporter = CliReporter(benchmark_name="static", script_name=Path(__file__).name)
     system_params_path = repo_root / "params" / "system_params.json"
     study_params_path = repo_root / "params" / "benchmark_params.json"
 
@@ -72,15 +73,19 @@ def main() -> None:
     )
     plot_static_benchmark(result, figure_path, title)
 
-    print("Static benchmark summary (GHz):")
+    for line in build_common_truncation_lines(config):
+        reporter.line(line)
+    reporter.line("Static benchmark summary (GHz):")
     for key, value in result.summary.items():
-        print(f"  {key}: {value:.6e}")
+        reporter.line(f"  {key}: {value:.6e}")
     if args.plot_only:
-        print(f"Loaded results: {results_path}")
+        reporter.line(f"Loaded results: {results_path}")
     else:
-        print(f"Wrote results: {results_path}")
-    print(f"Wrote figure: {figure_path}")
+        reporter.line(f"Wrote results: {results_path}")
+    reporter.line(f"Wrote figure: {figure_path}")
+    reporter.add_runtime_line()
+    reporter.persist(results_path)
 
 
 if __name__ == "__main__":
-    run_main_with_timing(main)
+    main()

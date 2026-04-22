@@ -15,9 +15,9 @@ from benchmark_results_io import (
     load_result_hdf5,
     save_result_hdf5,
 )
+from benchmark_cli_reporting import CliReporter, build_common_truncation_lines
 from comparison.leakage_flow import LeakageFlowBenchmarkResult, run_leakage_flow_benchmark
 from plotting.leakage_flow import plot_leakage_flow_benchmark
-from runtime_utils import run_main_with_timing
 from study_config import load_study_config
 
 
@@ -44,6 +44,7 @@ def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
 def main() -> None:
     args = _parse_args()
     repo_root = _REPO_ROOT
+    reporter = CliReporter(benchmark_name="leakage_flow", script_name=Path(__file__).name)
     config = load_study_config(
         repo_root / "params" / "system_params.json",
         repo_root / "params" / "benchmark_params.json",
@@ -55,8 +56,7 @@ def main() -> None:
     hold_time_ns = target_total_time_ns - 2.0 * ramp_time_ns
     dt_ns = float(lf_cfg.dt_ns)
 
-    static_figure = repo_root / config.static_benchmark.outputs.figure
-    figure_path = static_figure.with_name("model_comparison_leakage_flow.pdf")
+    figure_path = repo_root / lf_cfg.outputs.figure
     results_path = (
         _resolve_repo_relative(repo_root, args.results)
         if args.results is not None
@@ -88,21 +88,25 @@ def main() -> None:
     )
     plot_leakage_flow_benchmark(result, figure_path, title)
 
-    print("Leakage/flow benchmark summary:")
+    for line in build_common_truncation_lines(config):
+        reporter.line(line)
+    reporter.line("Leakage/flow benchmark summary:")
     for key, value in result.summary.items():
-        print(f"  {key}: {value:.6e}")
-    print(
+        reporter.line(f"  {key}: {value:.6e}")
+    reporter.line(
         "Selected pulse: "
         f"sweep_target={result.sweep_target}, idle_flux={result.idle_flux:.6f}, "
         f"target_flux={result.target_flux:.6f}, ramp_time_ns={result.ramp_time_ns:.3f}, "
         f"hold_time_ns={result.hold_time_ns:.3f}, dt_ns={result.dt_ns:.3f}"
     )
     if args.plot_only:
-        print(f"Loaded results: {results_path}")
+        reporter.line(f"Loaded results: {results_path}")
     else:
-        print(f"Wrote results: {results_path}")
-    print(f"Wrote figure: {figure_path}")
+        reporter.line(f"Wrote results: {results_path}")
+    reporter.line(f"Wrote figure: {figure_path}")
+    reporter.add_runtime_line()
+    reporter.persist(results_path)
 
 
 if __name__ == "__main__":
-    run_main_with_timing(main)
+    main()

@@ -15,9 +15,9 @@ from benchmark_results_io import (
     load_result_hdf5,
     save_result_hdf5,
 )
+from benchmark_cli_reporting import CliReporter, build_common_truncation_lines
 from comparison.cz import CzBenchmarkResult, run_cz_benchmark
 from plotting.cz import plot_cz_benchmark
-from runtime_utils import run_main_with_timing
 from study_config import load_study_config
 
 
@@ -45,6 +45,7 @@ def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
 def main() -> None:
     args = _parse_args()
     repo_root = _REPO_ROOT
+    reporter = CliReporter(benchmark_name="cz", script_name=Path(__file__).name)
     config = load_study_config(
         repo_root / "params" / "system_params.json",
         repo_root / "params" / "benchmark_params.json",
@@ -56,8 +57,7 @@ def main() -> None:
     hold_time_ns = target_total_time_ns - 2.0 * ramp_time_ns
     enable_hold_time_scan = bool(cz_cfg.enable_hold_time_scan)
 
-    static_figure = repo_root / config.static_benchmark.outputs.figure
-    figure_path = static_figure.with_name("model_comparison_cz_dynamics.pdf")
+    figure_path = repo_root / cz_cfg.outputs.figure
     results_path = (
         _resolve_repo_relative(repo_root, args.results)
         if args.results is not None
@@ -86,7 +86,9 @@ def main() -> None:
     title = "CZ Benchmark: Flux And CPhase"
     plot_cz_benchmark(result, figure_path, title)
 
-    print("CZ benchmark summary:")
+    for line in build_common_truncation_lines(config):
+        reporter.line(line)
+    reporter.line("CZ benchmark summary:")
     cz_summary_keys = [
         "effective_final_conditional_phase_rad",
         "duffing_final_conditional_phase_rad",
@@ -102,23 +104,25 @@ def main() -> None:
     ]
     for key in cz_summary_keys:
         if key in result.summary:
-            print(f"  {key}: {result.summary[key]:.6e}")
-    print(
+            reporter.line(f"  {key}: {result.summary[key]:.6e}")
+    reporter.line(
         "Selected pulse: "
         f"sweep_target={result.sweep_target}, idle_flux={result.idle_flux:.6f}, "
         f"target_flux={result.target_flux:.6f}, ramp_time_ns={result.ramp_time_ns:.3f}, "
         f"hold_time_ns={result.hold_time_ns:.3f}, dt_ns={result.dt_ns:.3f}"
     )
     if result.scan_hold_times_ns.size > 0:
-        print("Hold scan (ns, phase_err_to_pi_rad, score):")
+        reporter.line("Hold scan (ns, phase_err_to_pi_rad, score):")
         for h, err, score in zip(result.scan_hold_times_ns, result.scan_phase_error_rad, result.scan_scores):
-            print(f"  {h:.6f}, {err:.6e}, {score:.6e}")
+            reporter.line(f"  {h:.6f}, {err:.6e}, {score:.6e}")
     if args.plot_only:
-        print(f"Loaded results: {results_path}")
+        reporter.line(f"Loaded results: {results_path}")
     else:
-        print(f"Wrote results: {results_path}")
-    print(f"Wrote figure: {figure_path}")
+        reporter.line(f"Wrote results: {results_path}")
+    reporter.line(f"Wrote figure: {figure_path}")
+    reporter.add_runtime_line()
+    reporter.persist(results_path)
 
 
 if __name__ == "__main__":
-    run_main_with_timing(main)
+    main()
