@@ -46,12 +46,6 @@ class LeakageFlowBenchmarkResult:
 def _idx_qcq(n1: int, nc: int, n2: int, i: int, j: int, k: int) -> int:
     return int((i * nc + j) * n2 + k)
 
-
-def _state_label_q2cq1(i: int, j: int, k: int) -> str:
-    """Format an internal |q1,c,q2> tuple as display label |q2,c,q1>."""
-    return f"|{k},{j},{i}>"
-
-
 def _time_integral(values: np.ndarray, times_ns: np.ndarray) -> float:
     y = np.asarray(values, dtype=float).ravel()
     t = np.asarray(times_ns, dtype=float).ravel()
@@ -107,7 +101,7 @@ def _canonical_state_order_qcq(n1: int, nc: int, n2: int) -> tuple[np.ndarray, n
     # Display convention is |q2,c,q1>, so lexical tie-break follows (q2, c, q1) = (k, j, i).
     triples_sorted = sorted(triples, key=lambda t: (t[0] + t[1] + t[2], t[2], t[1], t[0]))
     idx = np.array([_idx_qcq(n1, nc, n2, i, j, k) for (i, j, k) in triples_sorted], dtype=int)
-    labels = np.array([_state_label_q2cq1(i, j, k) for (i, j, k) in triples_sorted], dtype=str)
+    labels = np.array([f"|{k},{j},{i}>" for (i, j, k) in triples_sorted], dtype=str)
     return idx, labels
 
 
