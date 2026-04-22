@@ -34,6 +34,6 @@
   "where_from": {
     "paper": "DiCarlo et al., Nature 460, 240-244 (2009), doi:10.1038/nature08121",
     "fit_values": "EJL(R)/h = 28.48(42.34) GHz, ECL(R)/h = 317(297) MHz, gL(R)/2pi = 199(183) MHz, omegaC/2pi = 6.902 GHz, kappa/2pi = 1 MHz",
-    "assumptions": "q1=QL, q2=QR; d, flux, ng, ncut, and truncated_dim are manual defaults."
+    "assumptions": "q1=QR, q2=QL; d, flux, ng, ncut, and truncated_dim are manual defaults."
   }
 }

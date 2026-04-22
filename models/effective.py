@@ -42,8 +42,8 @@ def heff(w1: np.ndarray | float, w2: np.ndarray | float, J: np.ndarray | float, 
     jc = _coeff_for_ham(J)
     zc = _coeff_for_ham(zeta)
     return (
-        0.5 * w1c * np.kron(pz, I2)
-        + 0.5 * w2c * np.kron(I2, pz)
+        0.5 * w2c * np.kron(pz, I2)
+        + 0.5 * w1c * np.kron(I2, pz)
         + jc * (np.kron(px, px) + np.kron(py, py))
         + 0.25 * zc * np.kron(pz, pz)
     )
@@ -58,10 +58,10 @@ def heff_spin_to_lab_hamiltonian(H_eff: np.ndarray, w1: np.ndarray, w2: np.ndarr
 
     w1_b = w1_arr[:, np.newaxis, np.newaxis]
     w2_b = w2_arr[:, np.newaxis, np.newaxis]
-    pz1 = np.kron(pz, I2)
-    pz2 = np.kron(I2, pz)
+    pz_q2 = np.kron(pz, I2)
+    pz_q1 = np.kron(I2, pz)
     eye4 = np.eye(4, dtype=complex)
-    return H_eff_arr + 0.5 * (w1_b + w2_b) * eye4 - w1_b * pz1 - w2_b * pz2
+    return H_eff_arr + 0.5 * (w1_b + w2_b) * eye4 - w1_b * pz_q1 - w2_b * pz_q2
 
 
 

@@ -31,9 +31,9 @@ class LeakageBenchmarkResult:
     effective_intermediate_population_11: np.ndarray
     duffing_intermediate_population_11: np.ndarray
     circuit_intermediate_population_11: np.ndarray
-    duffing_state_011_11: np.ndarray
+    duffing_state_110_11: np.ndarray
     circuit_coupler_excited_11: np.ndarray
-    circuit_state_011_11: np.ndarray
+    circuit_state_110_11: np.ndarray
     summary: dict[str, float]
     duffing_leakage_destination_populations_11: dict[str, np.ndarray] = field(default_factory=dict)
     circuit_leakage_destination_populations_11: dict[str, np.ndarray] = field(default_factory=dict)
@@ -41,6 +41,11 @@ class LeakageBenchmarkResult:
 
 def _idx_qcq(n1: int, nc: int, n2: int, i: int, j: int, k: int) -> int:
     return int((i * nc + j) * n2 + k)
+
+
+def _state_label_q2cq1(i: int, j: int, k: int) -> str:
+    """Format an internal |q1,c,q2> tuple as display label |q2,c,q1>."""
+    return f"|{k},{j},{i}>"
 
 
 def _time_integral(values: np.ndarray, times_ns: np.ndarray) -> float:
@@ -69,7 +74,7 @@ def _fraction_of_time_integrated_leakage_to_state(
     return state_area, leak_area, float(frac)
 
 
-def _computational_indices_from_q1c0q2(n1: int, nc: int, n2: int) -> set[int]:
+def _computational_indices_from_q2c0q1(n1: int, nc: int, n2: int) -> set[int]:
     comp: set[int] = set()
     for i in (0, 1):
         for k in (0, 1):
@@ -79,7 +84,7 @@ def _computational_indices_from_q1c0q2(n1: int, nc: int, n2: int) -> set[int]:
 
 
 def _leakage_destination_layout(n1: int, nc: int, n2: int) -> tuple[np.ndarray, list[str], np.ndarray]:
-    comp = _computational_indices_from_q1c0q2(n1, nc, n2)
+    comp = _computational_indices_from_q2c0q1(n1, nc, n2)
     idx_list: list[int] = []
     labels: list[str] = []
     triples: list[tuple[int, int, int]] = []
@@ -90,7 +95,7 @@ def _leakage_destination_layout(n1: int, nc: int, n2: int) -> tuple[np.ndarray, 
                 if flat in comp:
                     continue
                 idx_list.append(flat)
-                labels.append(f"|{i},{j},{k}>")
+                labels.append(_state_label_q2cq1(i, j, k))
                 triples.append((i, j, k))
     return np.asarray(idx_list, dtype=int), labels, np.asarray(triples, dtype=int)
 
@@ -117,11 +122,11 @@ def _all_leakage_destinations_from_11_for_stack(
     destination_idx, destination_labels, destination_triples = _leakage_destination_layout(n1, nc, n2)
     destination_pop = np.zeros((t.size, destination_idx.size), dtype=float)
     coupler_excited = np.zeros(t.size, dtype=float)
-    state_011 = np.zeros(t.size, dtype=float)
+    state_110 = np.zeros(t.size, dtype=float)
 
     coupler_excited_mask = destination_triples[:, 1] > 0 if destination_triples.size > 0 else np.zeros(0, dtype=bool)
-    has_011 = nc >= 2
-    idx_011 = _idx_qcq(n1, nc, n2, 0, 1, 1) if has_011 else -1
+    has_110 = nc >= 2
+    idx_110 = _idx_qcq(n1, nc, n2, 0, 1, 1) if has_110 else -1
 
     psi = np.zeros(d, dtype=complex)
     psi[_idx_qcq(n1, nc, n2, 1, 0, 1)] = 1.0
@@ -131,8 +136,8 @@ def _all_leakage_destinations_from_11_for_stack(
             pop = np.abs(psi[destination_idx]) ** 2
             destination_pop[m, :] = np.asarray(pop, dtype=float)
             coupler_excited[m] = float(np.sum(pop[coupler_excited_mask]))
-        if has_011:
-            state_011[m] = float(np.abs(psi[idx_011]) ** 2)
+        if has_110:
+            state_110[m] = float(np.abs(psi[idx_110]) ** 2)
 
     _record(0)
     for m in range(t.size - 1):
@@ -147,7 +152,7 @@ def _all_leakage_destinations_from_11_for_stack(
         label: np.asarray(destination_pop[:, col], dtype=float)
         for col, label in enumerate(destination_labels)
     }
-    return destinations, coupler_excited, state_011
+    return destinations, coupler_excited, state_110
 
 
 def _as_leakage_result(
@@ -165,7 +170,7 @@ def _as_leakage_result(
         duffing_config=config.static_benchmark.duffing_model,
         sweep_target=cz_result.sweep_target,
     ).hamiltonian_stack
-    duffing_destinations, _, p_duffing_011 = _all_leakage_destinations_from_11_for_stack(
+    duffing_destinations, _, p_duffing_110 = _all_leakage_destinations_from_11_for_stack(
         stack=duffing_stack,
         times_ns=cz_result.times_ns,
         n1=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
@@ -180,7 +185,7 @@ def _as_leakage_result(
         circuit_config=config.static_benchmark.circuit_model,
         sweep_target=cz_result.sweep_target,
     ).hamiltonian_stack
-    circuit_destinations, p_coupler_exc, p_state_011 = _all_leakage_destinations_from_11_for_stack(
+    circuit_destinations, p_coupler_exc, p_state_110 = _all_leakage_destinations_from_11_for_stack(
         stack=circuit_stack,
         times_ns=cz_result.times_ns,
         n1=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
@@ -188,13 +193,13 @@ def _as_leakage_result(
         n2=config.static_benchmark.circuit_model.hilbert_truncation.q2_truncated_dim,
     )
 
-    duf_011_area, duf_leak_area, duf_011_fraction = _fraction_of_time_integrated_leakage_to_state(
-        state_population=p_duffing_011,
+    duf_110_area, duf_leak_area, duf_110_fraction = _fraction_of_time_integrated_leakage_to_state(
+        state_population=p_duffing_110,
         total_leakage=cz_result.duffing_leakage_11,
         times_ns=cz_result.times_ns,
     )
-    cir_011_area, cir_leak_area, cir_011_fraction = _fraction_of_time_integrated_leakage_to_state(
-        state_population=p_state_011,
+    cir_110_area, cir_leak_area, cir_110_fraction = _fraction_of_time_integrated_leakage_to_state(
+        state_population=p_state_110,
         total_leakage=cz_result.circuit_leakage_11,
         times_ns=cz_result.times_ns,
     )
@@ -211,15 +216,15 @@ def _as_leakage_result(
         "effective_max_intermediate_11": float(np.max(cz_result.effective_intermediate_population_11)),
         "duffing_max_intermediate_11": float(np.max(cz_result.duffing_intermediate_population_11)),
         "circuit_max_intermediate_11": float(np.max(cz_result.circuit_intermediate_population_11)),
-        "duffing_max_state_011_11": float(np.max(p_duffing_011)),
+        "duffing_max_state_110_11": float(np.max(p_duffing_110)),
         "circuit_max_coupler_excited_11": float(np.max(p_coupler_exc)),
-        "circuit_max_state_011_11": float(np.max(p_state_011)),
-        "duffing_time_integrated_state_011_11_ns": duf_011_area,
+        "circuit_max_state_110_11": float(np.max(p_state_110)),
+        "duffing_time_integrated_state_110_11_ns": duf_110_area,
         "duffing_time_integrated_total_leakage_11_ns": duf_leak_area,
-        "duffing_fraction_of_time_integrated_leakage_to_state_011_11": duf_011_fraction,
-        "circuit_time_integrated_state_011_11_ns": cir_011_area,
+        "duffing_fraction_of_time_integrated_leakage_to_state_110_11": duf_110_fraction,
+        "circuit_time_integrated_state_110_11_ns": cir_110_area,
         "circuit_time_integrated_total_leakage_11_ns": cir_leak_area,
-        "circuit_fraction_of_time_integrated_leakage_to_state_011_11": cir_011_fraction,
+        "circuit_fraction_of_time_integrated_leakage_to_state_110_11": cir_110_fraction,
         "ramp_time_ns": float(cz_result.ramp_time_ns),
         "hold_time_ns": float(cz_result.hold_time_ns),
         "dt_ns": float(cz_result.dt_ns),
@@ -243,9 +248,9 @@ def _as_leakage_result(
         effective_intermediate_population_11=np.asarray(cz_result.effective_intermediate_population_11, dtype=float),
         duffing_intermediate_population_11=np.asarray(cz_result.duffing_intermediate_population_11, dtype=float),
         circuit_intermediate_population_11=np.asarray(cz_result.circuit_intermediate_population_11, dtype=float),
-        duffing_state_011_11=np.asarray(p_duffing_011, dtype=float),
+        duffing_state_110_11=np.asarray(p_duffing_110, dtype=float),
         circuit_coupler_excited_11=np.asarray(p_coupler_exc, dtype=float),
-        circuit_state_011_11=np.asarray(p_state_011, dtype=float),
+        circuit_state_110_11=np.asarray(p_state_110, dtype=float),
         summary=summary,
         duffing_leakage_destination_populations_11=duffing_destinations,
         circuit_leakage_destination_populations_11=circuit_destinations,
