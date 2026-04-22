@@ -6,7 +6,9 @@
     "truncation_benchmark.duffing_truncated_dim": "Used only when truncation_benchmark.duffing_calibration_mode is 'fixed' or 'per-flux'. Not used for 'analytic-per-flux'.",
     "cz_benchmark.scan_dt_ns": "Used only when cz_benchmark.enable_hold_time_scan is true.",
     "cz_benchmark.scan_max_hold_ns": "Used only when cz_benchmark.enable_hold_time_scan is true.",
-    "cz_benchmark.scan_leakage_penalty": "Used only when cz_benchmark.enable_hold_time_scan is true."
+    "cz_benchmark.scan_leakage_penalty": "Used only when cz_benchmark.enable_hold_time_scan is true.",
+    "cz_benchmark.total_time_ns": "Mutually exclusive with hold_time_ns. Used only when enable_hold_time_scan is false; implies hold_time_ns = total_time_ns - 2*ramp_time_ns.",
+    "cz_benchmark.hold_time_ns": "Mutually exclusive with total_time_ns. Used only when enable_hold_time_scan is false."
   },
   "run_all_benchmark_params": {
     "shared_static_cz_leakage_flow_truncation": {
@@ -83,7 +85,6 @@
     },
     "cz_only": {
       "cz_benchmark": {
-        "total_time_ns": 10.0,
         "ramp_time_ns": 2.0,
         "dt_ns": 0.5,
         "enable_hold_time_scan": true,
