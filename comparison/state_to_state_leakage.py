@@ -39,7 +39,6 @@ class StateToStateLeakageBenchmarkResult:
 def _idx_qcq(n1: int, nc: int, n2: int, i: int, j: int, k: int) -> int:
     return int((i * nc + j) * n2 + k)
 
-
 def _time_integral(values: np.ndarray, times_ns: np.ndarray) -> float:
     y = np.asarray(values, dtype=float).ravel()
     t = np.asarray(times_ns, dtype=float).ravel()
@@ -59,7 +58,7 @@ def _computational_layout(n1: int, nc: int, n2: int) -> tuple[np.ndarray, list[s
     for i in (0, 1):
         for k in (0, 1):
             idx.append(_idx_qcq(n1, nc, n2, i, 0, k))
-            labels.append(f"|{i},0,{k}>")
+            labels.append(f"|{k},{0},{i}>")
     return np.asarray(idx, dtype=int), labels
 
 
@@ -75,7 +74,7 @@ def _leakage_layout(n1: int, nc: int, n2: int) -> tuple[np.ndarray, list[str]]:
                 if flat in comp_set:
                     continue
                 idx.append(flat)
-                labels.append(f"|{i},{j},{k}>")
+                labels.append(f"|{k},{j},{i}>")
     return np.asarray(idx, dtype=int), labels
 
 

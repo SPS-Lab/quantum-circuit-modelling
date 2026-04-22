@@ -312,8 +312,8 @@ def _simulate_piecewise_constant_qutip(
     )
 
 
-def _q1c0q2_index(n1: int, n2: int, *, nlevels_qubit: int, nlevels_coupler: int) -> int:
-    return int(n1) * int(nlevels_qubit) * int(nlevels_coupler) + int(n2)
+def _q2c0q1_index(q2: int, q1: int, *, nlevels_qubit: int, nlevels_coupler: int) -> int:
+    return int(q1) * int(nlevels_qubit) * int(nlevels_coupler) + int(q2)
 
 
 def _intermediate_channel_indices(*, nlevels_qubit: int, nlevels_coupler: int) -> np.ndarray:
@@ -321,8 +321,8 @@ def _intermediate_channel_indices(*, nlevels_qubit: int, nlevels_coupler: int) -
         return np.zeros(0, dtype=int)
     return np.array(
         [
-            _q1c0q2_index(2, 0, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler),
-            _q1c0q2_index(0, 2, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler),
+            _q2c0q1_index(2, 0, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler),
+            _q2c0q1_index(0, 2, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler),
         ],
         dtype=int,
     )

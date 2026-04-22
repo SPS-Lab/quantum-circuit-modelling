@@ -222,8 +222,9 @@ def extract_model1_parameters_from_4x4_stack(
 
     zeta = d11 - d10 - d01 + d00
     zeta = np.where(np.abs(zeta) < float(zeta_tol), 0.0, zeta)
-    w1 = d10 - d00 + 0.5 * zeta
-    w2 = d01 - d00 + 0.5 * zeta
+    # Computational ordering follows |q2,q1>, so q1 excitations are at index 1.
+    w1 = d01 - d00 + 0.5 * zeta
+    w2 = d10 - d00 + 0.5 * zeta
     j = 0.5 * np.real(H_param[:, 1, 2])
 
     return {"w1": w1, "w2": w2, "J": j, "zeta": zeta}

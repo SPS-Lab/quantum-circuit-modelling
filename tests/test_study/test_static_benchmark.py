@@ -259,12 +259,12 @@ def test_leakage_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.circuit_populations_11.shape == (21, 4)
     assert np.all(np.isfinite(out.circuit_leakage_11))
     assert np.all(out.circuit_leakage_11 >= -1e-12)
-    assert np.isfinite(out.summary["duffing_fraction_of_time_integrated_leakage_to_state_011_11"])
-    assert np.isfinite(out.summary["circuit_fraction_of_time_integrated_leakage_to_state_011_11"])
+    assert np.isfinite(out.summary["duffing_fraction_of_time_integrated_leakage_to_state_110_11"])
+    assert np.isfinite(out.summary["circuit_fraction_of_time_integrated_leakage_to_state_110_11"])
     assert len(out.duffing_leakage_destination_populations_11) > 0
     assert len(out.circuit_leakage_destination_populations_11) > 0
-    assert "|0,1,1>" in out.duffing_leakage_destination_populations_11
-    assert "|0,1,1>" in out.circuit_leakage_destination_populations_11
+    assert "|1,1,0>" in out.duffing_leakage_destination_populations_11
+    assert "|1,1,0>" in out.circuit_leakage_destination_populations_11
 
     duf_dest_matrix = np.column_stack([v for _, v in sorted(out.duffing_leakage_destination_populations_11.items())])
     cir_dest_matrix = np.column_stack([v for _, v in sorted(out.circuit_leakage_destination_populations_11.items())])

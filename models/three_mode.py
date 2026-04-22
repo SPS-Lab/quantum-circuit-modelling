@@ -93,9 +93,9 @@ def three_mode_hamiltonian(
 
 
 def computational_state_indices(nlevels_qubit: int, nlevels_coupler: int) -> np.ndarray:
-    """Flat indices of bare ``|n_1,0_c,n_2>`` with ``n_1,n_2 in {0,1}``."""
-    n_1_significance = int(nlevels_qubit) * int(nlevels_coupler)
-    return np.array([0, 1, n_1_significance + 0, n_1_significance + 1], dtype=int)
+    """Flat indices for computational states in ``|q2,0_c,q1>`` order with ``q1`` as LSB."""
+    q1_significance = int(nlevels_qubit) * int(nlevels_coupler)
+    return np.array([0, q1_significance + 0, 1, q1_significance + 1], dtype=int)
 
 
 

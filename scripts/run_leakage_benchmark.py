@@ -152,23 +152,23 @@ def main() -> None:
     print("Leakage benchmark summary:")
     for key, value in result.summary.items():
         print(f"  {key}: {value:.6e}")
-    duf_frac_011 = result.summary.get("duffing_fraction_of_time_integrated_leakage_to_state_011_11")
-    cir_frac_011 = result.summary.get("circuit_fraction_of_time_integrated_leakage_to_state_011_11")
-    if duf_frac_011 is None:
-        duf_frac_011 = _time_integrated_leakage_share(
-            state_population=result.duffing_state_011_11,
+    duf_frac_110 = result.summary.get("duffing_fraction_of_time_integrated_leakage_to_state_110_11")
+    cir_frac_110 = result.summary.get("circuit_fraction_of_time_integrated_leakage_to_state_110_11")
+    if duf_frac_110 is None:
+        duf_frac_110 = _time_integrated_leakage_share(
+            state_population=result.duffing_state_110_11,
             leakage=result.duffing_leakage_11,
             times_ns=result.times_ns,
         )
-    if cir_frac_011 is None:
-        cir_frac_011 = _time_integrated_leakage_share(
-            state_population=result.circuit_state_011_11,
+    if cir_frac_110 is None:
+        cir_frac_110 = _time_integrated_leakage_share(
+            state_population=result.circuit_state_110_11,
             leakage=result.circuit_leakage_11,
             times_ns=result.times_ns,
         )
     print(
-        "Time-integrated leakage share into |0,1,1>: "
-        f"duffing={duf_frac_011:.6e}, circuit={cir_frac_011:.6e}"
+        "Time-integrated leakage share into |1,1,0>: "
+        f"duffing={duf_frac_110:.6e}, circuit={cir_frac_110:.6e}"
     )
     print(
         "Tracked leakage destinations from |11>: "
