@@ -65,7 +65,7 @@ def plot_truncation_benchmark(
         ax_levels = fig.add_subplot(gs[1, 0], sharex=ax_j)
         ax_diff = fig.add_subplot(gs[1, 1], sharex=ax_j)
 
-        ax_j.plot(x, result.duffing_j, color="C0", marker="o", linewidth=1.8, **model_plot_kwargs("duffing"))
+        ax_j.plot(x, result.duffing_j, color="C0", linewidth=1.8, **model_plot_kwargs("duffing"))
         ax_j.axhline(
             result.circuit_j,
             color="C0",
@@ -75,7 +75,7 @@ def plot_truncation_benchmark(
         ax_j.set_ylabel(r"Exchange $J$")
         ax_j.grid(True, alpha=0.3)
 
-        ax_zeta.plot(x, result.duffing_zeta, color="C2", marker="o", linewidth=1.8, **model_plot_kwargs("duffing"))
+        ax_zeta.plot(x, result.duffing_zeta, color="C2", linewidth=1.8, **model_plot_kwargs("duffing"))
         ax_zeta.axhline(
             result.circuit_zeta,
             color="C2",

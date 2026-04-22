@@ -92,17 +92,74 @@ def _phase_population_rgb(
     return np.transpose(rgb, (1, 0, 2))
 
 
-def _set_y_ticks(ax: plt.Axes, labels: list[str], *, transition: bool, tick_font_size: float) -> None:
+def _set_center_shared_y_labels(
+    fig: plt.Figure,
+    ax_left: plt.Axes,
+    ax_right: plt.Axes,
+    labels: list[str],
+    *,
+    transition: bool,
+    tick_font_size: float,
+) -> None:
     n = len(labels)
     if n == 0:
-        ax.set_yticks([])
+        ax_left.set_yticks([])
+        ax_right.set_yticks([])
         return
-    ax.set_yticks(np.arange(n, dtype=int))
+
+    yticks = np.arange(n, dtype=int)
     if transition:
-        ax.set_yticklabels([_transition_label_math(lbl) for lbl in labels])
+        tick_labels = [_transition_label_math(lbl) for lbl in labels]
     else:
-        ax.set_yticklabels([_state_label_math(lbl) for lbl in labels])
-    ax.tick_params(axis="y", labelsize=tick_font_size, pad=2.5)
+        tick_labels = [_state_label_math(lbl) for lbl in labels]
+
+    tick_len = 3.5
+    tick_w = 0.8
+    ax_left.set_yticks(yticks)
+    ax_right.set_yticks(yticks)
+
+    # Keep only mirrored inner tick marks on the two data axes.
+    ax_left.yaxis.set_ticks_position("right")
+    ax_left.tick_params(
+        axis="y",
+        which="both",
+        left=False,
+        labelleft=False,
+        right=True,
+        labelright=False,
+        direction="inout",
+        length=tick_len,
+        width=tick_w,
+    )
+    ax_right.yaxis.set_ticks_position("left")
+    ax_right.tick_params(
+        axis="y",
+        which="both",
+        left=True,
+        labelleft=False,
+        right=False,
+        labelright=False,
+        direction="inout",
+        length=tick_len,
+        width=tick_w,
+    )
+
+    # Draw one shared label column at the geometric center of the gap.
+    bbox_left = ax_left.get_position()
+    bbox_right = ax_right.get_position()
+    x_center = 0.5 * (bbox_left.x1 + bbox_right.x0)
+    inv_fig = fig.transFigure.inverted()
+    for y, label in zip(yticks, tick_labels):
+        y_disp = ax_left.transData.transform((0.0, float(y)))[1]
+        y_fig = inv_fig.transform((0.0, y_disp))[1]
+        fig.text(
+            x_center,
+            y_fig,
+            label,
+            ha="center",
+            va="center",
+            fontsize=tick_font_size,
+        )
 
 
 def _overlay_flux_track(
@@ -154,7 +211,7 @@ def plot_leakage_flow_benchmark(
             1e-12,
         )
     )
-    tick_font_size = max(8.0, 0.42 * float(font_size))
+    tick_font_size = max(10.0, 0.75 * float(font_size))
 
     with benchmark_plot_style(font_size):
         transition_cmap = mcolors.LinearSegmentedColormap.from_list(
@@ -168,23 +225,25 @@ def plot_leakage_flow_benchmark(
         )
 
         fig = plt.figure(figsize=(13.5, 10.2))
-        gs = fig.add_gridspec(
+        outer_gs = fig.add_gridspec(
             2,
-            3,
-            width_ratios=(1.0, 1.0, 0.08),
+            2,
+            width_ratios=(1.0, 0.08),
             height_ratios=(1.0, 1.0),
             hspace=0.28,
-            wspace=0.30,
+            wspace=0.12,
         )
+        main_gs = outer_gs[:, 0].subgridspec(2, 2, hspace=0.28, wspace=0.42)
 
-        ax_pop_duf = fig.add_subplot(gs[0, 0])
-        ax_pop_cir = fig.add_subplot(gs[0, 1], sharex=ax_pop_duf)
-        ax_tr_duf = fig.add_subplot(gs[1, 0], sharex=ax_pop_duf)
-        ax_tr_cir = fig.add_subplot(gs[1, 1], sharex=ax_pop_duf)
+        ax_pop_duf = fig.add_subplot(main_gs[0, 0])
+        ax_pop_cir = fig.add_subplot(main_gs[0, 1], sharex=ax_pop_duf)
+        ax_tr_duf = fig.add_subplot(main_gs[1, 0], sharex=ax_pop_duf)
+        ax_tr_cir = fig.add_subplot(main_gs[1, 1], sharex=ax_pop_duf)
 
-        cbar_grid = gs[:, 2].subgridspec(2, 1, hspace=0.45, height_ratios=(1.0, 1.0))
+        cbar_grid = outer_gs[:, 1].subgridspec(2, 1, hspace=0.45, height_ratios=(1.0, 1.0))
         ax_cbar_phase = fig.add_subplot(cbar_grid[0, 0])
         ax_cbar_tr = fig.add_subplot(cbar_grid[1, 0])
+        fig.subplots_adjust(left=0.01, right=0.99, bottom=0.15, top=0.85)
 
         if pop_rgb_duf.size > 0:
             ax_pop_duf.imshow(
@@ -195,10 +254,8 @@ def plot_leakage_flow_benchmark(
                 extent=(float(t[0]), float(t[-1]), -0.5, pop_rgb_duf.shape[0] - 0.5),
                 zorder=2,
             )
-            _set_y_ticks(ax_pop_duf, pop_labels, transition=False, tick_font_size=tick_font_size)
         else:
             ax_pop_duf.text(0.5, 0.5, "No states selected", ha="center", va="center", transform=ax_pop_duf.transAxes)
-            ax_pop_duf.set_yticks([])
 
         if pop_rgb_cir.size > 0:
             ax_pop_cir.imshow(
@@ -209,10 +266,17 @@ def plot_leakage_flow_benchmark(
                 extent=(float(t[0]), float(t[-1]), -0.5, pop_rgb_cir.shape[0] - 0.5),
                 zorder=2,
             )
-            _set_y_ticks(ax_pop_cir, pop_labels, transition=False, tick_font_size=tick_font_size)
         else:
             ax_pop_cir.text(0.5, 0.5, "No states selected", ha="center", va="center", transform=ax_pop_cir.transAxes)
-            ax_pop_cir.set_yticks([])
+
+        _set_center_shared_y_labels(
+            fig,
+            ax_pop_duf,
+            ax_pop_cir,
+            pop_labels,
+            transition=False,
+            tick_font_size=tick_font_size,
+        )
 
         im_tr = ax_tr_duf.imshow(
             tr_duf.T if tr_duf.size > 0 else np.zeros((1, t.size), dtype=float),
@@ -225,7 +289,6 @@ def plot_leakage_flow_benchmark(
             cmap=transition_cmap,
             zorder=2,
         )
-        _set_y_ticks(ax_tr_duf, tr_labels, transition=True, tick_font_size=tick_font_size)
 
         ax_tr_cir.imshow(
             tr_cir.T if tr_cir.size > 0 else np.zeros((1, t.size), dtype=float),
@@ -238,7 +301,14 @@ def plot_leakage_flow_benchmark(
             cmap=transition_cmap,
             zorder=2,
         )
-        _set_y_ticks(ax_tr_cir, tr_labels, transition=True, tick_font_size=tick_font_size)
+        _set_center_shared_y_labels(
+            fig,
+            ax_tr_duf,
+            ax_tr_cir,
+            tr_labels,
+            transition=True,
+            tick_font_size=tick_font_size,
+        )
 
         _overlay_flux_track(
             ax_pop_duf,
@@ -294,8 +364,6 @@ def plot_leakage_flow_benchmark(
 
         cbar_tr = fig.colorbar(im_tr, cax=ax_cbar_tr)
         cbar_tr.set_label("Signed current (1/ns)")
-
-        fig.subplots_adjust(left=0.20, right=0.95, bottom=0.08, top=0.92)
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(outfile, format="pdf", bbox_inches="tight", pad_inches=0.04)
