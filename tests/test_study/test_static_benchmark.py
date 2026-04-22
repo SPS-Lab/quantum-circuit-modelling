@@ -43,7 +43,7 @@ def _write_small_study_params(
     sweep_target: str = "q1",
     duffing_calibration_mode: str = "analytic-per-flux",
 ) -> Path:
-    src = _ROOT / "params" / "static_benchmark_params.json"
+    src = _ROOT / "params" / "benchmark_params.json"
     payload = json.loads(src.read_text(encoding="utf-8"))
     sb = payload["static_benchmark"]
     sb["flux_sweep"]["num_points"] = 9
@@ -67,7 +67,7 @@ def _write_small_study_params(
 def test_load_study_config() -> None:
     cfg = load_study_config(
         _ROOT / "params" / "system_params.json",
-        _ROOT / "params" / "static_benchmark_params.json",
+        _ROOT / "params" / "benchmark_params.json",
     )
     assert cfg.system.q1.EJmax > 0.0
     assert cfg.static_benchmark.flux_sweep.num_points > 2

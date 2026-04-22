@@ -29,7 +29,7 @@ def _write_small_system_params(tmp_path: Path) -> Path:
 
 
 def _write_small_study_params(tmp_path: Path, *, selection_mode: str = "continuous") -> Path:
-    payload = json.loads((_ROOT / "params" / "static_benchmark_params.json").read_text(encoding="utf-8"))
+    payload = json.loads((_ROOT / "params" / "benchmark_params.json").read_text(encoding="utf-8"))
     sb = payload["static_benchmark"]
     sb["flux_sweep"]["num_points"] = 17
     sb["dressed_subspace"]["selection_mode"] = selection_mode
@@ -83,7 +83,7 @@ def test_selection_mode_round_trips_from_params(tmp_path: Path) -> None:
 
 def test_invalid_selection_mode_from_params_raises(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
-    study_payload = json.loads((_ROOT / "params" / "static_benchmark_params.json").read_text(encoding="utf-8"))
+    study_payload = json.loads((_ROOT / "params" / "benchmark_params.json").read_text(encoding="utf-8"))
     study_payload["static_benchmark"]["dressed_subspace"]["selection_mode"] = "not-a-mode"
     study_path = tmp_path / "bad_study.json"
     study_path.write_text(json.dumps(study_payload), encoding="utf-8")

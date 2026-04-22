@@ -16,7 +16,7 @@ from comparison.regime_map import compare_model1_model2_against_scqubits
 def main() -> None:
     out = compare_model1_model2_against_scqubits(
         system_params_path=_ROOT / "params" / "system_params.json",
-        study_params_path=_ROOT / "params" / "static_benchmark_params.json",
+        study_params_path=_ROOT / "params" / "benchmark_params.json",
     )
     print("Migrated legacy test1 summary:")
     for key, value in out["summary"].items():

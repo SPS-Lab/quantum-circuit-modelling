@@ -99,7 +99,7 @@ def main() -> None:
     repo_root = _REPO_ROOT
     config = load_study_config(
         repo_root / "params" / "system_params.json",
-        repo_root / "params" / "static_benchmark_params.json",
+        repo_root / "params" / "benchmark_params.json",
     )
 
     s2s_cfg = config.state_to_state_leakage_benchmark

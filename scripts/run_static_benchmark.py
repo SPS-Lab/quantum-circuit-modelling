@@ -46,7 +46,7 @@ def main() -> None:
     args = _parse_args()
     repo_root = _REPO_ROOT
     system_params_path = repo_root / "params" / "system_params.json"
-    study_params_path = repo_root / "params" / "static_benchmark_params.json"
+    study_params_path = repo_root / "params" / "benchmark_params.json"
 
     config = load_study_config(system_params_path, study_params_path)
     figure_path = repo_root / config.static_benchmark.outputs.figure

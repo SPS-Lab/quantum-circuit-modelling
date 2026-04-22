@@ -28,7 +28,7 @@ def _write_small_system_params(tmp_path: Path) -> Path:
 
 
 def _write_small_study_params(tmp_path: Path) -> Path:
-    payload = json.loads((_ROOT / "params" / "static_benchmark_params.json").read_text(encoding="utf-8"))
+    payload = json.loads((_ROOT / "params" / "benchmark_params.json").read_text(encoding="utf-8"))
     sb = payload["static_benchmark"]
     sb["flux_sweep"]["num_points"] = 9
     sb["dressed_subspace"]["n_candidate_states"] = 12

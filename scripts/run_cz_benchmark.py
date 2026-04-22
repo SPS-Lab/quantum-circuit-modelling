@@ -47,7 +47,7 @@ def main() -> None:
     repo_root = _REPO_ROOT
     config = load_study_config(
         repo_root / "params" / "system_params.json",
-        repo_root / "params" / "static_benchmark_params.json",
+        repo_root / "params" / "benchmark_params.json",
     )
     cz_cfg = config.cz_benchmark
     target_total_time_ns = float(cz_cfg.total_time_ns)

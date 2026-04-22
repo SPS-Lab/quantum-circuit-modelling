@@ -48,7 +48,7 @@ python scripts/run_static_benchmark.py --plot-only
 This reads:
 
 - `params/system_params.json` (device/system parameters)
-- `params/static_benchmark_params.json` (benchmark/model/plot settings)
+- `params/benchmark_params.json` (benchmark/model/plot settings)
 
 The Duffing model supports calibration modes via
 `static_benchmark.duffing_model.calibration_mode`:
@@ -74,7 +74,7 @@ The CZ benchmark:
   - three computational heatmaps (effective, Duffing, circuit) where brightness is population and hue is relative phase.
 - writes CZ results to an `.h5` file next to that figure.
 
-Timing/scan settings are read from `params/static_benchmark_params.json` under:
+Timing/scan settings are read from `params/benchmark_params.json` under:
 - `cz_benchmark.total_time_ns`
 - `cz_benchmark.ramp_time_ns`
 - `cz_benchmark.dt_ns`
@@ -103,7 +103,7 @@ Transition channels follow a fixed canonical ordering rule:
 `(q2 + c + q1, q2, c, q1)` (excitation-first then lexicographic), and each row is directed `|a> -> |b>` with that ordering.
 Rows are aligned between Duffing and circuit by taking the union of states/transitions selected by each model.
 
-Timing/selection settings are read from `params/static_benchmark_params.json` under:
+Timing/selection settings are read from `params/benchmark_params.json` under:
 - `leakage_flow_benchmark.total_time_ns`
 - `leakage_flow_benchmark.ramp_time_ns`
 - `leakage_flow_benchmark.dt_ns`
@@ -125,7 +125,7 @@ python scripts/run_truncation_benchmark.py
 ```
 
 This reads truncation settings from:
-- `params/static_benchmark_params.json` under `truncation_benchmark`
+- `params/benchmark_params.json` under `truncation_benchmark`
 
 This benchmark:
 - fixes one flux point,
