@@ -75,10 +75,10 @@ The CZ benchmark:
 - writes CZ results to an `.h5` file next to that figure.
 
 Timing/scan settings are read from `params/benchmark_params.json` under:
-- `cz_benchmark.total_time_ns`
 - `cz_benchmark.ramp_time_ns`
 - `cz_benchmark.dt_ns`
 - `cz_benchmark.enable_hold_time_scan`
+- `cz_benchmark.total_time_ns` or `cz_benchmark.hold_time_ns` (fixed-hold mode only; do not set either when scan is enabled)
 - `cz_benchmark.scan_dt_ns`
 - `cz_benchmark.scan_max_hold_ns`
 - `cz_benchmark.scan_leakage_penalty`

@@ -12,9 +12,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from comparison.cz import run_cz_benchmark
-from comparison.leakage import run_leakage_benchmark
 from comparison.leakage_flow import run_leakage_flow_benchmark
-from comparison.state_to_state_leakage import run_state_to_state_leakage_benchmark
 from comparison.static import run_static_benchmark
 from models.dressed import extract_model1_parameters_from_4x4_stack
 from plotting.cz import plot_cz_benchmark
@@ -79,7 +77,8 @@ def test_load_study_config() -> None:
     assert cfg.truncation_benchmark.lowest_excited_levels_to_plot >= 1
     assert cfg.truncation_benchmark.circuit_reference_ncut > 0
     assert cfg.truncation_benchmark.duffing_calibration_mode in {"fixed", "analytic-per-flux", "per-flux"}
-    assert cfg.cz_benchmark.total_time_ns > 0.0
+    assert cfg.cz_benchmark.total_time_ns is None or cfg.cz_benchmark.total_time_ns > 0.0
+    assert cfg.cz_benchmark.hold_time_ns is None or cfg.cz_benchmark.hold_time_ns >= 0.0
     assert cfg.cz_benchmark.ramp_time_ns > 0.0
     assert cfg.cz_benchmark.dt_ns > 0.0
     assert cfg.cz_benchmark.scan_dt_ns > 0.0

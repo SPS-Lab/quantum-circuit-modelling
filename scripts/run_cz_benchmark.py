@@ -51,10 +51,9 @@ def main() -> None:
         repo_root / "params" / "benchmark_params.json",
     )
     cz_cfg = config.cz_benchmark
-    target_total_time_ns = float(cz_cfg.total_time_ns)
     ramp_time_ns = float(cz_cfg.ramp_time_ns)
     dt_ns = float(cz_cfg.dt_ns)
-    hold_time_ns = target_total_time_ns - 2.0 * ramp_time_ns
+    hold_time_ns = None if cz_cfg.hold_time_ns is None else float(cz_cfg.hold_time_ns)
     enable_hold_time_scan = bool(cz_cfg.enable_hold_time_scan)
 
     figure_path = repo_root / cz_cfg.outputs.figure
@@ -74,7 +73,7 @@ def main() -> None:
         result = run_cz_benchmark(
             config,
             ramp_time_ns=ramp_time_ns,
-            hold_time_ns=None if enable_hold_time_scan else hold_time_ns,
+            hold_time_ns=hold_time_ns,
             dt_ns=dt_ns,
             enable_hold_time_scan=enable_hold_time_scan,
             scan_dt_ns=float(cz_cfg.scan_dt_ns),

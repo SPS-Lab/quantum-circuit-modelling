@@ -388,6 +388,12 @@ def run_cz_benchmark(
     scan_dt_ns = float(scan_dt_ns)
     scan_max_hold_ns = float(max(0.0, scan_max_hold_ns))
     scan_leakage_penalty = float(max(0.0, scan_leakage_penalty))
+    if hold_time_ns is not None and enable_hold_time_scan:
+        raise ValueError(
+            "Ambiguous CZ hold-time configuration: both hold_time_ns and "
+            "enable_hold_time_scan=True were provided. Set hold_time_ns=None "
+            "to scan, or disable scan to use fixed hold_time_ns."
+        )
 
     idx_effective = np.array([0, 1, 2, 3], dtype=int)
     idx_duffing = computational_state_indices(

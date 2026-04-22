@@ -153,7 +153,8 @@ class TruncationBenchmarkConfig:
 
 @dataclass(frozen=True)
 class CzBenchmarkConfig:
-    total_time_ns: float
+    total_time_ns: float | None
+    hold_time_ns: float | None
     ramp_time_ns: float
     dt_ns: float
     enable_hold_time_scan: bool
@@ -501,16 +502,15 @@ def _parse_truncation_benchmark(study_payload: dict[str, Any]) -> TruncationBenc
 def _parse_cz_benchmark(study_payload: dict[str, Any]) -> CzBenchmarkConfig:
     cz = _require_dict(study_payload, "cz_benchmark", "study")
     outputs = _require_dict(cz, "outputs", "study.cz_benchmark")
-    total_time_ns = _require_float(cz, "total_time_ns", "study.cz_benchmark")
     ramp_time_ns = _require_float(cz, "ramp_time_ns", "study.cz_benchmark")
     dt_ns = _require_float(cz, "dt_ns", "study.cz_benchmark")
     enable_hold_time_scan = _require_bool(cz, "enable_hold_time_scan", "study.cz_benchmark")
     scan_dt_ns = _require_float(cz, "scan_dt_ns", "study.cz_benchmark")
     scan_max_hold_ns = _require_float(cz, "scan_max_hold_ns", "study.cz_benchmark")
     scan_leakage_penalty = _require_float(cz, "scan_leakage_penalty", "study.cz_benchmark")
+    has_total_time = "total_time_ns" in cz
+    has_hold_time = "hold_time_ns" in cz
 
-    if total_time_ns <= 0.0:
-        raise ValueError("study.cz_benchmark.total_time_ns must be positive")
     if ramp_time_ns <= 0.0:
         raise ValueError("study.cz_benchmark.ramp_time_ns must be positive")
     if dt_ns <= 0.0:
@@ -521,14 +521,45 @@ def _parse_cz_benchmark(study_payload: dict[str, Any]) -> CzBenchmarkConfig:
         raise ValueError("study.cz_benchmark.scan_max_hold_ns must be >= 0")
     if scan_leakage_penalty < 0.0:
         raise ValueError("study.cz_benchmark.scan_leakage_penalty must be >= 0")
-    if total_time_ns < 2.0 * ramp_time_ns:
+
+    total_time_ns: float | None = None
+    hold_time_ns: float | None = None
+    if has_total_time:
+        total_time_ns = _require_float(cz, "total_time_ns", "study.cz_benchmark")
+        if total_time_ns <= 0.0:
+            raise ValueError("study.cz_benchmark.total_time_ns must be positive")
+        if total_time_ns < 2.0 * ramp_time_ns:
+            raise ValueError(
+                "study.cz_benchmark.total_time_ns must be >= 2 * ramp_time_ns "
+                "for a ramp-hold-ramp pulse"
+            )
+    if has_hold_time:
+        hold_time_ns = _require_float(cz, "hold_time_ns", "study.cz_benchmark")
+        if hold_time_ns < 0.0:
+            raise ValueError("study.cz_benchmark.hold_time_ns must be >= 0")
+
+    if has_total_time and has_hold_time:
         raise ValueError(
-            "study.cz_benchmark.total_time_ns must be >= 2 * ramp_time_ns "
-            "for a ramp-hold-ramp pulse"
+            "Ambiguous study.cz_benchmark configuration: provide only one of "
+            "total_time_ns or hold_time_ns."
+        )
+    if enable_hold_time_scan and (has_total_time or has_hold_time):
+        raise ValueError(
+            "Ambiguous study.cz_benchmark configuration: enable_hold_time_scan=true "
+            "cannot be combined with fixed-hold settings (total_time_ns or hold_time_ns)."
+        )
+    if (not enable_hold_time_scan) and (not has_total_time) and (not has_hold_time):
+        raise ValueError(
+            "study.cz_benchmark requires a fixed hold setting when "
+            "enable_hold_time_scan=false: provide total_time_ns or hold_time_ns."
         )
 
+    if (not enable_hold_time_scan) and (hold_time_ns is None) and (total_time_ns is not None):
+        hold_time_ns = float(total_time_ns - 2.0 * ramp_time_ns)
+
     return CzBenchmarkConfig(
-        total_time_ns=float(total_time_ns),
+        total_time_ns=None if total_time_ns is None else float(total_time_ns),
+        hold_time_ns=None if hold_time_ns is None else float(hold_time_ns),
         ramp_time_ns=float(ramp_time_ns),
         dt_ns=float(dt_ns),
         enable_hold_time_scan=bool(enable_hold_time_scan),

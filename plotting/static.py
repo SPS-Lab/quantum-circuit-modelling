@@ -72,7 +72,7 @@ def plot_static_benchmark(
                 Line2D([0], [0], color="C0", linewidth=1.8, label=r"$E_{1}$"),
                 Line2D([0], [0], color="C1", linewidth=1.8, label=r"$E_{2}$"),
                 Line2D([0], [0], color="C2", linewidth=1.8, label=r"$E_{3}$"),
-                Line2D([0], [0], color="0.55", linewidth=1.1, alpha=0.4, label="lower levels"),
+                Line2D([0], [0], color="0.55", linewidth=1.1, alpha=0.4, label="other levels"),
             ],
             loc=STATIC_LEVEL_LEGEND_LOC,
             bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
