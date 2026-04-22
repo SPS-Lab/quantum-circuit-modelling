@@ -17,6 +17,7 @@ from benchmark_results_io import (
 )
 from comparison.static import StaticBenchmarkResult, run_static_benchmark
 from plotting.static import plot_static_benchmark
+from runtime_utils import run_main_with_timing
 from study_config import load_study_config
 
 
@@ -82,4 +83,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    run_main_with_timing(main)

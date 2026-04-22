@@ -17,6 +17,7 @@ from benchmark_results_io import (
 )
 from comparison.leakage_flow import LeakageFlowBenchmarkResult, run_leakage_flow_benchmark
 from plotting.leakage_flow import plot_leakage_flow_benchmark
+from runtime_utils import run_main_with_timing
 from study_config import load_study_config
 
 
@@ -104,4 +105,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    run_main_with_timing(main)
