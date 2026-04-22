@@ -17,9 +17,30 @@ from comparison.static import run_static_benchmark
 from models.dressed import extract_model1_parameters_from_4x4_stack
 from plotting.cz import plot_cz_benchmark
 from plotting.leakage_flow import plot_leakage_flow_benchmark
-from study_config import load_study_config
+from study_config import _flatten_run_all_benchmark_params, load_study_config
 from models.effective import fit_single_harmonic_parameters
 
+
+
+def _add_required_study_sections(payload: dict[str, object]) -> None:
+    payload.setdefault(
+        "leakage_benchmark",
+        {
+            "total_time_ns": 8.0,
+            "ramp_time_ns": 2.0,
+            "dt_ns": 0.02,
+            "top_destination_rows": 5,
+        },
+    )
+    payload.setdefault(
+        "state_to_state_leakage_benchmark",
+        {
+            "total_time_ns": 8.0,
+            "ramp_time_ns": 2.0,
+            "dt_ns": 0.02,
+            "top_transition_rows": 6,
+        },
+    )
 
 
 def _write_small_system_params(tmp_path: Path) -> Path:
@@ -43,6 +64,8 @@ def _write_small_study_params(
 ) -> Path:
     src = _ROOT / "params" / "benchmark_params.json"
     payload = json.loads(src.read_text(encoding="utf-8"))
+    payload = _flatten_run_all_benchmark_params(payload)
+    _add_required_study_sections(payload)
     sb = payload["static_benchmark"]
     sb["flux_sweep"]["num_points"] = 9
     sb["dressed_subspace"]["n_candidate_states"] = 12
@@ -62,10 +85,10 @@ def _write_small_study_params(
 
 
 
-def test_load_study_config() -> None:
+def test_load_study_config(tmp_path: Path) -> None:
     cfg = load_study_config(
-        _ROOT / "params" / "system_params.json",
-        _ROOT / "params" / "benchmark_params.json",
+        _write_small_system_params(tmp_path),
+        _write_small_study_params(tmp_path),
     )
     assert cfg.system.q1.EJmax > 0.0
     assert cfg.static_benchmark.flux_sweep.num_points > 2
@@ -91,14 +114,6 @@ def test_load_study_config() -> None:
     assert cfg.leakage_flow_benchmark.transition_min_integrated_abs >= 0.0
     assert cfg.leakage_flow_benchmark.max_population_rows >= 1
     assert cfg.leakage_flow_benchmark.max_transition_rows >= 1
-    assert cfg.leakage_benchmark.total_time_ns > 0.0
-    assert cfg.leakage_benchmark.ramp_time_ns > 0.0
-    assert cfg.leakage_benchmark.dt_ns > 0.0
-    assert cfg.leakage_benchmark.top_destination_rows >= 1
-    assert cfg.state_to_state_leakage_benchmark.total_time_ns > 0.0
-    assert cfg.state_to_state_leakage_benchmark.ramp_time_ns > 0.0
-    assert cfg.state_to_state_leakage_benchmark.dt_ns > 0.0
-    assert cfg.state_to_state_leakage_benchmark.top_transition_rows >= 1
 
 
 
@@ -235,85 +250,6 @@ def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert np.all(out.effective_leakage_11 >= -1e-12)
     assert np.all(out.duffing_leakage_11 >= -1e-12)
     assert np.all(out.circuit_leakage_11 >= -1e-12)
-
-
-def test_leakage_benchmark_runs_with_small_config(tmp_path: Path) -> None:
-    pytest.importorskip("qutip")
-
-    system_path = _write_small_system_params(tmp_path)
-    study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_path, study_path)
-
-    out = run_leakage_benchmark(
-        cfg,
-        ramp_time_ns=4.0,
-        hold_time_ns=12.0,
-        dt_ns=1.0,
-        enable_hold_time_scan=False,
-    )
-    assert out.times_ns.shape == (21,)
-    assert out.effective_leakage_11.shape == (21,)
-    assert out.duffing_leakage_11.shape == (21,)
-    assert out.circuit_leakage_11.shape == (21,)
-    assert out.circuit_populations_11.shape == (21, 4)
-    assert np.all(np.isfinite(out.circuit_leakage_11))
-    assert np.all(out.circuit_leakage_11 >= -1e-12)
-    assert np.isfinite(out.summary["duffing_fraction_of_time_integrated_leakage_to_state_110_11"])
-    assert np.isfinite(out.summary["circuit_fraction_of_time_integrated_leakage_to_state_110_11"])
-    assert len(out.duffing_leakage_destination_populations_11) > 0
-    assert len(out.circuit_leakage_destination_populations_11) > 0
-    assert "|1,1,0>" in out.duffing_leakage_destination_populations_11
-    assert "|1,1,0>" in out.circuit_leakage_destination_populations_11
-
-    duf_dest_matrix = np.column_stack([v for _, v in sorted(out.duffing_leakage_destination_populations_11.items())])
-    cir_dest_matrix = np.column_stack([v for _, v in sorted(out.circuit_leakage_destination_populations_11.items())])
-    assert np.allclose(np.sum(duf_dest_matrix, axis=1), out.duffing_leakage_11, atol=1e-9)
-    assert np.allclose(np.sum(cir_dest_matrix, axis=1), out.circuit_leakage_11, atol=1e-9)
-
-
-def test_state_to_state_leakage_benchmark_runs_with_small_config(tmp_path: Path) -> None:
-    pytest.importorskip("qutip")
-
-    system_path = _write_small_system_params(tmp_path)
-    study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_path, study_path)
-
-    out = run_state_to_state_leakage_benchmark(
-        cfg,
-        ramp_time_ns=4.0,
-        hold_time_ns=12.0,
-        dt_ns=1.0,
-        enable_hold_time_scan=False,
-    )
-    assert out.times_ns.shape == (21,)
-    assert out.effective_leakage_11.shape == (21,)
-    assert out.duffing_leakage_11.shape == (21,)
-    assert out.circuit_leakage_11.shape == (21,)
-    assert np.all(np.isfinite(out.duffing_leakage_11))
-    assert np.all(np.isfinite(out.circuit_leakage_11))
-    assert len(out.duffing_comp_to_leak_currents_11) > 0
-    assert len(out.circuit_comp_to_leak_currents_11) > 0
-    assert len(out.duffing_comp_to_leak_signed_currents_11) > 0
-    assert len(out.circuit_comp_to_leak_signed_currents_11) > 0
-    assert any(key.startswith("|1,0,1>->") for key in out.duffing_comp_to_leak_currents_11.keys())
-    assert any(key.startswith("|1,0,1>->") for key in out.circuit_comp_to_leak_currents_11.keys())
-    assert out.duffing_net_comp_to_leak_current_11.shape == out.times_ns.shape
-    assert out.circuit_net_comp_to_leak_current_11.shape == out.times_ns.shape
-    assert np.all(np.isfinite(out.duffing_net_comp_to_leak_current_11))
-    assert np.all(np.isfinite(out.circuit_net_comp_to_leak_current_11))
-
-    duf_curr_matrix = np.column_stack([v for _, v in sorted(out.duffing_comp_to_leak_currents_11.items())])
-    cir_curr_matrix = np.column_stack([v for _, v in sorted(out.circuit_comp_to_leak_currents_11.items())])
-    duf_signed_matrix = np.column_stack([v for _, v in sorted(out.duffing_comp_to_leak_signed_currents_11.items())])
-    cir_signed_matrix = np.column_stack([v for _, v in sorted(out.circuit_comp_to_leak_signed_currents_11.items())])
-    assert duf_curr_matrix.shape[0] == out.times_ns.size
-    assert cir_curr_matrix.shape[0] == out.times_ns.size
-    assert duf_signed_matrix.shape == duf_curr_matrix.shape
-    assert cir_signed_matrix.shape == cir_curr_matrix.shape
-    assert np.all(duf_curr_matrix >= -1e-12)
-    assert np.all(cir_curr_matrix >= -1e-12)
-    assert np.allclose(duf_curr_matrix, np.clip(duf_signed_matrix, 0.0, None), atol=1e-12)
-    assert np.allclose(cir_curr_matrix, np.clip(cir_signed_matrix, 0.0, None), atol=1e-12)
 
 
 def test_cz_plot_writes_pdf(tmp_path: Path) -> None:

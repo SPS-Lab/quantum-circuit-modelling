@@ -129,6 +129,7 @@ def run_truncation_benchmark(
     fixed_flux: float | None = None,
     duffing_truncated_dim: int | None = None,
     lowest_excited_levels_to_report: int | None = None,
+    reported_excited_levels: list[int] | np.ndarray | None = None,
     circuit_reference_ncut: int = 120,
     duffing_calibration_mode: str = "per-flux",
 ) -> TruncationBenchmarkResult:
@@ -155,13 +156,21 @@ def run_truncation_benchmark(
     )
     if trunc_dim_cfg < 3:
         raise ValueError("duffing_truncated_dim must be >= 3")
-    n_report_cfg = int(
-        config.truncation_benchmark.lowest_excited_levels_to_plot
-        if lowest_excited_levels_to_report is None
-        else lowest_excited_levels_to_report
-    )
-    if n_report_cfg < 1:
-        raise ValueError("lowest_excited_levels_to_report must be >= 1")
+    if reported_excited_levels is None:
+        n_report_cfg = int(
+            config.truncation_benchmark.lowest_excited_levels_to_plot
+            if lowest_excited_levels_to_report is None
+            else lowest_excited_levels_to_report
+        )
+        if n_report_cfg < 1:
+            raise ValueError("lowest_excited_levels_to_report must be >= 1")
+    else:
+        raw_levels = np.asarray(reported_excited_levels, dtype=int).ravel()
+        if raw_levels.size == 0:
+            raise ValueError("reported_excited_levels must be non-empty")
+        if np.any(raw_levels < 1):
+            raise ValueError("reported_excited_levels must contain positive integers")
+        ordered_unique_levels = list(dict.fromkeys(int(level) for level in raw_levels))
 
     j_vals = np.empty(ncuts.shape[0], dtype=float)
     zeta_vals = np.empty(ncuts.shape[0], dtype=float)
@@ -192,15 +201,23 @@ def run_truncation_benchmark(
     circuit_low = np.asarray(rel_levels_circuit[:n_low], dtype=float)
     max_ncut = int(np.max(ncuts))
     max_ncut_idx = int(np.flatnonzero(ncuts == max_ncut)[-1])
-    n_report = int(min(n_report_cfg, max(0, n_low - 1)))
-    reported_levels = np.arange(1, 1 + n_report, dtype=int)
+    max_excited_available = int(max(0, n_low - 1))
+    if reported_excited_levels is None:
+        n_report = int(min(n_report_cfg, max_excited_available))
+        reported_levels = np.arange(1, 1 + n_report, dtype=int)
+    else:
+        reported_levels = np.asarray(
+            [level for level in ordered_unique_levels if level <= max_excited_available],
+            dtype=int,
+        )
+        n_report = int(reported_levels.size)
     max_ncut_diff = (
-        np.asarray(duffing_low[max_ncut_idx, 1 : 1 + n_report] - circuit_low[1 : 1 + n_report], dtype=float)
+        np.asarray(duffing_low[max_ncut_idx, reported_levels] - circuit_low[reported_levels], dtype=float)
         if n_report > 0
         else np.zeros(0, dtype=float)
     )
     if n_report > 0:
-        circuit_ref_levels = np.asarray(circuit_low[1 : 1 + n_report], dtype=float)
+        circuit_ref_levels = np.asarray(circuit_low[reported_levels], dtype=float)
         with np.errstate(divide="ignore", invalid="ignore"):
             max_ncut_diff_percent = 100.0 * (max_ncut_diff / circuit_ref_levels)
         # If a circuit reference level is effectively zero, percent is undefined.

@@ -13,8 +13,29 @@ if str(_ROOT) not in sys.path:
 
 from comparison.truncation import run_truncation_benchmark
 from plotting.truncation import plot_truncation_benchmark
-from study_config import load_study_config
+from study_config import _flatten_run_all_benchmark_params, load_study_config
 
+
+
+def _add_required_study_sections(payload: dict[str, object]) -> None:
+    payload.setdefault(
+        "leakage_benchmark",
+        {
+            "total_time_ns": 8.0,
+            "ramp_time_ns": 2.0,
+            "dt_ns": 0.02,
+            "top_destination_rows": 5,
+        },
+    )
+    payload.setdefault(
+        "state_to_state_leakage_benchmark",
+        {
+            "total_time_ns": 8.0,
+            "ramp_time_ns": 2.0,
+            "dt_ns": 0.02,
+            "top_transition_rows": 6,
+        },
+    )
 
 
 def _write_small_system_params(tmp_path: Path) -> Path:
@@ -29,6 +50,8 @@ def _write_small_system_params(tmp_path: Path) -> Path:
 
 def _write_small_study_params(tmp_path: Path) -> Path:
     payload = json.loads((_ROOT / "params" / "benchmark_params.json").read_text(encoding="utf-8"))
+    payload = _flatten_run_all_benchmark_params(payload)
+    _add_required_study_sections(payload)
     sb = payload["static_benchmark"]
     sb["flux_sweep"]["num_points"] = 9
     sb["dressed_subspace"]["n_candidate_states"] = 12

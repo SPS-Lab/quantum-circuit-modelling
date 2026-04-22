@@ -24,6 +24,8 @@ from comparison.truncation import TruncationBenchmarkResult, run_truncation_benc
 from plotting.truncation import plot_truncation_benchmark
 from study_config import load_study_config
 
+_NUMERICAL_ERROR_LEVELS_TO_REPORT = (5, 6, 7, 8)
+
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -79,6 +81,7 @@ def main() -> None:
             fixed_flux=float(trunc_cfg.fixed_flux),
             duffing_truncated_dim=int(trunc_cfg.duffing_truncated_dim),
             lowest_excited_levels_to_report=int(trunc_cfg.lowest_excited_levels_to_plot),
+            reported_excited_levels=list(_NUMERICAL_ERROR_LEVELS_TO_REPORT),
             circuit_reference_ncut=int(trunc_cfg.circuit_reference_ncut),
             duffing_calibration_mode=str(trunc_cfg.duffing_calibration_mode),
         )
@@ -119,9 +122,12 @@ def main() -> None:
         f"ncut={result.circuit_reference_ncut}, "
         f"J={result.circuit_j:.6e}, zeta={result.circuit_zeta:.6e}"
     )
+    levels_reported_text = ", ".join(f"E{int(level)}" for level in result.max_ncut_reported_excited_levels)
+    if not levels_reported_text:
+        levels_reported_text = "none available"
     reporter.line(
         "Duffing - circuit at max Duffing ncut "
-        f"(ncut={result.max_duffing_ncut}) for reported excited levels (GHz):"
+        f"(ncut={result.max_duffing_ncut}) for excited levels {levels_reported_text} (GHz):"
     )
     for level, diff, rel_pct in zip(
         result.max_ncut_reported_excited_levels,

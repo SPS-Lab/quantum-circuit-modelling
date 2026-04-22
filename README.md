@@ -138,7 +138,7 @@ This benchmark:
 - and shows the lowest relative energy levels vs `ncut` (Duffing curves with circuit horizontal references).
   (computed once at large circuit `ncut`).
 - and prints `Duffing - circuit` numerically at the maximum Duffing `ncut`
-  for those reported excited levels, including relative difference as percent
+  for excited levels `E5`-`E8`, including relative difference as percent
   of circuit energy.
 - writes truncation results to an `.h5` file next to the configured truncation figure.
 
