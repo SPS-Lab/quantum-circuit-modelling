@@ -2,8 +2,6 @@
 
 from plotting.cz import plot_cz_benchmark
 from plotting.leakage_flow import plot_leakage_flow_benchmark
-from plotting.leakage import plot_leakage_benchmark
-from plotting.state_to_state_leakage import plot_state_to_state_leakage_benchmark
 from plotting.static import plot_static_benchmark
 from plotting.style import DEFAULT_PLOT_FONT_SIZE
 from plotting.truncation import plot_truncation_benchmark

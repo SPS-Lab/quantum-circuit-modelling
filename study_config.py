@@ -211,6 +211,98 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _merge_external_study_sections(
+    study_payload: dict[str, Any],
+    *,
+    study_params_path: Path,
+) -> dict[str, Any]:
+    moved = study_payload.get("moved_out_of_run_all")
+    if not isinstance(moved, dict):
+        return study_payload
+
+    file_value = moved.get("file")
+    if not isinstance(file_value, str) or not file_value.strip():
+        return study_payload
+
+    external_path = Path(file_value.strip())
+    if not external_path.is_absolute():
+        external_path = (study_params_path.parent / external_path).resolve()
+    if not external_path.exists():
+        return study_payload
+
+    external_payload = _load_json(external_path)
+    sections = moved.get("sections")
+    if isinstance(sections, list):
+        section_names = [str(name) for name in sections]
+    else:
+        section_names = [str(name) for name in external_payload.keys()]
+
+    merged = dict(study_payload)
+    for name in section_names:
+        if name in merged:
+            continue
+        if name in external_payload:
+            merged[name] = external_payload[name]
+    return merged
+
+
+def _deep_merge_dict(base: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
+    merged: dict[str, Any] = dict(base)
+    for key, value in update.items():
+        base_value = merged.get(key)
+        if isinstance(base_value, dict) and isinstance(value, dict):
+            merged[key] = _deep_merge_dict(base_value, value)
+        else:
+            merged[key] = value
+    return merged
+
+
+_RUN_ALL_BENCHMARK_CATEGORY_ORDER: tuple[str, ...] = (
+    "shared_static_cz_leakage_flow_truncation",
+    "shared_static_and_cz",
+    "shared_static_cz_leakage_flow",
+    "static_only",
+    "truncation_only",
+    "cz_only",
+    "leakage_flow_only",
+)
+
+
+def _flatten_run_all_benchmark_params(payload: dict[str, Any]) -> dict[str, Any]:
+    grouped = payload.get("run_all_benchmark_params")
+    if grouped is None:
+        return payload
+    if not isinstance(grouped, dict):
+        raise TypeError("study.run_all_benchmark_params must be an object")
+
+    normalized = {k: v for k, v in payload.items() if k != "run_all_benchmark_params"}
+    for category in _RUN_ALL_BENCHMARK_CATEGORY_ORDER:
+        category_payload = grouped.get(category)
+        if category_payload is None:
+            continue
+        if not isinstance(category_payload, dict):
+            raise TypeError(f"study.run_all_benchmark_params.{category} must be an object")
+        normalized = _deep_merge_dict(normalized, category_payload)
+
+    # Also merge any additional categories not in the canonical order.
+    for category, category_payload in grouped.items():
+        if category in _RUN_ALL_BENCHMARK_CATEGORY_ORDER:
+            continue
+        if not isinstance(category_payload, dict):
+            raise TypeError(f"study.run_all_benchmark_params.{category} must be an object")
+        normalized = _deep_merge_dict(normalized, category_payload)
+    return normalized
+
+
+def _normalize_study_payload(
+    raw_study_payload: dict[str, Any],
+    *,
+    study_params_path: Path,
+) -> dict[str, Any]:
+    payload = _merge_external_study_sections(raw_study_payload, study_params_path=study_params_path)
+    return _flatten_run_all_benchmark_params(payload)
+
+
 
 def _require_dict(parent: dict[str, Any], key: str, path: str) -> dict[str, Any]:
     if key not in parent:
@@ -714,7 +806,8 @@ def _parse_state_to_state_leakage_benchmark(study_payload: dict[str, Any]) -> St
 
 def load_study_config(system_params_path: Path, study_params_path: Path) -> StudyConfig:
     system_payload = _load_json(system_params_path)
-    study_payload = _load_json(study_params_path)
+    raw_study_payload = _load_json(study_params_path)
+    study_payload = _normalize_study_payload(raw_study_payload, study_params_path=study_params_path)
     static_config = _parse_static_benchmark(study_payload)
     return StudyConfig(
         system=_parse_system(system_payload),

@@ -1,92 +1,109 @@
 {
-  "static_benchmark": {
-    "flux_sweep": {
-      "start": 0.0,
-      "stop": 1.0,
-      "num_points": 61
+  "run_all_benchmark_params": {
+    "shared_static_cz_leakage_flow_truncation": {
+      "static_benchmark": {
+        "flux_sweep": {
+          "start": 0.0,
+          "stop": 1.0,
+          "num_points": 61
+        },
+        "flux_control": {
+          "sweep_target": "q2"
+        },
+        "coupler_frequency": {
+          "wc0": 6.902,
+          "amplitude": 0.0
+        },
+        "dressed_subspace": {
+          "n_candidate_states": 20,
+          "selection_mode": "bare"
+        },
+        "duffing_model": {
+          "transmon_spectral_extraction": {
+            "ncut": 60,
+            "truncated_dim": 12
+          },
+          "hilbert_truncation": {
+            "nlevels_qubit": 3,
+            "nlevels_coupler": 3
+          },
+          "coupler_anharmonicity": 0.0,
+          "calibration_mode": "analytic-per-flux"
+        },
+        "circuit_model": {
+          "hilbert_truncation": {
+            "q1_truncated_dim": 5,
+            "q2_truncated_dim": 5,
+            "c_truncated_dim": 6
+          },
+          "interaction_validity_check": true
+        }
+      }
     },
-    "flux_control": {
-      "sweep_target": "q2"
+    "shared_static_and_cz": {
+      "static_benchmark": {
+        "effective_model": {
+          "derivation_source": "circuit",
+          "fit_basis": "single-harmonic"
+        }
+      }
     },
-    "coupler_frequency": {
-      "wc0": 6.902,
-      "amplitude": 0.0
+    "shared_static_cz_leakage_flow": {
+      "static_benchmark": {
+        "outputs": {
+          "figure": "results/model_comparison_static.pdf"
+        }
+      }
     },
-    "dressed_subspace": {
-      "n_candidate_states": 20,
-      "selection_mode": "bare"
+    "static_only": {
+      "static_benchmark": {
+        "regime_thresholds": {
+          "idle_ratio": 6.0,
+          "near_ratio": 2.0
+        }
+      }
     },
-    "duffing_model": {
-      "transmon_spectral_extraction": {
-        "ncut": 60,
-        "truncated_dim": 12
-      },
-      "hilbert_truncation": {
-        "nlevels_qubit": 3,
-        "nlevels_coupler": 3
-      },
-      "coupler_anharmonicity": 0.0,
-      "calibration_mode": "analytic-per-flux"
+    "truncation_only": {
+      "truncation_benchmark": {
+        "fixed_flux": 0.000001,
+        "duffing_ncut_values": [2, 3, 4, 5, 6, 7, 8, 15, 20],
+        "duffing_truncated_dim": 40,
+        "lowest_excited_levels_to_plot": 12,
+        "circuit_reference_ncut": 120,
+        "duffing_calibration_mode": "per-flux",
+        "outputs": {
+          "figure": "results/model_comparison_truncation_static_metrics.pdf"
+        }
+      }
     },
-    "circuit_model": {
-      "hilbert_truncation": {
-        "q1_truncated_dim": 5,
-        "q2_truncated_dim": 5,
-        "c_truncated_dim": 6
-      },
-      "interaction_validity_check": true
+    "cz_only": {
+      "cz_benchmark": {
+        "total_time_ns": 70.0,
+        "ramp_time_ns": 8.0,
+        "dt_ns": 0.5,
+        "enable_hold_time_scan": true,
+        "scan_dt_ns": 2.0,
+        "scan_max_hold_ns": 300.0,
+        "scan_leakage_penalty": 0.25
+      }
     },
-    "effective_model": {
-      "derivation_source": "circuit",
-      "fit_basis": "single-harmonic"
-    },
-    "regime_thresholds": {
-      "idle_ratio": 6.0,
-      "near_ratio": 2.0
-    },
-    "outputs": {
-      "figure": "results/model_comparison_static.pdf"
+    "leakage_flow_only": {
+      "leakage_flow_benchmark": {
+        "total_time_ns": 8.0,
+        "ramp_time_ns": 2.0,
+        "dt_ns": 0.02,
+        "population_min_average": 0.0001,
+        "transition_min_integrated_abs": 0.0001,
+        "max_population_rows": 12,
+        "max_transition_rows": 12
+      }
     }
   },
-  "truncation_benchmark": {
-    "fixed_flux": 0.000001,
-    "duffing_ncut_values": [2, 3, 4, 5, 6, 7, 8, 15, 20],
-    "duffing_truncated_dim": 40,
-    "lowest_excited_levels_to_plot": 12,
-    "circuit_reference_ncut": 120,
-    "duffing_calibration_mode": "per-flux",
-    "outputs": {
-      "figure": "results/model_comparison_truncation_static_metrics.pdf"
-    }
-  },
-  "cz_benchmark": {
-    "total_time_ns": 70.0,
-    "ramp_time_ns": 8.0,
-    "dt_ns": 0.5,
-    "enable_hold_time_scan": true,
-    "scan_dt_ns": 2.0,
-    "scan_max_hold_ns": 300.0,
-    "scan_leakage_penalty": 0.25
-  },
-  "leakage_flow_benchmark": {
-    "total_time_ns": 8.0,
-    "ramp_time_ns": 2.0,
-    "dt_ns": 0.02,
-    "population_min_average": 0.0001,
-    "transition_min_integrated_abs": 0.0001,
-    "max_population_rows": 12,
-    "max_transition_rows": 12
-  },
-  "leakage_benchmark": {
-    "total_time_ns": 20.0,
-    "ramp_time_ns": 8.0,
-    "dt_ns": 0.02,
-    "top_destination_rows": 5
-  },
-  "state_to_state_leakage_benchmark": {
-    "total_time_ns": 8.0,
-    "ramp_time_ns": 2.0,
-    "dt_ns": 0.02,
-    "top_transition_rows": 6
+  "moved_out_of_run_all": {
+    "file": "benchmark_params_non_run_all.json",
+    "sections": [
+      "leakage_benchmark",
+      "state_to_state_leakage_benchmark"
+    ]
   }
 }

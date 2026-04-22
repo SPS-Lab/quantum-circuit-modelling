@@ -1,0 +1,14 @@
+{
+  "leakage_benchmark": {
+    "total_time_ns": 20.0,
+    "ramp_time_ns": 8.0,
+    "dt_ns": 0.02,
+    "top_destination_rows": 5
+  },
+  "state_to_state_leakage_benchmark": {
+    "total_time_ns": 8.0,
+    "ramp_time_ns": 2.0,
+    "dt_ns": 0.02,
+    "top_transition_rows": 6
+  }
+}
