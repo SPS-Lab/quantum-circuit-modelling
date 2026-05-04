@@ -89,7 +89,7 @@
         "dt_ns": 0.5,
         "enable_hold_time_scan": true,
         "scan_dt_ns": 10.0,
-        "scan_max_hold_ns": 70.0,
+        "scan_max_hold_ns": 300.0,
         "scan_leakage_penalty": 0.25,
         "outputs": {
           "figure": "results/model_comparison_cz_dynamics.pdf"

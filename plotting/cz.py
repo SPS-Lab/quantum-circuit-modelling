@@ -61,16 +61,9 @@ def plot_cz_benchmark(
     t = np.asarray(result.times_ns, dtype=float)
 
     with benchmark_plot_style(font_size):
-        fig = plt.figure(figsize=(8.5, 6.5))
-        gs = fig.add_gridspec(2, 1, height_ratios=(1.0, 1.2))
-        ax_flux = fig.add_subplot(gs[0, 0])
-        ax_phase = fig.add_subplot(gs[1, 0], sharex=ax_flux)
-
-        ax_flux.plot(t, result.pulse_flux_values, color="C4", linewidth=2.0)
-        ax_flux.axhline(result.idle_flux, color="0.4", linewidth=1.0)
-        ax_flux.axhline(result.target_flux, color="0.3", linewidth=1.0)
-        ax_flux.set_ylabel(r"Flux bias ($\Phi/\Phi_0$)")
-        ax_flux.grid(True, alpha=0.3)
+        fig = plt.figure(figsize=(8.5, 4.8))
+        ax_phase = fig.add_subplot(1, 1, 1)
+        ax_flux = ax_phase.twinx()
 
         ax_phase.plot(t, result.circuit_conditional_phase, color="k", linewidth=2.0, **model_plot_kwargs("circuit"))
         ax_phase.plot(t, result.duffing_conditional_phase, color="k", linewidth=2.0, **model_plot_kwargs("duffing"))
@@ -87,6 +80,36 @@ def plot_cz_benchmark(
         ax_phase.set_xlabel("Time (ns)")
         ax_phase.grid(True, alpha=0.3)
 
+        flux_line = ax_flux.plot(
+            t,
+            result.pulse_flux_values,
+            color="C4",
+            linewidth=1.8,
+            alpha=0.75,
+            label="pulse flux",
+        )[0]
+        idle_line = ax_flux.axhline(
+            result.idle_flux,
+            color="0.45",
+            linewidth=1.0,
+            linestyle="--",
+            label="idle flux",
+        )
+        target_line = ax_flux.axhline(
+            result.target_flux,
+            color="0.25",
+            linewidth=1.0,
+            linestyle=":",
+            label="target flux",
+        )
+        ax_flux.set_ylabel(r"Flux bias ($\Phi/\Phi_0$)")
+        ax_flux.grid(False)
+        ax_flux.legend(
+            handles=[flux_line, idle_line, target_line],
+            loc="lower right",
+            frameon=False,
+        )
+
         fig.legend(
             handles=model_legend_handles(),
             loc="upper center",
@@ -95,7 +118,7 @@ def plot_cz_benchmark(
             bbox_to_anchor=(0.5, 0.955),
         )
         fig.tight_layout(
-            rect=(0.0, 0.0, 1.0, 0.88),
+            rect=(0.0, 0.0, 1.0, 0.87),
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )

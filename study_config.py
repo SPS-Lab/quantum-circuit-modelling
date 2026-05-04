@@ -199,9 +199,6 @@ class StudyConfig:
     cz_benchmark: CzBenchmarkConfig
     leakage_flow_benchmark: LeakageFlowBenchmarkConfig
     truncation_benchmark: TruncationBenchmarkConfig
-    leakage_benchmark: LeakageBenchmarkConfig
-    state_to_state_leakage_benchmark: StateToStateLeakageBenchmarkConfig
-
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -687,8 +684,6 @@ def load_study_config(system_params_path: Path, study_params_path: Path) -> Stud
         cz_benchmark=_parse_cz_benchmark(study_payload),
         leakage_flow_benchmark=_parse_leakage_flow_benchmark(study_payload),
         truncation_benchmark=_parse_truncation_benchmark(study_payload),
-        leakage_benchmark=_parse_leakage_benchmark(study_payload),
-        state_to_state_leakage_benchmark=_parse_state_to_state_leakage_benchmark(study_payload),
     )
 
 
