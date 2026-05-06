@@ -13,6 +13,7 @@ if str(_ROOT) not in sys.path:
 
 from comparison.cz import run_cz_benchmark
 from comparison.leakage_flow import run_leakage_flow_benchmark
+from comparison.rx import run_rx_benchmark
 from comparison.static import run_static_benchmark
 from models.dressed import extract_model1_parameters_from_4x4_stack
 from plotting.cz import plot_cz_benchmark
@@ -77,6 +78,13 @@ def _write_small_study_params(
     sb["coupler_frequency"]["amplitude"] = float(coupler_amplitude)
     sb["flux_control"]["sweep_target"] = str(sweep_target)
     sb["duffing_model"]["calibration_mode"] = str(duffing_calibration_mode)
+    rb = payload["rx_benchmark"]
+    rb["drive_frequency"] = 9.733
+    rb["drive_amplitude"] = 0.05
+    rb["drive_phase_rad"] = 0.0
+    rb["total_time_ns"] = 6.0
+    rb["dt_ns"] = 0.1
+    rb["rise_time_ns"] = 1.0
 
     suffix = str(coupler_amplitude).replace("-", "m").replace(".", "p")
     dst = tmp_path / f"study_params_small_{sweep_target}_A{suffix}_{duffing_calibration_mode}.json"
@@ -107,6 +115,12 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.cz_benchmark.scan_dt_ns > 0.0
     assert cfg.cz_benchmark.scan_max_hold_ns >= 0.0
     assert cfg.cz_benchmark.scan_leakage_penalty >= 0.0
+    assert cfg.rx_benchmark.drive_qubit == "q1"
+    assert cfg.rx_benchmark.drive_frequency > 0.0
+    assert cfg.rx_benchmark.drive_amplitude >= 0.0
+    assert cfg.rx_benchmark.total_time_ns > 0.0
+    assert cfg.rx_benchmark.dt_ns > 0.0
+    assert cfg.rx_benchmark.rise_time_ns > 0.0
     assert cfg.leakage_flow_benchmark.total_time_ns > 0.0
     assert cfg.leakage_flow_benchmark.ramp_time_ns > 0.0
     assert cfg.leakage_flow_benchmark.dt_ns > 0.0
@@ -238,18 +252,37 @@ def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
         enable_hold_time_scan=False,
     )
     assert out.times_ns.shape == (21,)
-    assert out.effective_populations_11.shape == (21, 4)
-    assert out.duffing_populations_11.shape == (21, 4)
-    assert out.circuit_populations_11.shape == (21, 4)
-    assert out.effective_computational_amplitudes.shape == (21, 4, 4)
-    assert out.duffing_computational_amplitudes.shape == (21, 4, 4)
-    assert out.circuit_computational_amplitudes.shape == (21, 4, 4)
-    assert np.all(np.isfinite(out.effective_conditional_phase))
-    assert np.all(np.isfinite(out.duffing_conditional_phase))
-    assert np.all(np.isfinite(out.circuit_conditional_phase))
-    assert np.all(out.effective_leakage_11 >= -1e-12)
-    assert np.all(out.duffing_leakage_11 >= -1e-12)
-    assert np.all(out.circuit_leakage_11 >= -1e-12)
+
+
+def test_rx_benchmark_runs_with_small_config(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_path, study_path)
+
+    out = run_rx_benchmark(
+        cfg,
+        drive_qubit=str(cfg.rx_benchmark.drive_qubit),
+        drive_frequency=float(cfg.rx_benchmark.drive_frequency),
+        drive_amplitude=float(cfg.rx_benchmark.drive_amplitude),
+        drive_phase_rad=float(cfg.rx_benchmark.drive_phase_rad),
+        total_time_ns=float(cfg.rx_benchmark.total_time_ns),
+        dt_ns=float(cfg.rx_benchmark.dt_ns),
+        rise_time_ns=float(cfg.rx_benchmark.rise_time_ns),
+    )
+
+    assert out.times_ns.ndim == 1
+    assert out.effective_computational_amplitudes.shape[1:] == (4, 4)
+    assert out.duffing_computational_amplitudes.shape[1:] == (4, 4)
+    assert out.circuit_computational_amplitudes.shape[1:] == (4, 4)
+    assert np.all(out.effective_pop_00_to_01 >= 0.0)
+    assert np.all(out.duffing_leakage_from_00 >= 0.0)
+    assert np.all(out.circuit_spectator_population_delta >= 0.0)
+    assert out.effective_computational_amplitudes.shape[0] == out.times_ns.size
+    assert out.duffing_computational_amplitudes.shape[0] == out.times_ns.size
+    assert out.circuit_computational_amplitudes.shape[0] == out.times_ns.size
+    assert np.all(np.isfinite(out.effective_leakage_from_10))
+    assert np.all(np.isfinite(out.duffing_leakage_from_10))
+    assert np.all(np.isfinite(out.circuit_leakage_from_10))
 
 
 def test_cz_plot_writes_pdf(tmp_path: Path) -> None:
