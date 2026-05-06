@@ -15,7 +15,7 @@ from matplotlib.colors import hsv_to_rgb
 import numpy as np
 
 from comparison.leakage_flow import LeakageFlowBenchmarkResult
-from plotting.style import DEFAULT_PLOT_FONT_SIZE, benchmark_plot_style
+from plotting.style import DEFAULT_PLOT_FONT_SIZE, benchmark_plot_style, pulse_schedule_plot_kwargs
 
 
 def _decode_labels(labels: np.ndarray) -> list[str]:
@@ -181,7 +181,12 @@ def _overlay_flux_track(
     flux_span = float(max(1e-15, flux_hi - flux_lo))
     flux_norm = np.clip((flux - flux_lo) / flux_span, 0.0, 1.0)
     y_flux = -0.5 + flux_norm * float(n_rows_eff - 1)
-    ax.plot(t, y_flux, color="black", linewidth=1.0, alpha=0.35, zorder=4)
+    ax.plot(
+        t,
+        y_flux,
+        zorder=4,
+        **pulse_schedule_plot_kwargs(alpha=0.5),
+    )
 
 
 def plot_leakage_flow_benchmark(

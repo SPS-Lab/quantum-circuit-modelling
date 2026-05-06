@@ -22,7 +22,9 @@ from plotting.style import (
     TRUNCATION_LEVEL_LEGEND_SHOW_ON_DIFF,
     TRUNCATION_LEVEL_LEGEND_TITLE_FONT_SCALE,
     benchmark_plot_style,
+    model_color,
     model_legend_handles,
+    model_level_color,
     model_plot_kwargs,
 )
 
@@ -65,22 +67,22 @@ def plot_truncation_benchmark(
         ax_levels = fig.add_subplot(gs[1, 0], sharex=ax_j)
         ax_diff = fig.add_subplot(gs[1, 1], sharex=ax_j)
 
-        ax_j.plot(x, result.duffing_j, color="C0", linewidth=1.8, **model_plot_kwargs("duffing"))
+        ax_j.plot(x, result.duffing_j, linewidth=1.8, **model_plot_kwargs("duffing"))
         ax_j.axhline(
             result.circuit_j,
-            color="C0",
+            color=model_color("circuit"),
             linewidth=1.4,
-            **model_plot_kwargs("circuit"),
+            alpha=model_plot_kwargs("circuit")["alpha"],
         )
         ax_j.set_ylabel(r"Exchange $J$")
         ax_j.grid(True, alpha=0.3)
 
-        ax_zeta.plot(x, result.duffing_zeta, color="C2", linewidth=1.8, **model_plot_kwargs("duffing"))
+        ax_zeta.plot(x, result.duffing_zeta, linewidth=1.8, **model_plot_kwargs("duffing"))
         ax_zeta.axhline(
             result.circuit_zeta,
-            color="C2",
+            color=model_color("circuit"),
             linewidth=1.4,
-            **model_plot_kwargs("circuit"),
+            alpha=model_plot_kwargs("circuit")["alpha"],
         )
         ax_zeta.set_ylabel(r"Residual ZZ $\zeta$")
         ax_zeta.grid(True, alpha=0.3)
@@ -96,12 +98,12 @@ def plot_truncation_benchmark(
             level_handles: list[Line2D] = []
             level_labels: list[str] = []
             for i in range(1, 1 + n_excited_to_show):
-                color = f"C{(i - 1) % 10}"
+                base_color = f"C{(i - 1) % 10}"
                 label = rf"$E_{{{i}}}$"
-                ax_levels.plot(x, rel_duf[:, i], color=color, linewidth=1.6, **model_plot_kwargs("duffing"))
-                ax_levels.axhline(rel_cir[i], color=color, linewidth=1.2, **model_plot_kwargs("circuit"))
-                ax_diff.plot(x, rel_duf[:, i] - rel_cir[i], color=color, linewidth=1.6, alpha=0.95)
-                level_handles.append(Line2D([0], [0], color=color, linewidth=1.6, **model_plot_kwargs("duffing")))
+                ax_levels.plot(x, rel_duf[:, i], color=model_level_color(base_color, "duffing"), linewidth=1.6, alpha=model_plot_kwargs("duffing")["alpha"])
+                ax_levels.axhline(rel_cir[i], color=model_level_color(base_color, "circuit"), linewidth=1.2, alpha=model_plot_kwargs("circuit")["alpha"])
+                ax_diff.plot(x, rel_duf[:, i] - rel_cir[i], color=model_level_color(base_color, "duffing"), linewidth=1.6, alpha=0.95)
+                level_handles.append(Line2D([0], [0], color=base_color, linewidth=1.6))
                 level_labels.append(label)
 
             compact_handles, compact_labels = _compact_level_legend(

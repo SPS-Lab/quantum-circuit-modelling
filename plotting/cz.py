@@ -15,6 +15,7 @@ from plotting.style import (
     benchmark_plot_style,
     model_legend_handles,
     model_plot_kwargs,
+    pulse_schedule_plot_kwargs,
 )
 
 
@@ -65,9 +66,9 @@ def plot_cz_benchmark(
         ax_phase = fig.add_subplot(1, 1, 1)
         ax_flux = ax_phase.twinx()
 
-        ax_phase.plot(t, result.circuit_conditional_phase, color="k", linewidth=2.0, **model_plot_kwargs("circuit"))
-        ax_phase.plot(t, result.duffing_conditional_phase, color="k", linewidth=2.0, **model_plot_kwargs("duffing"))
-        ax_phase.plot(t, result.effective_conditional_phase, color="k", linewidth=2.0, **model_plot_kwargs("effective"))
+        ax_phase.plot(t, result.circuit_conditional_phase, linewidth=2.0, **model_plot_kwargs("circuit"))
+        ax_phase.plot(t, result.duffing_conditional_phase, linewidth=2.0, **model_plot_kwargs("duffing"))
+        ax_phase.plot(t, result.effective_conditional_phase, linewidth=2.0, **model_plot_kwargs("effective"))
         _set_phase_axis_pi_ticks(
             ax_phase,
             [
@@ -83,29 +84,13 @@ def plot_cz_benchmark(
         flux_line = ax_flux.plot(
             t,
             result.pulse_flux_values,
-            color="C4",
-            linewidth=1.8,
-            alpha=0.75,
             label="pulse flux",
+            **pulse_schedule_plot_kwargs(),
         )[0]
-        idle_line = ax_flux.axhline(
-            result.idle_flux,
-            color="0.45",
-            linewidth=1.0,
-            linestyle="--",
-            label="idle flux",
-        )
-        target_line = ax_flux.axhline(
-            result.target_flux,
-            color="0.25",
-            linewidth=1.0,
-            linestyle=":",
-            label="target flux",
-        )
         ax_flux.set_ylabel(r"Flux bias ($\Phi/\Phi_0$)")
         ax_flux.grid(False)
         ax_flux.legend(
-            handles=[flux_line, idle_line, target_line],
+            handles=[flux_line],
             loc="lower right",
             frameon=False,
         )
