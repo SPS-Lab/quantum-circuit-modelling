@@ -19,6 +19,7 @@ DerivationSource = Literal["duffing", "circuit"]
 FitBasis = Literal["single-harmonic"]
 SweepTarget = Literal["coupler", "q1", "q2"]
 DuffingCalibrationMode = Literal["fixed", "analytic-per-flux", "per-flux"]
+DriveQubit = Literal["q1"]
 
 
 @dataclass(frozen=True)
@@ -165,6 +166,18 @@ class CzBenchmarkConfig:
 
 
 @dataclass(frozen=True)
+class RxBenchmarkConfig:
+    drive_qubit: DriveQubit
+    drive_frequency: float
+    drive_amplitude: float
+    drive_phase_rad: float
+    total_time_ns: float
+    dt_ns: float
+    rise_time_ns: float
+    outputs: OutputConfig
+
+
+@dataclass(frozen=True)
 class LeakageFlowBenchmarkConfig:
     total_time_ns: float
     ramp_time_ns: float
@@ -197,6 +210,7 @@ class StudyConfig:
     system: SystemParams
     static_benchmark: StaticBenchmarkConfig
     cz_benchmark: CzBenchmarkConfig
+    rx_benchmark: RxBenchmarkConfig
     leakage_flow_benchmark: LeakageFlowBenchmarkConfig
     truncation_benchmark: TruncationBenchmarkConfig
 
@@ -223,9 +237,11 @@ def _deep_merge_dict(base: dict[str, Any], update: dict[str, Any]) -> dict[str, 
 _RUN_ALL_BENCHMARK_CATEGORY_ORDER: tuple[str, ...] = (
     "shared_static_cz_leakage_flow_truncation",
     "shared_static_and_cz",
+    "shared_static_and_rx",
     "static_only",
     "truncation_only",
     "cz_only",
+    "rx_only",
     "leakage_flow_only",
 )
 
@@ -614,6 +630,47 @@ def _parse_leakage_flow_benchmark(study_payload: dict[str, Any]) -> LeakageFlowB
     )
 
 
+def _parse_rx_benchmark(study_payload: dict[str, Any]) -> RxBenchmarkConfig:
+    rx = _require_dict(study_payload, "rx_benchmark", "study")
+    outputs = _require_dict(rx, "outputs", "study.rx_benchmark")
+
+    drive_qubit = _require_str(rx, "drive_qubit", "study.rx_benchmark")
+    if drive_qubit != "q1":
+        raise ValueError("study.rx_benchmark.drive_qubit must be 'q1'")
+    drive_qubit_lit: DriveQubit = drive_qubit
+
+    drive_frequency = _require_float(rx, "drive_frequency", "study.rx_benchmark")
+    drive_amplitude = _require_float(rx, "drive_amplitude", "study.rx_benchmark")
+    drive_phase_rad = _require_float(rx, "drive_phase_rad", "study.rx_benchmark")
+    total_time_ns = _require_float(rx, "total_time_ns", "study.rx_benchmark")
+    dt_ns = _require_float(rx, "dt_ns", "study.rx_benchmark")
+    rise_time_ns = _require_float(rx, "rise_time_ns", "study.rx_benchmark")
+
+    if drive_frequency <= 0.0:
+        raise ValueError("study.rx_benchmark.drive_frequency must be positive")
+    if drive_amplitude < 0.0:
+        raise ValueError("study.rx_benchmark.drive_amplitude must be >= 0")
+    if total_time_ns <= 0.0:
+        raise ValueError("study.rx_benchmark.total_time_ns must be positive")
+    if dt_ns <= 0.0:
+        raise ValueError("study.rx_benchmark.dt_ns must be positive")
+    if rise_time_ns <= 0.0:
+        raise ValueError("study.rx_benchmark.rise_time_ns must be positive")
+    if total_time_ns < 2.0 * rise_time_ns:
+        raise ValueError("study.rx_benchmark.total_time_ns must be >= 2 * rise_time_ns")
+
+    return RxBenchmarkConfig(
+        drive_qubit=drive_qubit_lit,
+        drive_frequency=float(drive_frequency),
+        drive_amplitude=float(drive_amplitude),
+        drive_phase_rad=float(drive_phase_rad),
+        total_time_ns=float(total_time_ns),
+        dt_ns=float(dt_ns),
+        rise_time_ns=float(rise_time_ns),
+        outputs=OutputConfig(figure=_require_str(outputs, "figure", "study.rx_benchmark.outputs")),
+    )
+
+
 def _parse_leakage_benchmark(study_payload: dict[str, Any]) -> LeakageBenchmarkConfig:
     lb = _require_dict(study_payload, "leakage_benchmark", "study")
     total_time_ns = _require_float(lb, "total_time_ns", "study.leakage_benchmark")
@@ -682,6 +739,7 @@ def load_study_config(system_params_path: Path, study_params_path: Path) -> Stud
         system=_parse_system(system_payload),
         static_benchmark=static_config,
         cz_benchmark=_parse_cz_benchmark(study_payload),
+        rx_benchmark=_parse_rx_benchmark(study_payload),
         leakage_flow_benchmark=_parse_leakage_flow_benchmark(study_payload),
         truncation_benchmark=_parse_truncation_benchmark(study_payload),
     )

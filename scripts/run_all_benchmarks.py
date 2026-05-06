@@ -16,6 +16,7 @@ from runtime_utils import run_main_with_timing
 _BENCHMARK_SCRIPTS = (
     "run_static_benchmark.py",
     "run_cz_benchmark.py",
+    "run_rx_benchmark.py",
     "run_leakage_flow_benchmark.py",
     "run_truncation_benchmark.py",
 )

@@ -89,6 +89,34 @@ Replot from saved CZ data only:
 python scripts/run_cz_benchmark.py --plot-only
 ```
 
+Run the driven single-qubit RX benchmark:
+
+```bash
+python scripts/run_rx_benchmark.py
+```
+
+The RX benchmark:
+- uses one shared rotating-frame/RWA microwave envelope for all models,
+- drives `q1` using the Krantz et al. quadrature convention (`phase_rad=0` -> `X`, `phase_rad=pi/2` -> `Y`),
+- compares the `|00> -> |01>` and `|10> -> |11>` transfer traces,
+- reports leakage from `|00>`/`|10>` and spectator-state mismatch,
+- writes a figure and an `.h5` results file next to it.
+
+Timing/drive settings are read from `params/benchmark_params.json` under:
+- `rx_benchmark.drive_qubit`
+- `rx_benchmark.drive_frequency`
+- `rx_benchmark.drive_amplitude`
+- `rx_benchmark.drive_phase_rad`
+- `rx_benchmark.total_time_ns`
+- `rx_benchmark.dt_ns`
+- `rx_benchmark.rise_time_ns`
+
+Replot from saved RX data only:
+
+```bash
+python scripts/run_rx_benchmark.py --plot-only
+```
+
 Run the combined leakage/flow benchmark (from `|1,0,1>`):
 
 ```bash
