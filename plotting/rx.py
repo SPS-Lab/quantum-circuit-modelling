@@ -19,32 +19,51 @@ from plotting.style import (
 )
 
 
-def plot_rx_benchmark(
+def _add_drive_background(ax: plt.Axes, times_ns: np.ndarray, envelope: np.ndarray, amplitude: float) -> None:
+    bg = ax.twinx()
+    bg.set_zorder(0)
+    ax.set_zorder(1)
+    ax.patch.set_alpha(0.0)
+    bg.plot(
+        np.asarray(times_ns, dtype=float),
+        float(amplitude) * np.asarray(envelope, dtype=float),
+        color="C4",
+        linewidth=2.0,
+        alpha=0.22,
+    )
+    bg.fill_between(
+        np.asarray(times_ns, dtype=float),
+        0.0,
+        float(amplitude) * np.asarray(envelope, dtype=float),
+        color="C4",
+        alpha=0.08,
+    )
+    bg.set_ylim(0.0, max(1e-12, 1.05 * float(amplitude)))
+    bg.set_yticks([])
+    for spine in bg.spines.values():
+        spine.set_visible(False)
+
+
+def plot_rx_populations_benchmark(
     result: RxBenchmarkResult,
     outfile: Path,
-    title: str,
     font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
     with benchmark_plot_style(font_size):
-        fig, axes = plt.subplots(2, 2, figsize=(11.0, 7.0), sharex=True)
-        ax_env = axes[0, 0]
-        ax_00 = axes[0, 1]
-        ax_10 = axes[1, 0]
-        ax_leak = axes[1, 1]
+        fig, axes = plt.subplots(2, 1, figsize=(9.8, 7.2), sharex=True)
+        ax_00, ax_10 = axes
 
-        ax_env.plot(t, result.pulse_envelope * result.drive_amplitude, color="C4", linewidth=2.0)
-        ax_env.set_title("Drive Envelope")
-        ax_env.set_ylabel("Amplitude (GHz)")
-        ax_env.grid(True, alpha=0.3)
+        for ax in axes:
+            _add_drive_background(ax, t, result.pulse_envelope, result.drive_amplitude)
 
         for model, y in (
             ("circuit", result.circuit_pop_00_to_01),
             ("duffing", result.duffing_pop_00_to_01),
             ("effective", result.effective_pop_00_to_01),
         ):
-            ax_00.plot(t, y, color="k", linewidth=2.0, **model_plot_kwargs(model))
+            ax_00.plot(t, y, color="k", linewidth=2.2, **model_plot_kwargs(model))
         ax_00.set_title(r"Population $|00\rangle \rightarrow |01\rangle$")
         ax_00.set_ylabel("Population")
         ax_00.set_ylim(-0.02, 1.02)
@@ -55,75 +74,88 @@ def plot_rx_benchmark(
             ("duffing", result.duffing_pop_10_to_11),
             ("effective", result.effective_pop_10_to_11),
         ):
-            ax_10.plot(t, y, color="k", linewidth=2.0, **model_plot_kwargs(model))
+            ax_10.plot(t, y, color="k", linewidth=2.2, **model_plot_kwargs(model))
         ax_10.set_title(r"Population $|10\rangle \rightarrow |11\rangle$")
         ax_10.set_xlabel("Time (ns)")
         ax_10.set_ylabel("Population")
         ax_10.set_ylim(-0.02, 1.02)
         ax_10.grid(True, alpha=0.3)
 
-        ax_leak.plot(
-            t,
-            result.circuit_leakage_from_00,
-            color="k",
-            linewidth=2.0,
-            label=r"circuit $|00\rangle$",
-            **model_plot_kwargs("circuit"),
+        fig.legend(
+            handles=model_legend_handles(),
+            loc="upper center",
+            ncol=3,
+            frameon=False,
+            bbox_to_anchor=(0.5, 0.985),
         )
-        ax_leak.plot(
-            t,
-            result.duffing_leakage_from_00,
-            color="k",
-            linewidth=2.0,
-            label=r"duffing $|00\rangle$",
-            **model_plot_kwargs("duffing"),
+        fig.tight_layout(
+            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
+            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
+            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )
-        ax_leak.plot(
-            t,
-            result.effective_leakage_from_00,
-            color="k",
-            linewidth=2.0,
-            label=r"effective $|00\rangle$",
-            **model_plot_kwargs("effective"),
-        )
-        ax_leak.plot(
-            t,
-            result.circuit_spectator_population_delta,
-            color="C3",
-            linewidth=1.8,
-            linestyle="-",
-            label=r"circuit spectator $\Delta P$",
-        )
-        ax_leak.plot(
-            t,
-            result.duffing_spectator_population_delta,
-            color="C1",
-            linewidth=1.8,
-            linestyle="--",
-            label=r"duffing spectator $\Delta P$",
-        )
-        ax_leak.plot(
-            t,
-            result.effective_spectator_population_delta,
-            color="C0",
-            linewidth=1.8,
-            linestyle="-.",
-            label=r"effective spectator $\Delta P$",
-        )
-        ax_leak.set_title(r"Leakage From $|00\rangle$ And Spectator Mismatch")
-        ax_leak.set_xlabel("Time (ns)")
-        ax_leak.set_ylabel("Magnitude")
+
+        outfile.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(outfile, format="pdf")
+        plt.close(fig)
+
+
+def plot_rx_diagnostics_benchmark(
+    result: RxBenchmarkResult,
+    outfile: Path,
+    font_size: float = DEFAULT_PLOT_FONT_SIZE,
+) -> None:
+    t = np.asarray(result.times_ns, dtype=float)
+
+    with benchmark_plot_style(font_size):
+        fig, axes = plt.subplots(2, 1, figsize=(9.8, 7.2), sharex=True)
+        ax_leak, ax_delta = axes
+
+        for ax in axes:
+            _add_drive_background(ax, t, result.pulse_envelope, result.drive_amplitude)
+
+        for model, y00, y10 in (
+            ("circuit", result.circuit_leakage_from_00, result.circuit_leakage_from_10),
+            ("duffing", result.duffing_leakage_from_00, result.duffing_leakage_from_10),
+            ("effective", result.effective_leakage_from_00, result.effective_leakage_from_10),
+        ):
+            ax_leak.plot(
+                t,
+                y00,
+                color="k",
+                linewidth=2.1,
+                label=rf"{model} $|00\rangle$",
+                **model_plot_kwargs(model),
+            )
+            ax_leak.plot(
+                t,
+                y10,
+                color="0.35",
+                linewidth=1.8,
+                label=rf"{model} $|10\rangle$",
+                **model_plot_kwargs(model),
+            )
+        ax_leak.set_ylabel("Leakage")
         ax_leak.grid(True, alpha=0.3)
-        ax_leak.legend(loc="best", frameon=False, fontsize=font_size * 0.58)
+        ax_leak.legend(loc="upper left", frameon=False, fontsize=font_size * 0.55, ncol=2)
+
+        for model, y in (
+            ("circuit", result.circuit_spectator_population_delta),
+            ("duffing", result.duffing_spectator_population_delta),
+            ("effective", result.effective_spectator_population_delta),
+        ):
+            ax_delta.plot(t, y, color="k", linewidth=2.2, **model_plot_kwargs(model))
+        ax_delta.set_title(r"Spectator Mismatch $|P_{00\rightarrow01} - P_{10\rightarrow11}|$")
+        ax_delta.set_xlabel("Time (ns)")
+        ax_delta.set_ylabel("Magnitude")
+        ax_delta.grid(True, alpha=0.3)
 
         fig.legend(
             handles=model_legend_handles(),
             loc="upper center",
             ncol=3,
             frameon=False,
-            bbox_to_anchor=(0.5, 0.995),
+            bbox_to_anchor=(0.5, 0.985),
         )
-        fig.suptitle(title)
         fig.tight_layout(
             rect=BENCHMARK_TIGHT_LAYOUT_RECT,
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,

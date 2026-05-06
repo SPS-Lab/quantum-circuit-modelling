@@ -113,7 +113,8 @@
         "dt_ns": 0.05,
         "rise_time_ns": 4.0,
         "outputs": {
-          "figure": "results/model_comparison_rx_dynamics.pdf"
+          "populations_figure": "results/model_comparison_rx_populations.pdf",
+          "diagnostics_figure": "results/model_comparison_rx_diagnostics.pdf"
         }
       }
     },

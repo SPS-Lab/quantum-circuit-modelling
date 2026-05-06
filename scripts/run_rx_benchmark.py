@@ -17,7 +17,7 @@ from benchmark_results_io import (
     save_result_hdf5,
 )
 from comparison.rx import RxBenchmarkResult, run_rx_benchmark
-from plotting.rx import plot_rx_benchmark
+from plotting.rx import plot_rx_diagnostics_benchmark, plot_rx_populations_benchmark
 from study_config import load_study_config
 
 
@@ -51,11 +51,12 @@ def main() -> None:
     )
     rx_cfg = config.rx_benchmark
 
-    figure_path = repo_root / rx_cfg.outputs.figure
+    populations_figure_path = repo_root / rx_cfg.outputs.populations_figure
+    diagnostics_figure_path = repo_root / rx_cfg.outputs.diagnostics_figure
     results_path = (
         _resolve_repo_relative(repo_root, args.results)
         if args.results is not None
-        else default_results_path_for_figure(figure_path)
+        else default_results_path_for_figure(populations_figure_path)
     )
 
     if args.plot_only:
@@ -77,8 +78,8 @@ def main() -> None:
         )
         save_result_hdf5(result, results_path, benchmark_name="rx")
 
-    title = "RX Benchmark: Driven Single-Qubit Dynamics"
-    plot_rx_benchmark(result, figure_path, title)
+    plot_rx_populations_benchmark(result, populations_figure_path)
+    plot_rx_diagnostics_benchmark(result, diagnostics_figure_path)
 
     for line in build_common_truncation_lines(config):
         reporter.line(line)
@@ -110,7 +111,8 @@ def main() -> None:
         reporter.line(f"Loaded results: {results_path}")
     else:
         reporter.line(f"Wrote results: {results_path}")
-    reporter.line(f"Wrote figure: {figure_path}")
+    reporter.line(f"Wrote populations figure: {populations_figure_path}")
+    reporter.line(f"Wrote diagnostics figure: {diagnostics_figure_path}")
     reporter.add_runtime_line()
     reporter.persist(results_path)
 

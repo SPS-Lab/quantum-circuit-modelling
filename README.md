@@ -100,7 +100,8 @@ The RX benchmark:
 - drives `q1` using the Krantz et al. quadrature convention (`phase_rad=0` -> `X`, `phase_rad=pi/2` -> `Y`),
 - compares the `|00> -> |01>` and `|10> -> |11>` transfer traces,
 - reports leakage from `|00>`/`|10>` and spectator-state mismatch,
-- writes a figure and an `.h5` results file next to it.
+- writes separate population and diagnostics figures,
+- and writes one `.h5` results file next to the populations figure.
 
 Timing/drive settings are read from `params/benchmark_params.json` under:
 - `rx_benchmark.drive_qubit`

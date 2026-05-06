@@ -129,6 +129,12 @@ class OutputConfig:
 
 
 @dataclass(frozen=True)
+class RxOutputConfig:
+    populations_figure: str
+    diagnostics_figure: str
+
+
+@dataclass(frozen=True)
 class StaticBenchmarkConfig:
     flux_sweep: FluxSweepConfig
     flux_control: FluxControlConfig
@@ -174,7 +180,7 @@ class RxBenchmarkConfig:
     total_time_ns: float
     dt_ns: float
     rise_time_ns: float
-    outputs: OutputConfig
+    outputs: RxOutputConfig
 
 
 @dataclass(frozen=True)
@@ -667,7 +673,10 @@ def _parse_rx_benchmark(study_payload: dict[str, Any]) -> RxBenchmarkConfig:
         total_time_ns=float(total_time_ns),
         dt_ns=float(dt_ns),
         rise_time_ns=float(rise_time_ns),
-        outputs=OutputConfig(figure=_require_str(outputs, "figure", "study.rx_benchmark.outputs")),
+        outputs=RxOutputConfig(
+            populations_figure=_require_str(outputs, "populations_figure", "study.rx_benchmark.outputs"),
+            diagnostics_figure=_require_str(outputs, "diagnostics_figure", "study.rx_benchmark.outputs"),
+        ),
     )
 
 
