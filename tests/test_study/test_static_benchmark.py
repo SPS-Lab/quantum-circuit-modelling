@@ -11,10 +11,11 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
+from benchmark_results_io import load_result_hdf5, save_result_hdf5
 from comparison.cz import run_cz_benchmark
 from comparison.leakage_flow import run_leakage_flow_benchmark
 from comparison.rx import run_rx_benchmark
-from comparison.static import run_static_benchmark
+from comparison.static import StaticBenchmarkResult, run_static_benchmark
 from models.dressed import extract_model1_parameters_from_4x4_stack
 from plotting.cz import plot_cz_benchmark
 from plotting.leakage_flow import plot_leakage_flow_benchmark
@@ -176,6 +177,23 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.circuit_relative_energies.shape == (9, 4)
     assert np.isfinite(float(np.mean(out.effective_error_rmse)))
     assert np.isfinite(float(np.mean(out.duffing_error_rmse)))
+    assert set(out.effective_fit_coefficients) == {"J", "zeta"}
+    assert out.effective_fit_coefficients["J"].shape == (3,)
+    assert out.effective_fit_coefficients["zeta"].shape == (3,)
+
+
+def test_static_benchmark_fit_coefficients_roundtrip_through_hdf5(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_path, study_path)
+
+    out = run_static_benchmark(cfg)
+    results_path = tmp_path / "static_results.h5"
+    save_result_hdf5(out, results_path, benchmark_name="static")
+    loaded = load_result_hdf5(results_path, StaticBenchmarkResult, expected_benchmark_name="static")
+
+    assert np.allclose(loaded.effective_fit_coefficients["J"], out.effective_fit_coefficients["J"])
+    assert np.allclose(loaded.effective_fit_coefficients["zeta"], out.effective_fit_coefficients["zeta"])
 
 
 

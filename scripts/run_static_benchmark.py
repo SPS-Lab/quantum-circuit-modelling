@@ -42,6 +42,14 @@ def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
     return path if path.is_absolute() else (repo_root / path)
 
 
+def _format_harmonic_fit_line(name: str, coeffs: object) -> str:
+    arr = coeffs
+    if not hasattr(arr, "__len__") or len(arr) != 3:
+        raise ValueError(f"Expected three coefficients for {name}, got {coeffs!r}")
+    x0, a, b = (float(arr[0]), float(arr[1]), float(arr[2]))
+    return f"  {name}: x0={x0:.6e}, a={a:.6e}, b={b:.6e}"
+
+
 def main() -> None:
     args = _parse_args()
     repo_root = _REPO_ROOT
@@ -78,6 +86,9 @@ def main() -> None:
     reporter.line("Static benchmark summary (GHz):")
     for key, value in result.summary.items():
         reporter.line(f"  {key}: {value:.6e}")
+    reporter.line("Effective-model harmonic fit coefficients (GHz):")
+    reporter.line(_format_harmonic_fit_line("J", result.effective_fit_coefficients["J"]))
+    reporter.line(_format_harmonic_fit_line("zeta", result.effective_fit_coefficients["zeta"]))
     if args.plot_only:
         reporter.line(f"Loaded results: {results_path}")
     else:

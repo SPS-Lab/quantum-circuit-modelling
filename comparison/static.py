@@ -30,6 +30,7 @@ class StaticBenchmarkResult:
     effective_error_rmse: np.ndarray
     duffing_error_rmse: np.ndarray
     effective_parameters: dict[str, np.ndarray]
+    effective_fit_coefficients: dict[str, np.ndarray]
     duffing_parameters: dict[str, np.ndarray]
     circuit_parameters: dict[str, np.ndarray]
     detuning_ratio: np.ndarray
@@ -120,6 +121,10 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     )
 
     effective_parameters = derivation.harmonic_fit.fitted_parameters
+    effective_fit_coefficients = {
+        name: np.asarray(derivation.harmonic_fit.coefficients[name], dtype=float)
+        for name in ("J", "zeta")
+    }
     H_effective = build_effective_hamiltonian_stack(effective_parameters)
 
     n_track = int(H_effective.shape[-1])
@@ -179,6 +184,7 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         effective_error_rmse=err_eff,
         duffing_error_rmse=err_duf,
         effective_parameters={k: np.asarray(v, dtype=float) for k, v in effective_parameters.items()},
+        effective_fit_coefficients=effective_fit_coefficients,
         duffing_parameters=params_duffing,
         circuit_parameters=params_circuit,
         detuning_ratio=np.asarray(detuning_ratio, dtype=float),
