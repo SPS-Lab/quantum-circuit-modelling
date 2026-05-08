@@ -30,6 +30,7 @@ class StaticBenchmarkResult:
     effective_error_rmse: np.ndarray
     duffing_error_rmse: np.ndarray
     effective_parameters: dict[str, np.ndarray]
+    effective_fit_coefficient_names: dict[str, np.ndarray]
     effective_fit_coefficients: dict[str, np.ndarray]
     duffing_parameters: dict[str, np.ndarray]
     circuit_parameters: dict[str, np.ndarray]
@@ -114,15 +115,27 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     else:
         raise ValueError(f"Unsupported effective derivation source {source!r}")
 
+    _, _, wc = resolve_static_sweep_values(
+        flux_values,
+        system_params=config.system,
+        coupler_frequency_config=config.static_benchmark.coupler_frequency,
+        sweep_target=config.static_benchmark.flux_control.sweep_target,
+    )
+
     derivation = derive_effective_model_from_dressed_stack(
         flux_values=flux_values,
         dressed_stack=source_stack,
         fit_basis=config.static_benchmark.effective_model.fit_basis,
+        coupler_frequency_values=wc,
     )
 
-    effective_parameters = derivation.harmonic_fit.fitted_parameters
+    effective_parameters = derivation.parameter_fit.fitted_parameters
+    effective_fit_coefficient_names = {
+        name: np.asarray(derivation.parameter_fit.coefficient_names[name], dtype=str)
+        for name in ("J", "zeta")
+    }
     effective_fit_coefficients = {
-        name: np.asarray(derivation.harmonic_fit.coefficients[name], dtype=float)
+        name: np.asarray(derivation.parameter_fit.coefficients[name], dtype=float)
         for name in ("J", "zeta")
     }
     H_effective = build_effective_hamiltonian_stack(effective_parameters)
@@ -142,12 +155,6 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     params_duffing = extract_model1_parameters_from_4x4_stack(H_duffing_eff)
     params_circuit = extract_model1_parameters_from_4x4_stack(H_circuit_eff)
 
-    _, _, wc = resolve_static_sweep_values(
-        flux_values,
-        system_params=config.system,
-        coupler_frequency_config=config.static_benchmark.coupler_frequency,
-        sweep_target=config.static_benchmark.flux_control.sweep_target,
-    )
     d1 = np.abs(params_circuit["w1"] - wc)
     d2 = np.abs(params_circuit["w2"] - wc)
     g_scale = max(abs(config.system.interactions.g_1c), abs(config.system.interactions.g_2c), 1e-12)
@@ -184,6 +191,7 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         effective_error_rmse=err_eff,
         duffing_error_rmse=err_duf,
         effective_parameters={k: np.asarray(v, dtype=float) for k, v in effective_parameters.items()},
+        effective_fit_coefficient_names=effective_fit_coefficient_names,
         effective_fit_coefficients=effective_fit_coefficients,
         duffing_parameters=params_duffing,
         circuit_parameters=params_circuit,

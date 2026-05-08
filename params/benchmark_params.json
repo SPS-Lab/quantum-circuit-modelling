@@ -62,7 +62,7 @@
       "static_benchmark": {
         "effective_model": {
           "derivation_source": "circuit",
-          "fit_basis": "single-harmonic"
+          "fit_basis": "magnitude-exchange-like"
         }
       }
     },

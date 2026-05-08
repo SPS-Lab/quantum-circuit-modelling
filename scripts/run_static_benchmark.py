@@ -42,12 +42,15 @@ def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
     return path if path.is_absolute() else (repo_root / path)
 
 
-def _format_harmonic_fit_line(name: str, coeffs: object) -> str:
-    arr = coeffs
-    if not hasattr(arr, "__len__") or len(arr) != 3:
-        raise ValueError(f"Expected three coefficients for {name}, got {coeffs!r}")
-    x0, a, b = (float(arr[0]), float(arr[1]), float(arr[2]))
-    return f"  {name}: x0={x0:.6e}, a={a:.6e}, b={b:.6e}"
+def _format_fit_line(name: str, coeff_names: object, coeffs: object) -> str:
+    if not hasattr(coeff_names, "__len__") or not hasattr(coeffs, "__len__"):
+        raise ValueError(f"Expected sequence-like coefficient names and values for {name}")
+    labels = [str(label) for label in coeff_names]
+    values = [float(value) for value in coeffs]
+    if len(labels) != len(values):
+        raise ValueError(f"Coefficient name/value mismatch for {name}: {labels!r} vs {values!r}")
+    parts = ", ".join(f"{label}={value:.6e}" for label, value in zip(labels, values))
+    return f"  {name}: {parts}"
 
 
 def main() -> None:
@@ -86,9 +89,21 @@ def main() -> None:
     reporter.line("Static benchmark summary (GHz):")
     for key, value in result.summary.items():
         reporter.line(f"  {key}: {value:.6e}")
-    reporter.line("Effective-model harmonic fit coefficients (GHz):")
-    reporter.line(_format_harmonic_fit_line("J", result.effective_fit_coefficients["J"]))
-    reporter.line(_format_harmonic_fit_line("zeta", result.effective_fit_coefficients["zeta"]))
+    reporter.line("Effective-model fit coefficients (GHz):")
+    reporter.line(
+        _format_fit_line(
+            "J",
+            result.effective_fit_coefficient_names["J"],
+            result.effective_fit_coefficients["J"],
+        )
+    )
+    reporter.line(
+        _format_fit_line(
+            "zeta",
+            result.effective_fit_coefficient_names["zeta"],
+            result.effective_fit_coefficients["zeta"],
+        )
+    )
     if args.plot_only:
         reporter.line(f"Loaded results: {results_path}")
     else:

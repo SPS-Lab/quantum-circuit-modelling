@@ -148,6 +148,10 @@ def _write_value(group: h5py.Group, key: str, value: Any) -> None:
         return
 
     if isinstance(value, np.ndarray):
+        if value.dtype.kind in {"U", "S"}:
+            utf8 = h5py.string_dtype(encoding="utf-8")
+            group.create_dataset(str(key), data=np.asarray(value, dtype=object), dtype=utf8)
+            return
         compression = "gzip" if value.size > 0 else None
         if compression is None:
             group.create_dataset(str(key), data=value)
@@ -176,6 +180,13 @@ def _read_value(node: h5py.Group | h5py.Dataset) -> Any:
         raise TypeError(f"Unsupported HDF5 group kind {kind!r}")
 
     value = node[()]
+    if isinstance(value, np.ndarray) and value.dtype.kind == "S":
+        return value.astype(str)
+    if isinstance(value, np.ndarray) and value.dtype.kind == "O":
+        if value.size == 0:
+            return value
+        if all(isinstance(item, (bytes, np.bytes_)) for item in value.flat):
+            return np.asarray([item.decode("utf-8") for item in value.flat], dtype=str).reshape(value.shape)
     if isinstance(value, bytes):
         return value.decode("utf-8")
     if isinstance(value, np.generic):

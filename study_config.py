@@ -16,7 +16,7 @@ import numpy as np
 
 SelectionMode = Literal["continuous", "bare"]
 DerivationSource = Literal["duffing", "circuit"]
-FitBasis = Literal["single-harmonic"]
+FitBasis = Literal["single-harmonic", "magnitude-exchange-like"]
 SweepTarget = Literal["coupler", "q1", "q2"]
 DuffingCalibrationMode = Literal["fixed", "analytic-per-flux", "per-flux"]
 DriveQubit = Literal["q1"]
@@ -393,8 +393,11 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
         raise ValueError("study.static_benchmark.effective_model.derivation_source must be 'duffing' or 'circuit'")
 
     fit_basis = _require_str(effective, "fit_basis", "study.static_benchmark.effective_model")
-    if fit_basis not in ("single-harmonic",):
-        raise ValueError("study.static_benchmark.effective_model.fit_basis must be 'single-harmonic'")
+    if fit_basis not in ("single-harmonic", "magnitude-exchange-like"):
+        raise ValueError(
+            "study.static_benchmark.effective_model.fit_basis must be "
+            "'single-harmonic' or 'magnitude-exchange-like'"
+        )
 
     calibration_mode = _require_str(duffing, "calibration_mode", "study.static_benchmark.duffing_model").strip().lower()
     if calibration_mode not in ("fixed", "analytic-per-flux", "per-flux"):

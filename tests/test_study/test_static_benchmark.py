@@ -102,6 +102,7 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.system.q1.EJmax > 0.0
     assert cfg.static_benchmark.flux_sweep.num_points > 2
     assert cfg.static_benchmark.effective_model.derivation_source in {"duffing", "circuit"}
+    assert cfg.static_benchmark.effective_model.fit_basis in {"single-harmonic", "magnitude-exchange-like"}
     assert cfg.static_benchmark.flux_control.sweep_target in {"coupler", "q1", "q2"}
     assert cfg.static_benchmark.duffing_model.calibration_mode in {"fixed", "analytic-per-flux", "per-flux"}
     assert len(cfg.truncation_benchmark.duffing_ncut_values) > 0
@@ -177,9 +178,12 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.circuit_relative_energies.shape == (9, 4)
     assert np.isfinite(float(np.mean(out.effective_error_rmse)))
     assert np.isfinite(float(np.mean(out.duffing_error_rmse)))
+    assert set(out.effective_fit_coefficient_names) == {"J", "zeta"}
     assert set(out.effective_fit_coefficients) == {"J", "zeta"}
-    assert out.effective_fit_coefficients["J"].shape == (3,)
-    assert out.effective_fit_coefficients["zeta"].shape == (3,)
+    assert len(out.effective_fit_coefficient_names["J"]) == out.effective_fit_coefficients["J"].shape[0]
+    assert len(out.effective_fit_coefficient_names["zeta"]) == out.effective_fit_coefficients["zeta"].shape[0]
+    assert out.effective_fit_coefficients["J"].shape[0] >= 3
+    assert out.effective_fit_coefficients["zeta"].shape[0] >= 3
 
 
 def test_static_benchmark_fit_coefficients_roundtrip_through_hdf5(tmp_path: Path) -> None:
@@ -192,6 +196,8 @@ def test_static_benchmark_fit_coefficients_roundtrip_through_hdf5(tmp_path: Path
     save_result_hdf5(out, results_path, benchmark_name="static")
     loaded = load_result_hdf5(results_path, StaticBenchmarkResult, expected_benchmark_name="static")
 
+    assert np.array_equal(loaded.effective_fit_coefficient_names["J"], out.effective_fit_coefficient_names["J"])
+    assert np.array_equal(loaded.effective_fit_coefficient_names["zeta"], out.effective_fit_coefficient_names["zeta"])
     assert np.allclose(loaded.effective_fit_coefficients["J"], out.effective_fit_coefficients["J"])
     assert np.allclose(loaded.effective_fit_coefficients["zeta"], out.effective_fit_coefficients["zeta"])
 
