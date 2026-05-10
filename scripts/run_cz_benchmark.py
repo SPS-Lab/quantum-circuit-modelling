@@ -100,6 +100,21 @@ def main() -> None:
         "ramp_time_ns",
         "hold_time_ns",
         "dt_ns",
+        "n_time_points",
+        "effective_hilbert_dim",
+        "duffing_hilbert_dim",
+        "circuit_hilbert_dim",
+        "shared_static_precompute_runtime_s",
+        "shared_hold_scan_runtime_s",
+        "effective_model_build_runtime_s",
+        "duffing_model_build_runtime_s",
+        "circuit_model_build_runtime_s",
+        "effective_propagation_runtime_s",
+        "duffing_propagation_runtime_s",
+        "circuit_propagation_runtime_s",
+        "effective_dynamics_runtime_s",
+        "duffing_dynamics_runtime_s",
+        "circuit_dynamics_runtime_s",
     ]
     for key in cz_summary_keys:
         if key in result.summary:

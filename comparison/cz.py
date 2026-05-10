@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import time
 
 import numpy as np
 from scipy.linalg import expm
@@ -378,7 +379,9 @@ def run_cz_benchmark(
     Effective + Duffing models:
       piecewise propagation via numpy/scipy.
     """
+    static_started = time.perf_counter()
     static_result = run_static_benchmark(config)
+    static_runtime_s = float(time.perf_counter() - static_started)
     sweep_target = str(config.static_benchmark.flux_control.sweep_target)
     idle_flux = _idle_flux_for_target(config, sweep_target)
     target_flux = _pick_target_flux_from_static(static_result, idle_flux=idle_flux)
@@ -416,9 +419,11 @@ def run_cz_benchmark(
     scan_hold_list: list[float] = []
     scan_phase_error_list: list[float] = []
     scan_score_list: list[float] = []
+    hold_scan_runtime_s = 0.0
 
     selected_hold = 0.0 if hold_time_ns is None else float(max(0.0, hold_time_ns))
     if hold_time_ns is None and enable_hold_time_scan:
+        hold_scan_started = time.perf_counter()
         phase_ramp_only, _, _ = _evaluate_circuit_candidate(
             config=config,
             sweep_target=sweep_target,
@@ -492,6 +497,7 @@ def run_cz_benchmark(
             refined.append((score, h))
 
         selected_hold = float(min(refined, key=lambda x: x[0])[1])
+        hold_scan_runtime_s = float(time.perf_counter() - hold_scan_started)
 
     times_ns, pulse_flux = _ramp_hold_ramp_flux_pulse(
         ramp_time_ns=ramp_time_ns,
@@ -501,13 +507,16 @@ def run_cz_benchmark(
         target_flux=target_flux,
     )
 
+    effective_build_started = time.perf_counter()
     effective_parameters_t = _interpolate_effective_parameters(
         static_result.flux_values,
         static_result.effective_parameters,
         pulse_flux,
     )
     H_effective = build_effective_hamiltonian_stack(effective_parameters_t)
+    effective_build_runtime_s = float(time.perf_counter() - effective_build_started)
 
+    duffing_build_started = time.perf_counter()
     duffing_stack = build_duffing_model_stack(
         flux_values=pulse_flux,
         system_params=config.system,
@@ -515,7 +524,9 @@ def run_cz_benchmark(
         duffing_config=config.static_benchmark.duffing_model,
         sweep_target=sweep_target,
     ).hamiltonian_stack
+    duffing_build_runtime_s = float(time.perf_counter() - duffing_build_started)
 
+    circuit_build_started = time.perf_counter()
     circuit_stack = build_circuit_model_stack(
         flux_values=pulse_flux,
         system_params=config.system,
@@ -523,25 +534,32 @@ def run_cz_benchmark(
         circuit_config=config.static_benchmark.circuit_model,
         sweep_target=sweep_target,
     ).hamiltonian_stack
+    circuit_build_runtime_s = float(time.perf_counter() - circuit_build_started)
 
+    effective_prop_started = time.perf_counter()
     obs_effective = _simulate_piecewise_constant_scipy(
         H_effective,
         times_ns,
         idx_effective,
         monitor_indices=None,
     )
+    effective_prop_runtime_s = float(time.perf_counter() - effective_prop_started)
+    duffing_prop_started = time.perf_counter()
     obs_duffing = _simulate_piecewise_constant_scipy(
         duffing_stack,
         times_ns,
         idx_duffing,
         monitor_indices=idx_duffing_intermediate,
     )
+    duffing_prop_runtime_s = float(time.perf_counter() - duffing_prop_started)
+    circuit_prop_started = time.perf_counter()
     obs_circuit = _simulate_piecewise_constant_qutip(
         circuit_stack,
         times_ns,
         idx_circuit,
         monitor_indices=idx_circuit_intermediate,
     )
+    circuit_prop_runtime_s = float(time.perf_counter() - circuit_prop_started)
 
     eff_pop_rmse = float(np.sqrt(np.mean((obs_effective.populations_11 - obs_circuit.populations_11) ** 2)))
     duf_pop_rmse = float(np.sqrt(np.mean((obs_duffing.populations_11 - obs_circuit.populations_11) ** 2)))
@@ -563,6 +581,22 @@ def run_cz_benchmark(
         "ramp_time_ns": float(ramp_time_ns),
         "hold_time_ns": float(selected_hold),
         "dt_ns": float(dt_ns),
+        "n_time_points": float(times_ns.size),
+        "n_time_steps": float(max(times_ns.size - 1, 0)),
+        "effective_hilbert_dim": float(H_effective.shape[-1]),
+        "duffing_hilbert_dim": float(duffing_stack.shape[-1]),
+        "circuit_hilbert_dim": float(circuit_stack.shape[-1]),
+        "shared_static_precompute_runtime_s": static_runtime_s,
+        "shared_hold_scan_runtime_s": float(hold_scan_runtime_s),
+        "effective_model_build_runtime_s": effective_build_runtime_s,
+        "duffing_model_build_runtime_s": duffing_build_runtime_s,
+        "circuit_model_build_runtime_s": circuit_build_runtime_s,
+        "effective_propagation_runtime_s": effective_prop_runtime_s,
+        "duffing_propagation_runtime_s": duffing_prop_runtime_s,
+        "circuit_propagation_runtime_s": circuit_prop_runtime_s,
+        "effective_dynamics_runtime_s": float(effective_build_runtime_s + effective_prop_runtime_s),
+        "duffing_dynamics_runtime_s": float(duffing_build_runtime_s + duffing_prop_runtime_s),
+        "circuit_dynamics_runtime_s": float(circuit_build_runtime_s + circuit_prop_runtime_s),
     }
 
     plus_plus_coeff = np.full(4, 0.5 + 0.0j, dtype=complex)
