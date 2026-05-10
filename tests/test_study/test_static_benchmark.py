@@ -19,6 +19,7 @@ from comparison.static import StaticBenchmarkResult, run_static_benchmark
 from models.dressed import extract_model1_parameters_from_4x4_stack
 from plotting.cz import plot_cz_benchmark
 from plotting.leakage_flow import plot_leakage_flow_benchmark
+from plotting.rx import plot_rx_diagnostics_benchmark, plot_rx_populations_benchmark
 from study_config import _flatten_run_all_benchmark_params, load_study_config
 from models.effective import fit_single_harmonic_parameters
 
@@ -380,3 +381,27 @@ def test_leakage_flow_plot_writes_pdf(tmp_path: Path) -> None:
     outfile = tmp_path / "leakage_flow_benchmark.pdf"
     plot_leakage_flow_benchmark(out, outfile, title="test")
     assert outfile.exists()
+
+
+def test_rx_plots_write_pdf(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_path, study_path)
+
+    out = run_rx_benchmark(
+        cfg,
+        drive_qubit=str(cfg.rx_benchmark.drive_qubit),
+        drive_frequency=float(cfg.rx_benchmark.drive_frequency),
+        drive_amplitude=float(cfg.rx_benchmark.drive_amplitude),
+        drive_phase_rad=float(cfg.rx_benchmark.drive_phase_rad),
+        total_time_ns=float(cfg.rx_benchmark.total_time_ns),
+        dt_ns=float(cfg.rx_benchmark.dt_ns),
+        rise_time_ns=float(cfg.rx_benchmark.rise_time_ns),
+    )
+
+    populations_outfile = tmp_path / "rx_populations_benchmark.pdf"
+    diagnostics_outfile = tmp_path / "rx_diagnostics_benchmark.pdf"
+    plot_rx_populations_benchmark(out, populations_outfile)
+    plot_rx_diagnostics_benchmark(out, diagnostics_outfile)
+    assert populations_outfile.exists()
+    assert diagnostics_outfile.exists()

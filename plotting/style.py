@@ -51,6 +51,8 @@ MODEL_LINESTYLES: dict[str, str] = {
     "duffing": "-",
     "effective": "-",
 }
+ENERGY_LEVEL_ALPHAS: tuple[float, ...] = (1.0, 0.72, 0.48, 0.32, 0.22, 0.16)
+FALLBACK_LEVEL_ALPHA: float = 0.12
 
 
 def blend_colors(color_a: str | tuple[float, float, float], color_b: str | tuple[float, float, float], weight_b: float) -> tuple[float, float, float]:
@@ -72,19 +74,33 @@ def model_color(model: str) -> str:
     return MODEL_COLORS[model]
 
 
+def energy_level_alpha(level_index: int) -> float:
+    """Shared alpha for an energy level trace."""
+    idx = int(level_index)
+    if idx < 0:
+        raise ValueError(f"level_index must be non-negative, got {level_index}")
+    if idx < len(ENERGY_LEVEL_ALPHAS):
+        return float(ENERGY_LEVEL_ALPHAS[idx])
+    return FALLBACK_LEVEL_ALPHA
+
+
 def model_level_color(base_color: str | tuple[float, float, float], model: str) -> tuple[float, float, float]:
-    """Color that preserves a level hue while nudging it toward the model color."""
-    if model == "circuit":
-        return mcolors.to_rgb(base_color)
-    return blend_colors(base_color, model_color(model), 0.55)
+    """Preserve a level hue without re-encoding model identity in color."""
+    del model
+    return mcolors.to_rgb(base_color)
 
 
-def model_plot_kwargs(model: str) -> dict[str, object]:
+def model_plot_kwargs(
+    model: str,
+    *,
+    color: str | tuple[float, float, float] | None = None,
+) -> dict[str, object]:
     """Shared line style for a model trace."""
+    resolved_color = MODEL_COLORS[model] if color is None else color
     return {
         "alpha": MODEL_ALPHAS[model],
         "linestyle": MODEL_LINESTYLES[model],
-        "color": MODEL_COLORS[model],
+        "color": resolved_color,
     }
 
 

@@ -22,9 +22,9 @@ from plotting.style import (
     TRUNCATION_LEVEL_LEGEND_SHOW_ON_DIFF,
     TRUNCATION_LEVEL_LEGEND_TITLE_FONT_SCALE,
     benchmark_plot_style,
+    energy_level_alpha,
     model_color,
     model_legend_handles,
-    model_level_color,
     model_plot_kwargs,
 )
 
@@ -68,22 +68,12 @@ def plot_truncation_benchmark(
         ax_diff = fig.add_subplot(gs[1, 1], sharex=ax_j)
 
         ax_j.plot(x, result.duffing_j, linewidth=1.8, **model_plot_kwargs("duffing"))
-        ax_j.axhline(
-            result.circuit_j,
-            color=model_color("circuit"),
-            linewidth=1.4,
-            alpha=model_plot_kwargs("circuit")["alpha"],
-        )
+        ax_j.plot(x, np.full_like(x, result.circuit_j, dtype=float), linewidth=1.4, **model_plot_kwargs("circuit"))
         ax_j.set_ylabel(r"Exchange $J$")
         ax_j.grid(True, alpha=0.3)
 
         ax_zeta.plot(x, result.duffing_zeta, linewidth=1.8, **model_plot_kwargs("duffing"))
-        ax_zeta.axhline(
-            result.circuit_zeta,
-            color=model_color("circuit"),
-            linewidth=1.4,
-            alpha=model_plot_kwargs("circuit")["alpha"],
-        )
+        ax_zeta.plot(x, np.full_like(x, result.circuit_zeta, dtype=float), linewidth=1.4, **model_plot_kwargs("circuit"))
         ax_zeta.set_ylabel(r"Residual ZZ $\zeta$")
         ax_zeta.grid(True, alpha=0.3)
 
@@ -98,12 +88,12 @@ def plot_truncation_benchmark(
             level_handles: list[Line2D] = []
             level_labels: list[str] = []
             for i in range(1, 1 + n_excited_to_show):
-                base_color = f"C{(i - 1) % 10}"
+                level_alpha = energy_level_alpha(i - 1)
                 label = rf"$E_{{{i}}}$"
-                ax_levels.plot(x, rel_duf[:, i], color=model_level_color(base_color, "duffing"), linewidth=1.6, alpha=model_plot_kwargs("duffing")["alpha"])
-                ax_levels.axhline(rel_cir[i], color=model_level_color(base_color, "circuit"), linewidth=1.2, alpha=model_plot_kwargs("circuit")["alpha"])
-                ax_diff.plot(x, rel_duf[:, i] - rel_cir[i], color=model_level_color(base_color, "duffing"), linewidth=1.6, alpha=0.95)
-                level_handles.append(Line2D([0], [0], color=base_color, linewidth=1.6))
+                ax_levels.plot(x, rel_duf[:, i], color=model_color("duffing"), linewidth=1.6, alpha=model_plot_kwargs("duffing")["alpha"] * level_alpha)
+                ax_levels.plot(x, np.full_like(x, rel_cir[i], dtype=float), color=model_color("circuit"), linewidth=1.2, alpha=model_plot_kwargs("circuit")["alpha"] * level_alpha)
+                ax_diff.plot(x, rel_duf[:, i] - rel_cir[i], color="0.2", linewidth=1.6, alpha=level_alpha)
+                level_handles.append(Line2D([0], [0], color="0.15", linewidth=1.6, alpha=level_alpha))
                 level_labels.append(label)
 
             compact_handles, compact_labels = _compact_level_legend(
@@ -118,7 +108,7 @@ def plot_truncation_benchmark(
                 loc="upper center",
                 bbox_to_anchor=TRUNCATION_LEVEL_LEGEND_BBOX_TO_ANCHOR,
                 ncol=legend_cols,
-                title="Levels",
+                title="Levels (alpha)",
                 framealpha=0.9,
                 borderpad=0.25,
                 labelspacing=0.25,
@@ -138,7 +128,7 @@ def plot_truncation_benchmark(
         ax_levels.set_ylabel("Energy rel. ground")
         ax_levels.set_xlabel("Duffing transmon ncut")
         ax_levels.grid(True, alpha=0.3)
-        ax_diff.set_ylabel("Energy difference")
+        ax_diff.set_ylabel("Energy diff. (duffing - circuit)")
         ax_diff.set_xlabel("Duffing transmon ncut")
         ax_diff.grid(True, alpha=0.3)
 
