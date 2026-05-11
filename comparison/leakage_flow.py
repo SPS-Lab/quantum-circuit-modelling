@@ -98,7 +98,7 @@ def _canonical_state_order_qcq(n1: int, nc: int, n2: int) -> tuple[np.ndarray, n
             for k in range(int(n2)):
                 triples.append((i, j, k))
 
-    # Display convention is |q2,c,q1>, so lexical tie-break follows (q2, c, q1) = (k, j, i).
+    # Display convention is |q2,c,q0>, so lexical tie-break follows (q2, c, q0) = (k, j, i).
     triples_sorted = sorted(triples, key=lambda t: (t[0] + t[1] + t[2], t[2], t[1], t[0]))
     idx = np.array([_idx_qcq(n2, nc, n1, k, j, i) for (k, j, i) in triples_sorted], dtype=int)
     labels = np.array([f"|{k},{j},{i}>" for (k, j, i) in triples_sorted], dtype=str)
@@ -141,9 +141,9 @@ def _transition_sort_key(label: str) -> tuple[int, int, int, int, int, int, int,
     if "->" not in text:
         raise ValueError(f"Invalid transition label {label!r}")
     src, dst = text.split("->", 1)
-    i1, j1, k1 = _parse_state_label(src.strip())
+    i0, j0, k0 = _parse_state_label(src.strip())
     i2, j2, k2 = _parse_state_label(dst.strip())
-    return (i1 + j1 + k1, i1, j1, k1, i2 + j2 + k2, i2, j2, k2)
+    return (i0 + j0 + k0, i0, j0, k0, i2 + j2 + k2, i2, j2, k2)
 
 
 def _union_state_labels(labels_a: np.ndarray, labels_b: np.ndarray) -> np.ndarray:
@@ -347,17 +347,17 @@ def _pulse_qubit_flux_arrays(
     pulse_flux: np.ndarray,
     *,
     sweep_target: str,
-    q1_idle_flux: float,
+    q0_idle_flux: float,
     q2_idle_flux: float,
 ) -> tuple[np.ndarray, np.ndarray]:
     flux = np.asarray(pulse_flux, dtype=float).ravel()
-    if sweep_target == "q1":
+    if sweep_target == "q0":
         return np.asarray(flux, dtype=float), np.full(flux.shape, float(q2_idle_flux), dtype=float)
     if sweep_target == "q2":
-        return np.full(flux.shape, float(q1_idle_flux), dtype=float), np.asarray(flux, dtype=float)
+        return np.full(flux.shape, float(q0_idle_flux), dtype=float), np.asarray(flux, dtype=float)
     if sweep_target == "coupler":
         return (
-            np.full(flux.shape, float(q1_idle_flux), dtype=float),
+            np.full(flux.shape, float(q0_idle_flux), dtype=float),
             np.full(flux.shape, float(q2_idle_flux), dtype=float),
         )
     raise ValueError(f"Unsupported sweep_target {sweep_target!r}")
@@ -370,24 +370,24 @@ def _circuit_qcq_state_signs_ordered(
     config: StudyConfig,
     ordered_indices: np.ndarray,
 ) -> np.ndarray:
-    flux_q1, flux_q2 = _pulse_qubit_flux_arrays(
+    flux_q0, flux_q2 = _pulse_qubit_flux_arrays(
         pulse_flux,
         sweep_target=sweep_target,
-        q1_idle_flux=float(config.system.q1.flux),
+        q0_idle_flux=float(config.system.q0.flux),
         q2_idle_flux=float(config.system.q2.flux),
     )
-    n_q1 = int(config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim)
+    n_q0 = int(config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim)
     n_q2 = int(config.static_benchmark.circuit_model.hilbert_truncation.q2_truncated_dim)
     n_c = int(config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim)
 
-    s_q1 = _track_transmon_eigenvector_signs(
-        flux_q1,
-        EJmax=float(config.system.q1.EJmax),
-        EC=float(config.system.q1.EC),
-        d=float(config.system.q1.d),
-        ng=float(config.system.q1.ng),
-        ncut=int(config.system.q1.ncut),
-        truncated_dim=n_q1,
+    s_q0 = _track_transmon_eigenvector_signs(
+        flux_q0,
+        EJmax=float(config.system.q0.EJmax),
+        EC=float(config.system.q0.EC),
+        d=float(config.system.q0.d),
+        ng=float(config.system.q0.ng),
+        ncut=int(config.system.q0.ncut),
+        truncated_dim=n_q0,
     )
     s_q2 = _track_transmon_eigenvector_signs(
         flux_q2,
@@ -400,13 +400,13 @@ def _circuit_qcq_state_signs_ordered(
     )
 
     n_time = int(np.asarray(pulse_flux, dtype=float).size)
-    d_total = int(n_q2 * n_c * n_q1)
+    d_total = int(n_q2 * n_c * n_q0)
     signs = np.ones((n_time, d_total), dtype=float)
     for k in range(n_q2):
         for j in range(n_c):
-            for i in range(n_q1):
-                idx = _idx_qcq(n_q2, n_c, n_q1, k, j, i)
-                signs[:, idx] = s_q2[:, k] * s_q1[:, i]
+            for i in range(n_q0):
+                idx = _idx_qcq(n_q2, n_c, n_q0, k, j, i)
+                signs[:, idx] = s_q2[:, k] * s_q0[:, i]
     order = np.asarray(ordered_indices, dtype=int).ravel()
     return np.asarray(signs[:, order], dtype=float)
 
@@ -456,7 +456,7 @@ def run_leakage_flow_benchmark(
             static_result.flux_values,
             static_result.duffing_mode_parameters,
             pulse_flux,
-            keys=("w1", "w2", "alpha1", "alpha2"),
+            keys=("w0", "w2", "alpha0", "alpha2"),
         )
         duffing_mode_parameters_t["wc"] = np.asarray(wc_t, dtype=float)
         duffing_stack = build_duffing_model_stack_from_parameters(
@@ -484,16 +484,16 @@ def run_leakage_flow_benchmark(
     n_q_duf = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit)
     n_c_duf = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler)
     idx_duf_init = _idx_qcq(n_q_duf, n_c_duf, n_q_duf, 1, 0, 1)
-    n_q1_cir = int(config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim)
+    n_q0_cir = int(config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim)
     n_q2_cir = int(config.static_benchmark.circuit_model.hilbert_truncation.q2_truncated_dim)
     n_c_cir = int(config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim)
-    idx_cir_init = _idx_qcq(n_q2_cir, n_c_cir, n_q1_cir, 1, 0, 1)
+    idx_cir_init = _idx_qcq(n_q2_cir, n_c_cir, n_q0_cir, 1, 0, 1)
 
     psi_duf = _simulate_state_trajectory(duffing_stack, times_ns, initial_index=idx_duf_init)
     psi_cir = _simulate_state_trajectory(circuit_stack, times_ns, initial_index=idx_cir_init)
 
     idx_duf_ord, labels_duf_ord = _canonical_state_order_qcq(n_q_duf, n_c_duf, n_q_duf)
-    idx_cir_ord, labels_cir_ord = _canonical_state_order_qcq(n_q1_cir, n_c_cir, n_q2_cir)
+    idx_cir_ord, labels_cir_ord = _canonical_state_order_qcq(n_q0_cir, n_c_cir, n_q2_cir)
 
     H_duf_ord = np.asarray(duffing_stack[:, idx_duf_ord][:, :, idx_duf_ord], dtype=complex)
     H_cir_ord = np.asarray(circuit_stack[:, idx_cir_ord][:, :, idx_cir_ord], dtype=complex)
@@ -547,7 +547,7 @@ def run_leakage_flow_benchmark(
     tr_curr_cir = _align_by_union_labels(tr_labels_union, tr_labels_cir_local, tr_curr_cir_local)
 
     duf_comp_idx = computational_state_indices(nlevels_qubit=n_q_duf, nlevels_coupler=n_c_duf)
-    cir_comp_idx = computational_state_indices(nlevels_qubit=n_q1_cir, nlevels_coupler=n_c_cir)
+    cir_comp_idx = computational_state_indices(nlevels_qubit=n_q0_cir, nlevels_coupler=n_c_cir)
     duf_leakage = _leakage_from_computational(psi_duf, duf_comp_idx)
     cir_leakage = _leakage_from_computational(psi_cir, cir_comp_idx)
 

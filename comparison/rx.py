@@ -151,12 +151,12 @@ def _effective_total_excitation_operator() -> np.ndarray:
     return np.kron(n, I2) + np.kron(I2, n)
 
 
-def _effective_q1_lowering_operator() -> np.ndarray:
+def _effective_q0_lowering_operator() -> np.ndarray:
     sm = np.array([[0.0, 1.0], [0.0, 0.0]], dtype=complex)
     return np.kron(I2, sm)
 
 
-def _three_mode_q1_lowering_operator(*, nlevels_qubit: int, nlevels_coupler: int) -> np.ndarray:
+def _three_mode_q0_lowering_operator(*, nlevels_qubit: int, nlevels_coupler: int) -> np.ndarray:
     id_q = np.eye(int(nlevels_qubit), dtype=complex)
     id_c = np.eye(int(nlevels_coupler), dtype=complex)
     return np.kron(np.kron(id_q, id_c), destroy(int(nlevels_qubit)))
@@ -184,19 +184,19 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
     except Exception as exc:  # pragma: no cover - import guard only
         raise ImportError("scqubits import failed while building circuit RX benchmark") from exc
 
-    q1_trunc = int(config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim)
+    q0_trunc = int(config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim)
     q2_trunc = int(config.static_benchmark.circuit_model.hilbert_truncation.q2_truncated_dim)
     c_trunc = int(config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim)
 
-    q1 = scq.TunableTransmon(
-        EJmax=float(config.system.q1.EJmax),
-        EC=float(config.system.q1.EC),
-        d=float(config.system.q1.d),
-        flux=float(config.system.q1.flux),
-        ng=float(config.system.q1.ng),
-        ncut=int(config.system.q1.ncut),
-        truncated_dim=q1_trunc,
-        id_str=str(config.system.q1.id_str),
+    q0 = scq.TunableTransmon(
+        EJmax=float(config.system.q0.EJmax),
+        EC=float(config.system.q0.EC),
+        d=float(config.system.q0.d),
+        flux=float(config.system.q0.flux),
+        ng=float(config.system.q0.ng),
+        ncut=int(config.system.q0.ncut),
+        truncated_dim=q0_trunc,
+        id_str=str(config.system.q0.id_str),
     )
     q2 = scq.TunableTransmon(
         EJmax=float(config.system.q2.EJmax),
@@ -216,12 +216,12 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
     def _to_matrix(operator: object) -> np.ndarray:
         return np.asarray(operator.full(), dtype=complex) if hasattr(operator, "full") else np.asarray(operator, dtype=complex)
 
-    hilbertspace = scq.HilbertSpace([q2, c, q1])
+    hilbertspace = scq.HilbertSpace([q2, c, q0])
     x_c = c.creation_operator() + c.annihilation_operator()
     hilbertspace.add_interaction(
         check_validity=bool(config.static_benchmark.circuit_model.interaction_validity_check),
-        g=float(config.system.interactions.g_1c),
-        op1=(q1.n_operator(), q1),
+        g=float(config.system.interactions.g_0c),
+        op1=(q0.n_operator(), q0),
         op2=(x_c, c),
     )
     hilbertspace.add_interaction(
@@ -232,20 +232,20 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
     )
 
     H = _to_matrix(hilbertspace.hamiltonian())
-    q1_esys = q1.eigensys(evals_count=q1_trunc)
-    n_q1_local = _to_matrix(q1.n_operator(energy_esys=q1_esys))
-    n_q1_lower_local = np.triu(n_q1_local, 1)
+    q0_esys = q0.eigensys(evals_count=q0_trunc)
+    n_q0_local = _to_matrix(q0.n_operator(energy_esys=q0_esys))
+    n_q0_lower_local = np.triu(n_q0_local, 1)
     id_c = np.eye(c_trunc, dtype=complex)
     id_q2 = np.eye(q2_trunc, dtype=complex)
-    drive_lower = np.kron(np.kron(id_q2, id_c), n_q1_lower_local)
+    drive_lower = np.kron(np.kron(id_q2, id_c), n_q0_lower_local)
 
-    n_q1 = np.diag(np.arange(q1_trunc, dtype=float)).astype(complex)
+    n_q0 = np.diag(np.arange(q0_trunc, dtype=float)).astype(complex)
     n_c = np.diag(np.arange(c_trunc, dtype=float)).astype(complex)
     n_q2 = np.diag(np.arange(q2_trunc, dtype=float)).astype(complex)
     total_excitation = (
-        np.kron(np.kron(id_q2, id_c), n_q1)
-        + np.kron(np.kron(id_q2, n_c), np.eye(q1_trunc, dtype=complex))
-        + np.kron(np.kron(n_q2, id_c), np.eye(q1_trunc, dtype=complex))
+        np.kron(np.kron(id_q2, id_c), n_q0)
+        + np.kron(np.kron(id_q2, n_c), np.eye(q0_trunc, dtype=complex))
+        + np.kron(np.kron(n_q2, id_c), np.eye(q0_trunc, dtype=complex))
     )
     return H, drive_lower, total_excitation
 
@@ -270,7 +270,7 @@ def _single_point_duffing_stack(config: StudyConfig, *, flux_value: float, sweep
     ).hamiltonian_stack
     H_circuit_eff = build_dressed_effective_computational_stack(
         circuit_stack,
-        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
+        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
         nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
         n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
         selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
@@ -293,8 +293,8 @@ def _single_point_duffing_stack(config: StudyConfig, *, flux_value: float, sweep
 
 
 def _single_point_effective_hamiltonian(config: StudyConfig) -> np.ndarray:
-    flux_value = np.array([float(config.system.q1.flux)], dtype=float)
-    sweep_target = "q1"
+    flux_value = np.array([float(config.system.q0.flux)], dtype=float)
+    sweep_target = "q0"
 
     duffing_stack = _single_point_duffing_stack(
         config,
@@ -320,7 +320,7 @@ def _single_point_effective_hamiltonian(config: StudyConfig) -> np.ndarray:
     )
     H_circuit_eff = build_dressed_effective_computational_stack(
         circuit_stack,
-        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
+        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
         nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
         n_candidate_states=n_candidate_states,
         selection_mode=selection_mode,
@@ -365,8 +365,8 @@ def run_rx_benchmark(
     dt_ns: float,
     rise_time_ns: float,
 ) -> RxBenchmarkResult:
-    if str(drive_qubit) != "q1":
-        raise ValueError("RX benchmark currently supports drive_qubit='q1' only")
+    if str(drive_qubit) != "q0":
+        raise ValueError("RX benchmark currently supports drive_qubit='q0' only")
 
     times_ns, envelope = _cosine_edge_envelope(
         total_time_ns=float(total_time_ns),
@@ -377,14 +377,14 @@ def run_rx_benchmark(
     H_effective_lab = _single_point_effective_hamiltonian(config)
     H_duffing_lab = _single_point_duffing_stack(
         config,
-        flux_value=float(config.system.q1.flux),
-        sweep_target="q1",
+        flux_value=float(config.system.q0.flux),
+        sweep_target="q0",
     )[0]
     H_circuit_lab, b_circuit, N_circuit = _build_circuit_idle_components(config)
 
-    b_effective = _effective_q1_lowering_operator()
+    b_effective = _effective_q0_lowering_operator()
     N_effective = _effective_total_excitation_operator()
-    b_duffing = _three_mode_q1_lowering_operator(
+    b_duffing = _three_mode_q0_lowering_operator(
         nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
         nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
     )
@@ -433,7 +433,7 @@ def run_rx_benchmark(
         nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
     )
     idx_circuit = computational_state_indices(
-        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
+        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
         nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
     )
 

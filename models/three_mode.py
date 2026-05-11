@@ -15,12 +15,12 @@ class ThreeModeHamiltonianCommonKwargs(TypedDict):
     These include all parameters except explicit coupler frequency ``w_c``.
     """
 
-    w_1: float
+    w_0: float
     w_2: float
-    alpha_1: float
+    alpha_0: float
     alpha_c: float
     alpha_2: float
-    g_1c: float
+    g_0c: float
     g_2c: float
     nlevels_qubit: int
     nlevels_coupler: int
@@ -46,13 +46,13 @@ def coupler_frequency(
 
 def three_mode_hamiltonian(
     *,
-    w_1: float,
+    w_0: float,
     w_c: float,
     w_2: float,
-    alpha_1: float,
+    alpha_0: float,
     alpha_c: float,
     alpha_2: float,
-    g_1c: float,
+    g_0c: float,
     g_2c: float,
     nlevels_qubit: int,
     nlevels_coupler: int,
@@ -86,13 +86,13 @@ def three_mode_hamiltonian(
     n2 = kron3(n_local[2], id_c, id_q)
 
     return (
-        float(w_1) * n1
+        float(w_0) * n1
         + float(w_c) * nc
         + float(w_2) * n2
-        + (float(alpha_1) / 2.0) * (adag1 @ adag1 @ a1 @ a1)
+        + (float(alpha_0) / 2.0) * (adag1 @ adag1 @ a1 @ a1)
         + (float(alpha_c) / 2.0) * (adagc @ adagc @ ac @ ac)
         + (float(alpha_2) / 2.0) * (adag2 @ adag2 @ a2 @ a2)
-        + float(g_1c) * (adag1 @ ac + adagc @ a1)
+        + float(g_0c) * (adag1 @ ac + adagc @ a1)
         + float(g_2c) * (adag2 @ ac + adagc @ a2)
     )
 
@@ -103,7 +103,7 @@ def computational_state_indices(
     nlevels_qubit: int,
     nlevels_coupler: int
 ) -> np.ndarray:
-    """Flat indices for computational states in ``|q2,0_c,q1>`` order with ``q1`` as LSB."""
+    """Flat indices for computational states in ``|q2,0_c,q0>`` order with ``q0`` as LSB."""
     q2_significance = int(nlevels_coupler) * int(nlevels_qubit)
     return np.array([0, 1, q2_significance + 0, q2_significance + 1], dtype=int)
 
@@ -116,13 +116,13 @@ def three_mode_hamiltonian_from_kwargs(
 ) -> np.ndarray:
     """Build ``three_mode_hamiltonian`` from kwargs + coupler frequency."""
     return three_mode_hamiltonian(
-        w_1=float(ham_kwargs["w_1"]),
+        w_0=float(ham_kwargs["w_0"]),
         w_c=float(w_c),
         w_2=float(ham_kwargs["w_2"]),
-        alpha_1=float(ham_kwargs["alpha_1"]),
+        alpha_0=float(ham_kwargs["alpha_0"]),
         alpha_c=float(ham_kwargs["alpha_c"]),
         alpha_2=float(ham_kwargs["alpha_2"]),
-        g_1c=float(ham_kwargs["g_1c"]),
+        g_0c=float(ham_kwargs["g_0c"]),
         g_2c=float(ham_kwargs["g_2c"]),
         nlevels_qubit=int(ham_kwargs["nlevels_qubit"]),
         nlevels_coupler=int(ham_kwargs["nlevels_coupler"]),

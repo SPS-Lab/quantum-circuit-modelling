@@ -97,7 +97,7 @@ def _extract_circuit_metrics(
     ncut_ref = int(circuit_reference_ncut)
     system_ref = replace(
         config.system,
-        q1=replace(config.system.q1, ncut=ncut_ref),
+        q0=replace(config.system.q0, ncut=ncut_ref),
         q2=replace(config.system.q2, ncut=ncut_ref),
     )
 
@@ -111,7 +111,7 @@ def _extract_circuit_metrics(
 
     H_cir_eff = build_dressed_effective_computational_stack(
         H_cir,
-        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
+        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
         nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
         n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
         selection_mode=config.static_benchmark.dressed_subspace.selection_mode,

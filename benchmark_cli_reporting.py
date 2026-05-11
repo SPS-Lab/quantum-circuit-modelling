@@ -50,7 +50,7 @@ def build_common_truncation_lines(config: StudyConfig) -> list[str]:
     lines = [
         "Truncation settings:",
         "  System basis cutoffs:",
-        f"    q1 transmon charge cutoff: ncut={int(config.system.q1.ncut)}",
+        f"    q0 transmon charge cutoff: ncut={int(config.system.q0.ncut)}",
         f"    q2 transmon charge cutoff: ncut={int(config.system.q2.ncut)}",
         "  Duffing calibration extraction:",
         f"    calibration_mode={calibration_mode}",
@@ -62,7 +62,7 @@ def build_common_truncation_lines(config: StudyConfig) -> list[str]:
         ),
         (
             "    circuit hilbert_truncation: "
-            f"q1_truncated_dim={int(sb.circuit_model.hilbert_truncation.q1_truncated_dim)}, "
+            f"q0_truncated_dim={int(sb.circuit_model.hilbert_truncation.q0_truncated_dim)}, "
             f"q2_truncated_dim={int(sb.circuit_model.hilbert_truncation.q2_truncated_dim)}, "
             f"c_truncated_dim={int(sb.circuit_model.hilbert_truncation.c_truncated_dim)}"
         ),

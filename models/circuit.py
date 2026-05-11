@@ -29,21 +29,21 @@ def _build_circuit_hamiltonian(
     *,
     system_params: SystemParams,
     circuit_config: CircuitModelConfig,
-    q1_flux: float,
+    q0_flux: float,
     q2_flux: float,
     coupler_E_osc: float,
 ):
     scq = _require_scqubits_module()
 
-    q1 = scq.TunableTransmon(
-        EJmax=float(system_params.q1.EJmax),
-        EC=float(system_params.q1.EC),
-        d=float(system_params.q1.d),
-        flux=float(q1_flux),
-        ng=float(system_params.q1.ng),
-        ncut=int(system_params.q1.ncut),
-        truncated_dim=int(circuit_config.hilbert_truncation.q1_truncated_dim),
-        id_str=str(system_params.q1.id_str),
+    q0 = scq.TunableTransmon(
+        EJmax=float(system_params.q0.EJmax),
+        EC=float(system_params.q0.EC),
+        d=float(system_params.q0.d),
+        flux=float(q0_flux),
+        ng=float(system_params.q0.ng),
+        ncut=int(system_params.q0.ncut),
+        truncated_dim=int(circuit_config.hilbert_truncation.q0_truncated_dim),
+        id_str=str(system_params.q0.id_str),
     )
     q2 = scq.TunableTransmon(
         EJmax=float(system_params.q2.EJmax),
@@ -61,12 +61,12 @@ def _build_circuit_hamiltonian(
         id_str=str(system_params.c.id_str),
     )
 
-    hilbertspace = scq.HilbertSpace([q2, c, q1])
+    hilbertspace = scq.HilbertSpace([q2, c, q0])
     x_c = c.creation_operator() + c.annihilation_operator()
     hilbertspace.add_interaction(
         check_validity=bool(circuit_config.interaction_validity_check),
-        g=float(system_params.interactions.g_1c),
-        op1=(q1.n_operator(), q1),
+        g=float(system_params.interactions.g_0c),
+        op1=(q0.n_operator(), q0),
         op2=(x_c, c),
     )
     hilbertspace.add_interaction(
@@ -89,7 +89,7 @@ def build_circuit_model_stack(
     sweep_target: str,
 ) -> CircuitModelBuildResult:
     """Build circuit-model Hamiltonians for the configured static sweep target."""
-    q1_flux_arr, q2_flux_arr, wc = resolve_static_sweep_values(
+    q0_flux_arr, q2_flux_arr, wc = resolve_static_sweep_values(
         flux_values,
         system_params=system_params,
         coupler_frequency_config=coupler_frequency,
@@ -100,7 +100,7 @@ def build_circuit_model_stack(
         _build_circuit_hamiltonian(
             system_params=system_params,
             circuit_config=circuit_config,
-            q1_flux=float(q1_flux_arr[k]),
+            q0_flux=float(q0_flux_arr[k]),
             q2_flux=float(q2_flux_arr[k]),
             coupler_E_osc=float(wc_k),
         )

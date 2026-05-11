@@ -19,9 +19,9 @@ from study_config import CouplerFrequencyConfig, DuffingModelConfig, SystemParam
 
 @dataclass(frozen=True)
 class DuffingCalibrationResult:
-    q1_w01: float
+    q0_w01: float
     q2_w01: float
-    q1_alpha: float
+    q0_alpha: float
     q2_alpha: float
 
 
@@ -88,7 +88,7 @@ def _build_mode_parameter_arrays(
     sweep_target: str,
 ) -> dict[str, np.ndarray]:
     flux_arr = np.asarray(flux_values, dtype=float).ravel()
-    q1_flux_arr, q2_flux_arr, wc_arr = resolve_static_sweep_values(
+    q0_flux_arr, q2_flux_arr, wc_arr = resolve_static_sweep_values(
         flux_arr,
         system_params=system_params,
         coupler_frequency_config=coupler_frequency,
@@ -99,11 +99,11 @@ def _build_mode_parameter_arrays(
     trunc_dim = int(duffing_config.transmon_spectral_extraction.truncated_dim)
     calibration_mode = str(duffing_config.calibration_mode).strip().lower()
 
-    EJ1_arr = np.asarray(
+    EJ0_arr = np.asarray(
         flux_dependent_EJ(
-            EJ_max=system_params.q1.EJmax,
-            flux_bias=q1_flux_arr,
-            d=system_params.q1.d
+            EJ_max=system_params.q0.EJmax,
+            flux_bias=q0_flux_arr,
+            d=system_params.q0.d
         ),
         dtype=float,
     ).ravel()
@@ -117,15 +117,15 @@ def _build_mode_parameter_arrays(
     ).ravel()
 
     if calibration_mode == "per-flux":
-        w1_arr = np.empty_like(flux_arr, dtype=float)
+        w0_arr = np.empty_like(flux_arr, dtype=float)
         w2_arr = np.empty_like(flux_arr, dtype=float)
-        alpha1_arr = np.empty_like(flux_arr, dtype=float)
+        alpha0_arr = np.empty_like(flux_arr, dtype=float)
         alpha2_arr = np.empty_like(flux_arr, dtype=float)
         for k in range(flux_arr.shape[0]):
-            w1_arr[k], alpha1_arr[k] = _transmon_w01_alpha(
-                EJ=float(EJ1_arr[k]),
-                EC=system_params.q1.EC,
-                ng=system_params.q1.ng,
+            w0_arr[k], alpha0_arr[k] = _transmon_w01_alpha(
+                EJ=float(EJ0_arr[k]),
+                EC=system_params.q0.EC,
+                ng=system_params.q0.ng,
                 ncut=ncut,
                 truncated_dim=trunc_dim,
             )
@@ -137,29 +137,29 @@ def _build_mode_parameter_arrays(
                 truncated_dim=trunc_dim,
             )
     elif calibration_mode == "analytic-per-flux":
-        w1_arr, alpha1_arr = _transmon_analytic_w01_alpha(
-            EJ=EJ1_arr,
-            EC=system_params.q1.EC
+        w0_arr, alpha0_arr = _transmon_analytic_w01_alpha(
+            EJ=EJ0_arr,
+            EC=system_params.q0.EC
         )
         w2_arr, alpha2_arr = _transmon_analytic_w01_alpha(
             EJ=EJ2_arr,
             EC=system_params.q2.EC
         )
     elif calibration_mode == "fixed":
-        EJ1_ref = float(flux_dependent_EJ(
-            EJ_max=system_params.q1.EJmax,
-            flux_bias=system_params.q1.flux,
-            d=system_params.q1.d
+        EJ0_ref = float(flux_dependent_EJ(
+            EJ_max=system_params.q0.EJmax,
+            flux_bias=system_params.q0.flux,
+            d=system_params.q0.d
         ))
         EJ2_ref = float(flux_dependent_EJ(
             EJ_max=system_params.q2.EJmax,
             flux_bias=system_params.q2.flux,
             d=system_params.q2.d)
         )
-        w1_ref, alpha1_ref = _transmon_w01_alpha(
-            EJ=EJ1_ref,
-            EC=system_params.q1.EC,
-            ng=system_params.q1.ng,
+        w0_ref, alpha0_ref = _transmon_w01_alpha(
+            EJ=EJ0_ref,
+            EC=system_params.q0.EC,
+            ng=system_params.q0.ng,
             ncut=ncut,
             truncated_dim=trunc_dim,
         )
@@ -170,21 +170,21 @@ def _build_mode_parameter_arrays(
             ncut=ncut,
             truncated_dim=trunc_dim,
         )
-        w1_arr = np.full_like(flux_arr, float(w1_ref), dtype=float)
+        w0_arr = np.full_like(flux_arr, float(w0_ref), dtype=float)
         w2_arr = np.full_like(flux_arr, float(w2_ref), dtype=float)
-        alpha1_arr = np.full_like(flux_arr, float(alpha1_ref), dtype=float)
+        alpha0_arr = np.full_like(flux_arr, float(alpha0_ref), dtype=float)
         alpha2_arr = np.full_like(flux_arr, float(alpha2_ref), dtype=float)
     elif calibration_mode == "fitted-static":
         # Use per-flux numerical transmon extraction as the latent-parameter prior.
-        w1_arr = np.empty_like(flux_arr, dtype=float)
+        w0_arr = np.empty_like(flux_arr, dtype=float)
         w2_arr = np.empty_like(flux_arr, dtype=float)
-        alpha1_arr = np.empty_like(flux_arr, dtype=float)
+        alpha0_arr = np.empty_like(flux_arr, dtype=float)
         alpha2_arr = np.empty_like(flux_arr, dtype=float)
         for k in range(flux_arr.shape[0]):
-            w1_arr[k], alpha1_arr[k] = _transmon_w01_alpha(
-                EJ=float(EJ1_arr[k]),
-                EC=system_params.q1.EC,
-                ng=system_params.q1.ng,
+            w0_arr[k], alpha0_arr[k] = _transmon_w01_alpha(
+                EJ=float(EJ0_arr[k]),
+                EC=system_params.q0.EC,
+                ng=system_params.q0.ng,
                 ncut=ncut,
                 truncated_dim=trunc_dim,
             )
@@ -199,9 +199,9 @@ def _build_mode_parameter_arrays(
         raise ValueError(f"Unsupported Duffing calibration_mode {duffing_config.calibration_mode!r}")
 
     return {
-        "w1": np.asarray(w1_arr, dtype=float),
+        "w0": np.asarray(w0_arr, dtype=float),
         "w2": np.asarray(w2_arr, dtype=float),
-        "alpha1": np.asarray(alpha1_arr, dtype=float),
+        "alpha0": np.asarray(alpha0_arr, dtype=float),
         "alpha2": np.asarray(alpha2_arr, dtype=float),
         "wc": np.asarray(wc_arr, dtype=float),
     }
@@ -213,32 +213,32 @@ def build_duffing_model_stack_from_parameters(
     duffing_config: DuffingModelConfig,
 ) -> DuffingModelBuildResult:
     """Build a Duffing Hamiltonian stack from explicit per-point mode parameters."""
-    w1_arr = np.asarray(mode_parameters["w1"], dtype=float).ravel()
+    w0_arr = np.asarray(mode_parameters["w0"], dtype=float).ravel()
     w2_arr = np.asarray(mode_parameters["w2"], dtype=float).ravel()
-    alpha1_arr = np.asarray(mode_parameters["alpha1"], dtype=float).ravel()
+    alpha0_arr = np.asarray(mode_parameters["alpha0"], dtype=float).ravel()
     alpha2_arr = np.asarray(mode_parameters["alpha2"], dtype=float).ravel()
     wc_arr = np.asarray(mode_parameters["wc"], dtype=float).ravel()
 
-    if not (w1_arr.shape == w2_arr.shape == alpha1_arr.shape == alpha2_arr.shape == wc_arr.shape):
+    if not (w0_arr.shape == w2_arr.shape == alpha0_arr.shape == alpha2_arr.shape == wc_arr.shape):
         raise ValueError("Duffing mode parameter arrays must all share the same shape")
 
     nlevels_q = int(duffing_config.hilbert_truncation.nlevels_qubit)
     nlevels_c = int(duffing_config.hilbert_truncation.nlevels_coupler)
     alpha_c = float(duffing_config.coupler_anharmonicity)
-    g_1c = float(system_params.interactions.g_1c)
+    g_0c = float(system_params.interactions.g_0c)
     g_2c = float(system_params.interactions.g_2c)
 
     mats: list[np.ndarray] = []
-    for k in range(w1_arr.shape[0]):
+    for k in range(w0_arr.shape[0]):
         mats.append(
             three_mode_hamiltonian(
-                w_1=float(w1_arr[k]),
+                w_0=float(w0_arr[k]),
                 w_c=float(wc_arr[k]),
                 w_2=float(w2_arr[k]),
-                alpha_1=float(alpha1_arr[k]),
+                alpha_0=float(alpha0_arr[k]),
                 alpha_c=alpha_c,
                 alpha_2=float(alpha2_arr[k]),
-                g_1c=g_1c,
+                g_0c=g_0c,
                 g_2c=g_2c,
                 nlevels_qubit=nlevels_q,
                 nlevels_coupler=nlevels_c,
@@ -247,12 +247,12 @@ def build_duffing_model_stack_from_parameters(
     H_stack = np.stack(mats, axis=0)
 
     ham_kwargs: dict[str, float | int] = {
-        "w_1": float(w1_arr[0]),
+        "w_0": float(w0_arr[0]),
         "w_2": float(w2_arr[0]),
-        "alpha_1": float(alpha1_arr[0]),
+        "alpha_0": float(alpha0_arr[0]),
         "alpha_c": alpha_c,
         "alpha_2": float(alpha2_arr[0]),
-        "g_1c": g_1c,
+        "g_0c": g_0c,
         "g_2c": g_2c,
         "nlevels_qubit": nlevels_q,
         "nlevels_coupler": nlevels_c,
@@ -262,15 +262,15 @@ def build_duffing_model_stack_from_parameters(
         hamiltonian_stack=H_stack,
         hamiltonian_kwargs=ham_kwargs,
         calibration=DuffingCalibrationResult(
-            q1_w01=float(w1_arr[0]),
+            q0_w01=float(w0_arr[0]),
             q2_w01=float(w2_arr[0]),
-            q1_alpha=float(alpha1_arr[0]),
+            q0_alpha=float(alpha0_arr[0]),
             q2_alpha=float(alpha2_arr[0]),
         ),
         mode_parameters={
-            "w1": np.asarray(w1_arr, dtype=float),
+            "w0": np.asarray(w0_arr, dtype=float),
             "w2": np.asarray(w2_arr, dtype=float),
-            "alpha1": np.asarray(alpha1_arr, dtype=float),
+            "alpha0": np.asarray(alpha0_arr, dtype=float),
             "alpha2": np.asarray(alpha2_arr, dtype=float),
             "wc": np.asarray(wc_arr, dtype=float),
         },
@@ -305,26 +305,26 @@ def fit_duffing_mode_parameters_to_reference(
     n_c = int(duffing_config.hilbert_truncation.nlevels_coupler)
 
     fitted = {
-        "w1": np.array(initial["w1"], copy=True, dtype=float),
+        "w0": np.array(initial["w0"], copy=True, dtype=float),
         "w2": np.array(initial["w2"], copy=True, dtype=float),
-        "alpha1": np.array(initial["alpha1"], copy=True, dtype=float),
+        "alpha0": np.array(initial["alpha0"], copy=True, dtype=float),
         "alpha2": np.array(initial["alpha2"], copy=True, dtype=float),
         "wc": np.array(initial["wc"], copy=True, dtype=float),
     }
 
-    for k in range(fitted["w1"].shape[0]):
+    for k in range(fitted["w0"].shape[0]):
         x0 = np.array(
             [
-                float(initial["w1"][k]),
+                float(initial["w0"][k]),
                 float(initial["w2"][k]),
-                float(initial["alpha1"][k]),
+                float(initial["alpha0"][k]),
                 float(initial["alpha2"][k]),
             ],
             dtype=float,
         )
         target = np.array(
             [
-                float(ref_params["w1"][k]),
+                float(ref_params["w0"][k]),
                 float(ref_params["w2"][k]),
                 float(ref_params["J"][k]),
                 float(ref_params["zeta"][k]),
@@ -353,9 +353,9 @@ def fit_duffing_mode_parameters_to_reference(
         def residual(x: np.ndarray) -> np.ndarray:
             candidate = build_duffing_model_stack_from_parameters(
                 {
-                    "w1": np.array([float(x[0])], dtype=float),
+                    "w0": np.array([float(x[0])], dtype=float),
                     "w2": np.array([float(x[1])], dtype=float),
-                    "alpha1": np.array([float(x[2])], dtype=float),
+                    "alpha0": np.array([float(x[2])], dtype=float),
                     "alpha2": np.array([float(x[3])], dtype=float),
                     "wc": np.array([float(initial["wc"][k])], dtype=float),
                 },
@@ -372,7 +372,7 @@ def fit_duffing_mode_parameters_to_reference(
             params = extract_model1_parameters_from_4x4_stack(dressed)
             obs = np.array(
                 [
-                    float(params["w1"][0]),
+                    float(params["w0"][0]),
                     float(params["w2"][0]),
                     float(params["J"][0]),
                     float(params["zeta"][0]),
@@ -393,9 +393,9 @@ def fit_duffing_mode_parameters_to_reference(
             max_nfev=int(max_nfev),
         )
         x_best = x0 if not result.success else np.asarray(result.x, dtype=float)
-        fitted["w1"][k] = float(x_best[0])
+        fitted["w0"][k] = float(x_best[0])
         fitted["w2"][k] = float(x_best[1])
-        fitted["alpha1"][k] = float(x_best[2])
+        fitted["alpha0"][k] = float(x_best[2])
         fitted["alpha2"][k] = float(x_best[3])
 
     return fitted

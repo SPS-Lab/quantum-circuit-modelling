@@ -90,7 +90,7 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
 
     H_circuit_eff = build_dressed_effective_computational_stack(
         circuit.hamiltonian_stack,
-        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
+        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
         nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
         selection_mode=dressed_mode,
         n_candidate_states=n_cand,
@@ -179,9 +179,9 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     params_duffing = extract_model1_parameters_from_4x4_stack(H_duffing_eff)
     params_circuit = extract_model1_parameters_from_4x4_stack(H_circuit_eff)
 
-    d1 = np.abs(params_circuit["w1"] - wc)
+    d1 = np.abs(params_circuit["w0"] - wc)
     d2 = np.abs(params_circuit["w2"] - wc)
-    g_scale = max(abs(config.system.interactions.g_1c), abs(config.system.interactions.g_2c), 1e-12)
+    g_scale = max(abs(config.system.interactions.g_0c), abs(config.system.interactions.g_2c), 1e-12)
     detuning_ratio = np.minimum(d1, d2) / g_scale
 
     idle_thr = float(config.static_benchmark.regime_thresholds.idle_ratio)

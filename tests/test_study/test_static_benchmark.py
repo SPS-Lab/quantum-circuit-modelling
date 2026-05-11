@@ -49,7 +49,7 @@ def _add_required_study_sections(payload: dict[str, object]) -> None:
 def _write_small_system_params(tmp_path: Path) -> Path:
     src = _ROOT / "params" / "system_params.json"
     payload = json.loads(src.read_text(encoding="utf-8"))
-    payload["parameters"]["q1"]["ncut"] = 25
+    payload["parameters"]["q0"]["ncut"] = 25
     payload["parameters"]["q2"]["ncut"] = 25
 
     dst = tmp_path / "system_params_small.json"
@@ -62,7 +62,7 @@ def _write_small_study_params(
     tmp_path: Path,
     *,
     coupler_amplitude: float = 0.0,
-    sweep_target: str = "q1",
+    sweep_target: str = "q0",
     duffing_calibration_mode: str = "analytic-per-flux",
 ) -> Path:
     src = _ROOT / "params" / "benchmark_params.json"
@@ -74,7 +74,7 @@ def _write_small_study_params(
     sb["dressed_subspace"]["n_candidate_states"] = 12
     sb["duffing_model"]["hilbert_truncation"]["nlevels_qubit"] = 3
     sb["duffing_model"]["hilbert_truncation"]["nlevels_coupler"] = 3
-    sb["circuit_model"]["hilbert_truncation"]["q1_truncated_dim"] = 4
+    sb["circuit_model"]["hilbert_truncation"]["q0_truncated_dim"] = 4
     sb["circuit_model"]["hilbert_truncation"]["q2_truncated_dim"] = 4
     sb["circuit_model"]["hilbert_truncation"]["c_truncated_dim"] = 4
     sb["coupler_frequency"]["amplitude"] = float(coupler_amplitude)
@@ -100,11 +100,11 @@ def test_load_study_config(tmp_path: Path) -> None:
         system_params_path=_write_small_system_params(tmp_path),
         study_params_path=_write_small_study_params(tmp_path),
     )
-    assert cfg.system.q1.EJmax > 0.0
+    assert cfg.system.q0.EJmax > 0.0
     assert cfg.static_benchmark.flux_sweep.num_points > 2
     assert cfg.static_benchmark.effective_model.derivation_source in {"duffing", "circuit"}
     assert cfg.static_benchmark.effective_model.fit_basis in {"single-harmonic", "magnitude-exchange-like"}
-    assert cfg.static_benchmark.flux_control.sweep_target in {"coupler", "q1", "q2"}
+    assert cfg.static_benchmark.flux_control.sweep_target in {"coupler", "q0", "q2"}
     assert cfg.static_benchmark.duffing_model.calibration_mode in {"fixed", "analytic-per-flux", "per-flux", "fitted-static"}
     assert len(cfg.truncation_benchmark.duffing_ncut_values) > 0
     assert cfg.truncation_benchmark.duffing_truncated_dim >= 3
@@ -118,7 +118,7 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.cz_benchmark.scan_dt_ns > 0.0
     assert cfg.cz_benchmark.scan_max_hold_ns >= 0.0
     assert cfg.cz_benchmark.scan_leakage_penalty >= 0.0
-    assert cfg.rx_benchmark.drive_qubit == "q1"
+    assert cfg.rx_benchmark.drive_qubit == "q0"
     assert cfg.rx_benchmark.drive_frequency > 0.0
     assert cfg.rx_benchmark.drive_amplitude >= 0.0
     assert cfg.rx_benchmark.total_time_ns > 0.0
@@ -138,13 +138,13 @@ def test_effective_fit_is_compact_global_model() -> None:
     flux = np.linspace(0.0, 1.0, 41)
     non_harmonic = np.cos(2.0 * np.pi * flux) + 0.2 * np.cos(4.0 * np.pi * flux)
     extracted = {
-        "w1": non_harmonic,
+        "w0": non_harmonic,
         "w2": non_harmonic + 0.1,
         "J": 0.05 * non_harmonic,
         "zeta": 0.01 * non_harmonic,
     }
     fit = fit_single_harmonic_parameters(flux, extracted_parameters=extracted)
-    mismatch = np.max(np.abs(fit.fitted_parameters["w1"] - extracted["w1"]))
+    mismatch = np.max(np.abs(fit.fitted_parameters["w0"] - extracted["w0"]))
     assert mismatch > 1e-3
 
 
@@ -161,7 +161,7 @@ def test_extract_model1_parameters_gauge_fixes_exchange_phase() -> None:
 
     assert np.any(params_raw["J"] < 0.0)
     assert np.all(params_fixed["J"] >= 0.0)
-    assert np.allclose(params_fixed["w1"], params_raw["w1"])
+    assert np.allclose(params_fixed["w0"], params_raw["w0"])
     assert np.allclose(params_fixed["w2"], params_raw["w2"])
     assert np.allclose(params_fixed["zeta"], params_raw["zeta"])
 
@@ -181,7 +181,7 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert np.isfinite(float(np.mean(out.duffing_error_rmse)))
     assert set(out.effective_fit_coefficient_names) == {"J", "zeta"}
     assert set(out.effective_fit_coefficients) == {"J", "zeta"}
-    assert set(out.duffing_mode_parameters) == {"w1", "w2", "alpha1", "alpha2", "wc"}
+    assert set(out.duffing_mode_parameters) == {"w0", "w2", "alpha0", "alpha2", "wc"}
     assert len(out.effective_fit_coefficient_names["J"]) == out.effective_fit_coefficients["J"].shape[0]
     assert len(out.effective_fit_coefficient_names["zeta"]) == out.effective_fit_coefficients["zeta"].shape[0]
     assert out.effective_fit_coefficients["J"].shape[0] >= 3
@@ -218,9 +218,9 @@ def test_static_benchmark_uses_coupler_amplitude_from_config(tmp_path: Path) -> 
     assert float(np.ptp(out_nonzero.circuit_relative_energies[:, 1])) > 1e-6
 
 
-def test_static_benchmark_q1_sweep_varies_spectrum_with_fixed_coupler(tmp_path: Path) -> None:
+def test_static_benchmark_q0_sweep_varies_spectrum_with_fixed_coupler(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
-    study_path = _write_small_study_params(tmp_path, coupler_amplitude=0.0, sweep_target="q1")
+    study_path = _write_small_study_params(tmp_path, coupler_amplitude=0.0, sweep_target="q0")
 
     out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
 
@@ -232,7 +232,7 @@ def test_duffing_fixed_calibration_is_not_recomputed_per_flux(tmp_path: Path) ->
     study_path = _write_small_study_params(
         tmp_path,
         coupler_amplitude=0.0,
-        sweep_target="q1",
+        sweep_target="q0",
         duffing_calibration_mode="fixed",
     )
     out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
@@ -244,7 +244,7 @@ def test_duffing_per_flux_calibration_can_be_enabled_explicitly(tmp_path: Path) 
     study_path = _write_small_study_params(
         tmp_path,
         coupler_amplitude=0.0,
-        sweep_target="q1",
+        sweep_target="q0",
         duffing_calibration_mode="per-flux",
     )
     out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
@@ -256,7 +256,7 @@ def test_duffing_analytic_per_flux_calibration_varies_with_flux(tmp_path: Path) 
     study_path = _write_small_study_params(
         tmp_path,
         coupler_amplitude=0.0,
-        sweep_target="q1",
+        sweep_target="q0",
         duffing_calibration_mode="analytic-per-flux",
     )
     out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
@@ -268,13 +268,13 @@ def test_duffing_fitted_static_calibration_runs_and_exposes_mode_parameters(tmp_
     study_path = _write_small_study_params(
         tmp_path,
         coupler_amplitude=0.0,
-        sweep_target="q1",
+        sweep_target="q0",
         duffing_calibration_mode="fitted-static",
     )
     out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
-    assert set(out.duffing_mode_parameters) == {"w1", "w2", "alpha1", "alpha2", "wc"}
+    assert set(out.duffing_mode_parameters) == {"w0", "w2", "alpha0", "alpha2", "wc"}
     assert all(np.all(np.isfinite(values)) for values in out.duffing_mode_parameters.values())
-    assert out.duffing_mode_parameters["w1"].shape == out.flux_values.shape
+    assert out.duffing_mode_parameters["w0"].shape == out.flux_values.shape
 
 
 def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
