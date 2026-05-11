@@ -71,19 +71,19 @@ def three_mode_hamiltonian(
     id_q = eye(int(nlevels_qubit), dtype=complex)
     id_c = eye(int(nlevels_coupler), dtype=complex)
 
-    def kron3(o1: np.ndarray, o2: np.ndarray, o3: np.ndarray) -> np.ndarray:
-        return kron(kron(o1, o2), o3)
+    def kron3(o3: np.ndarray, o2: np.ndarray, o1: np.ndarray) -> np.ndarray:
+        return kron(kron(o3, o2), o1)
 
-    a1 = kron3(a_local[0], id_c, id_q)
+    a1 = kron3(id_q, id_c, a_local[0])
     ac = kron3(id_q, a_local[1], id_q)
-    a2 = kron3(id_q, id_c, a_local[2])
-    adag1 = kron3(adag_local[0], id_c, id_q)
+    a2 = kron3(a_local[2], id_c, id_q)
+    adag1 = kron3(id_q, id_c, adag_local[0])
     adagc = kron3(id_q, adag_local[1], id_q)
-    adag2 = kron3(id_q, id_c, adag_local[2])
+    adag2 = kron3(adag_local[2], id_c, id_q)
 
-    n1 = kron3(n_local[0], id_c, id_q)
+    n1 = kron3(id_q, id_c, n_local[0])
     nc = kron3(id_q, n_local[1], id_q)
-    n2 = kron3(id_q, id_c, n_local[2])
+    n2 = kron3(n_local[2], id_c, id_q)
 
     return (
         float(w_1) * n1
@@ -104,8 +104,8 @@ def computational_state_indices(
     nlevels_coupler: int
 ) -> np.ndarray:
     """Flat indices for computational states in ``|q2,0_c,q1>`` order with ``q1`` as LSB."""
-    q1_significance = int(nlevels_qubit) * int(nlevels_coupler)
-    return np.array([0, q1_significance + 0, 1, q1_significance + 1], dtype=int)
+    q2_significance = int(nlevels_coupler) * int(nlevels_qubit)
+    return np.array([0, 1, q2_significance + 0, q2_significance + 1], dtype=int)
 
 
 

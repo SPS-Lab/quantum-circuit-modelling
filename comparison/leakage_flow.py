@@ -46,8 +46,8 @@ class LeakageFlowBenchmarkResult:
     summary: dict[str, float]
 
 
-def _idx_qcq(n1: int, nc: int, n2: int, i: int, j: int, k: int) -> int:
-    return int((i * nc + j) * n2 + k)
+def _idx_qcq(n2: int, nc: int, n1: int, k: int, j: int, i: int) -> int:
+    return int((k * nc + j) * n1 + i)
 
 def _time_integral(values: np.ndarray, times_ns: np.ndarray) -> float:
     y = np.asarray(values, dtype=float).ravel()
@@ -100,8 +100,8 @@ def _canonical_state_order_qcq(n1: int, nc: int, n2: int) -> tuple[np.ndarray, n
 
     # Display convention is |q2,c,q1>, so lexical tie-break follows (q2, c, q1) = (k, j, i).
     triples_sorted = sorted(triples, key=lambda t: (t[0] + t[1] + t[2], t[2], t[1], t[0]))
-    idx = np.array([_idx_qcq(n1, nc, n2, i, j, k) for (i, j, k) in triples_sorted], dtype=int)
-    labels = np.array([f"|{k},{j},{i}>" for (i, j, k) in triples_sorted], dtype=str)
+    idx = np.array([_idx_qcq(n2, nc, n1, k, j, i) for (k, j, i) in triples_sorted], dtype=int)
+    labels = np.array([f"|{k},{j},{i}>" for (k, j, i) in triples_sorted], dtype=str)
     return idx, labels
 
 
@@ -400,13 +400,13 @@ def _circuit_qcq_state_signs_ordered(
     )
 
     n_time = int(np.asarray(pulse_flux, dtype=float).size)
-    d_total = int(n_q1 * n_c * n_q2)
+    d_total = int(n_q2 * n_c * n_q1)
     signs = np.ones((n_time, d_total), dtype=float)
-    for i in range(n_q1):
+    for k in range(n_q2):
         for j in range(n_c):
-            for k in range(n_q2):
-                idx = _idx_qcq(n_q1, n_c, n_q2, i, j, k)
-                signs[:, idx] = s_q1[:, i] * s_q2[:, k]
+            for i in range(n_q1):
+                idx = _idx_qcq(n_q2, n_c, n_q1, k, j, i)
+                signs[:, idx] = s_q2[:, k] * s_q1[:, i]
     order = np.asarray(ordered_indices, dtype=int).ravel()
     return np.asarray(signs[:, order], dtype=float)
 
@@ -487,7 +487,7 @@ def run_leakage_flow_benchmark(
     n_q1_cir = int(config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim)
     n_q2_cir = int(config.static_benchmark.circuit_model.hilbert_truncation.q2_truncated_dim)
     n_c_cir = int(config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim)
-    idx_cir_init = _idx_qcq(n_q1_cir, n_c_cir, n_q2_cir, 1, 0, 1)
+    idx_cir_init = _idx_qcq(n_q2_cir, n_c_cir, n_q1_cir, 1, 0, 1)
 
     psi_duf = _simulate_state_trajectory(duffing_stack, times_ns, initial_index=idx_duf_init)
     psi_cir = _simulate_state_trajectory(circuit_stack, times_ns, initial_index=idx_cir_init)

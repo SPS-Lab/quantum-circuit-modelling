@@ -61,7 +61,7 @@ def _build_circuit_hamiltonian(
         id_str=str(system_params.c.id_str),
     )
 
-    hilbertspace = scq.HilbertSpace([q1, c, q2])
+    hilbertspace = scq.HilbertSpace([q2, c, q1])
     x_c = c.creation_operator() + c.annihilation_operator()
     hilbertspace.add_interaction(
         check_validity=bool(circuit_config.interaction_validity_check),

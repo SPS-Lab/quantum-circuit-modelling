@@ -159,7 +159,7 @@ def _effective_q1_lowering_operator() -> np.ndarray:
 def _three_mode_q1_lowering_operator(*, nlevels_qubit: int, nlevels_coupler: int) -> np.ndarray:
     id_q = np.eye(int(nlevels_qubit), dtype=complex)
     id_c = np.eye(int(nlevels_coupler), dtype=complex)
-    return np.kron(np.kron(destroy(int(nlevels_qubit)), id_c), id_q)
+    return np.kron(np.kron(id_q, id_c), destroy(int(nlevels_qubit)))
 
 
 def _three_mode_total_excitation_operator(*, nlevels_qubit: int, nlevels_coupler: int) -> np.ndarray:
@@ -172,9 +172,9 @@ def _three_mode_total_excitation_operator(*, nlevels_qubit: int, nlevels_coupler
     id_q = np.eye(int(nlevels_qubit), dtype=complex)
     id_c = np.eye(int(nlevels_coupler), dtype=complex)
     return (
-        np.kron(np.kron(n_q, id_c), id_q)
+        np.kron(np.kron(id_q, id_c), n_q)
         + np.kron(np.kron(id_q, n_c), id_q)
-        + np.kron(np.kron(id_q, id_c), n_q)
+        + np.kron(np.kron(n_q, id_c), id_q)
     )
 
 
@@ -216,7 +216,7 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
     def _to_matrix(operator: object) -> np.ndarray:
         return np.asarray(operator.full(), dtype=complex) if hasattr(operator, "full") else np.asarray(operator, dtype=complex)
 
-    hilbertspace = scq.HilbertSpace([q1, c, q2])
+    hilbertspace = scq.HilbertSpace([q2, c, q1])
     x_c = c.creation_operator() + c.annihilation_operator()
     hilbertspace.add_interaction(
         check_validity=bool(config.static_benchmark.circuit_model.interaction_validity_check),
@@ -237,15 +237,15 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
     n_q1_lower_local = np.triu(n_q1_local, 1)
     id_c = np.eye(c_trunc, dtype=complex)
     id_q2 = np.eye(q2_trunc, dtype=complex)
-    drive_lower = np.kron(np.kron(n_q1_lower_local, id_c), id_q2)
+    drive_lower = np.kron(np.kron(id_q2, id_c), n_q1_lower_local)
 
     n_q1 = np.diag(np.arange(q1_trunc, dtype=float)).astype(complex)
     n_c = np.diag(np.arange(c_trunc, dtype=float)).astype(complex)
     n_q2 = np.diag(np.arange(q2_trunc, dtype=float)).astype(complex)
     total_excitation = (
-        np.kron(np.kron(n_q1, id_c), id_q2)
-        + np.kron(np.kron(np.eye(q1_trunc, dtype=complex), n_c), id_q2)
-        + np.kron(np.kron(np.eye(q1_trunc, dtype=complex), id_c), n_q2)
+        np.kron(np.kron(id_q2, id_c), n_q1)
+        + np.kron(np.kron(id_q2, n_c), np.eye(q1_trunc, dtype=complex))
+        + np.kron(np.kron(n_q2, id_c), np.eye(q1_trunc, dtype=complex))
     )
     return H, drive_lower, total_excitation
 
