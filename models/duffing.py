@@ -279,11 +279,11 @@ def build_duffing_model_stack_from_parameters(
 
 def fit_duffing_mode_parameters_to_reference(
     flux_values: np.ndarray,
+    *,
     reference_dressed_stack: np.ndarray,
     system_params: SystemParams,
     coupler_frequency: CouplerFrequencyConfig,
     duffing_config: DuffingModelConfig,
-    *,
     sweep_target: str,
     n_candidate_states: int,
     selection_mode: str,
@@ -403,10 +403,10 @@ def fit_duffing_mode_parameters_to_reference(
 
 def build_duffing_model_stack(
     flux_values: np.ndarray,
+    *,
     system_params: SystemParams,
     coupler_frequency: CouplerFrequencyConfig,
     duffing_config: DuffingModelConfig,
-    *,
     sweep_target: str = "coupler",
 ) -> DuffingModelBuildResult:
     """Build a three-mode Duffing Hamiltonian stack from system + study config.
