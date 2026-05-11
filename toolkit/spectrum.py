@@ -36,6 +36,7 @@ def overlap_row_to_col_assignment(overlap: np.ndarray) -> np.ndarray:
 
 
 def reorder_by_overlap(
+    *,
     prev_vecs: np.ndarray,
     new_vecs: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -71,6 +72,7 @@ def reorder_by_overlap(
 
 
 def _validate_projector_blocks(
+    *,
     projector_blocks: tuple[tuple[int, ...], ...] | None,
     n_track: int,
 ) -> tuple[tuple[int, ...], ...]:
@@ -138,8 +140,8 @@ def _assignment_with_projector_blocks(
 
 def track_energy_levels_stack(
     H_stack: np.ndarray,
-    n_track: int,
     *,
+    n_track: int,
     projector_blocks: tuple[tuple[int, ...], ...] | None = None,
 ) -> np.ndarray:
     """Lowest ``n_track`` energies at each step, matched for continuity along axis 0.
@@ -167,7 +169,7 @@ def track_energy_levels_stack(
     n_track = int(n_track)
     if n_track < 1 or n_track > d:
         raise ValueError(f"n_track must be in [1, d], d={d}, got {n_track}")
-    projector_blocks = _validate_projector_blocks(projector_blocks, n_track)
+    projector_blocks = _validate_projector_blocks(projector_blocks=projector_blocks, n_track=n_track)
 
     # If every slice is the same (no parameter variation), overlap tracking is ill-defined:
     # `eigh` can rotate degenerate subspaces and the Hungarian step permutes labels vs index.

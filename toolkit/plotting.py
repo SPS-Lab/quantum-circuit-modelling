@@ -143,6 +143,7 @@ def plot_energy_levels(
 
 
 def _stack_hamiltonians_vs_flux(
+    *,
     flux_values: np.ndarray,
     hamiltonian: HamiltonianFluxLike,
 ) -> np.ndarray:
@@ -175,9 +176,9 @@ def _stack_hamiltonians_vs_flux(
 
 
 def plot_energy_levels_vs_flux(
+    *,
     flux_values: np.ndarray,
     hamiltonian: HamiltonianFluxLike,
-    *,
     n_show: Optional[int] = None,
     track_by_overlap: bool = True,
     subtract_ground: bool = False,
@@ -234,14 +235,14 @@ def plot_energy_levels_vs_flux(
     flux_values = np.asarray(flux_values, dtype=float).ravel()
     n_flux = flux_values.shape[0]
 
-    H_stack = _stack_hamiltonians_vs_flux(flux_values, hamiltonian)
+    H_stack = _stack_hamiltonians_vs_flux(flux_values=flux_values, hamiltonian=hamiltonian)
     dim = H_stack.shape[1]
 
     n_track = int(n_show) if n_show is not None else dim
     n_track = min(max(n_track, 1), dim)
 
     if track_by_overlap:
-        evals = track_energy_levels_stack(H_stack, n_track)
+        evals = track_energy_levels_stack(H_stack, n_track=n_track)
     else:
         evals = np.linalg.eigvalsh(H_stack)
         evals = np.asarray(evals, dtype=float)

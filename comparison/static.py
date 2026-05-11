@@ -46,14 +46,14 @@ class StaticBenchmarkResult:
 
 def _relative_energies(
     H_stack: np.ndarray,
-    n_track: int,
     *,
+    n_track: int,
     projector_track_single_excitation: bool = False,
 ) -> np.ndarray:
     blocks = ((1, 2),) if projector_track_single_excitation and int(n_track) >= 3 else None
     evals = track_energy_levels_stack(
         np.asarray(H_stack, dtype=complex),
-        int(n_track),
+        n_track=int(n_track),
         projector_blocks=blocks,
     )
     return np.asarray(evals - evals[:, :1], dtype=float)
@@ -92,8 +92,8 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         circuit.hamiltonian_stack,
         nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
         nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
-        n_candidate_states=n_cand,
         selection_mode=dressed_mode,
+        n_candidate_states=n_cand,
     )
 
     duffing_mode = str(config.static_benchmark.duffing_model.calibration_mode).strip().lower()
@@ -105,8 +105,8 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
             coupler_frequency=config.static_benchmark.coupler_frequency,
             duffing_config=config.static_benchmark.duffing_model,
             sweep_target=config.static_benchmark.flux_control.sweep_target,
-            n_candidate_states=n_cand,
             selection_mode=dressed_mode,
+            n_candidate_states=n_cand,
         )
         duffing = build_duffing_model_stack_from_parameters(
             duffing_mode_parameters,
@@ -127,8 +127,8 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         duffing.hamiltonian_stack,
         nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
         nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
-        n_candidate_states=n_cand,
         selection_mode=dressed_mode,
+        n_candidate_states=n_cand,
     )
 
     source = config.static_benchmark.effective_model.derivation_source

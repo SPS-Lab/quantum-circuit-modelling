@@ -46,8 +46,8 @@ def main() -> None:
     repo_root = _REPO_ROOT
     reporter = CliReporter(benchmark_name="leakage_flow", script_name=Path(__file__).name)
     config = load_study_config(
-        repo_root / "params" / "system_params.json",
-        repo_root / "params" / "benchmark_params.json",
+        system_params_path=repo_root / "params" / "system_params.json",
+        study_params_path=repo_root / "params" / "benchmark_params.json",
     )
 
     lf_cfg = config.leakage_flow_benchmark

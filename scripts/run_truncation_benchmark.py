@@ -52,8 +52,8 @@ def main() -> None:
     repo_root = _REPO_ROOT
     reporter = CliReporter(benchmark_name="truncation", script_name=Path(__file__).name)
     config = load_study_config(
-        repo_root / "params" / "system_params.json",
-        repo_root / "params" / "benchmark_params.json",
+        system_params_path=repo_root / "params" / "system_params.json",
+        study_params_path=repo_root / "params" / "benchmark_params.json",
     )
     trunc_cfg = config.truncation_benchmark
 
@@ -87,14 +87,9 @@ def main() -> None:
         )
         save_result_hdf5(result, results_path, benchmark_name="truncation")
 
-    title = (
-        "Fixed-flux truncation benchmark: Duffing vs circuit "
-        f"(flux={result.flux:.6f}, target={result.sweep_target})"
-    )
     plot_truncation_benchmark(
         result,
         figure_path,
-        title,
         lowest_excited_levels_to_plot=int(trunc_cfg.lowest_excited_levels_to_plot),
     )
 

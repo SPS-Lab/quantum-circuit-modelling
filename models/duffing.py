@@ -34,6 +34,7 @@ class DuffingModelBuildResult:
 
 
 def _transmon_w01_alpha(
+    *,
     EJ: float,
     EC: float,
     ng: float,
@@ -60,7 +61,11 @@ def _transmon_w01_alpha(
     return w01, alpha
 
 
-def _transmon_analytic_w01_alpha(EJ: np.ndarray, EC: float) -> tuple[np.ndarray, np.ndarray]:
+def _transmon_analytic_w01_alpha(
+    *,
+    EJ: np.ndarray,
+    EC: float
+) -> tuple[np.ndarray, np.ndarray]:
     """Approximate transmon spectral parameters from EJ, EC.
 
     Uses the standard transmon expansion:
@@ -76,10 +81,10 @@ def _transmon_analytic_w01_alpha(EJ: np.ndarray, EC: float) -> tuple[np.ndarray,
 
 def _build_mode_parameter_arrays(
     flux_values: np.ndarray,
+    *,
     system_params: SystemParams,
     coupler_frequency: CouplerFrequencyConfig,
     duffing_config: DuffingModelConfig,
-    *,
     sweep_target: str,
 ) -> dict[str, np.ndarray]:
     flux_arr = np.asarray(flux_values, dtype=float).ravel()
@@ -95,11 +100,19 @@ def _build_mode_parameter_arrays(
     calibration_mode = str(duffing_config.calibration_mode).strip().lower()
 
     EJ1_arr = np.asarray(
-        flux_dependent_EJ(system_params.q1.EJmax, q1_flux_arr, system_params.q1.d),
+        flux_dependent_EJ(
+            EJ_max=system_params.q1.EJmax,
+            flux_bias=q1_flux_arr,
+            d=system_params.q1.d
+        ),
         dtype=float,
     ).ravel()
     EJ2_arr = np.asarray(
-        flux_dependent_EJ(system_params.q2.EJmax, q2_flux_arr, system_params.q2.d),
+        flux_dependent_EJ(
+            EJ_max=system_params.q2.EJmax,
+            flux_bias=q2_flux_arr,
+            d=system_params.q2.d
+        ),
         dtype=float,
     ).ravel()
 
@@ -110,38 +123,52 @@ def _build_mode_parameter_arrays(
         alpha2_arr = np.empty_like(flux_arr, dtype=float)
         for k in range(flux_arr.shape[0]):
             w1_arr[k], alpha1_arr[k] = _transmon_w01_alpha(
-                float(EJ1_arr[k]),
-                system_params.q1.EC,
-                system_params.q1.ng,
-                ncut,
-                trunc_dim,
+                EJ=float(EJ1_arr[k]),
+                EC=system_params.q1.EC,
+                ng=system_params.q1.ng,
+                ncut=ncut,
+                truncated_dim=trunc_dim,
             )
             w2_arr[k], alpha2_arr[k] = _transmon_w01_alpha(
-                float(EJ2_arr[k]),
-                system_params.q2.EC,
-                system_params.q2.ng,
-                ncut,
-                trunc_dim,
+                EJ=float(EJ2_arr[k]),
+                EC=system_params.q2.EC,
+                ng=system_params.q2.ng,
+                ncut=ncut,
+                truncated_dim=trunc_dim,
             )
     elif calibration_mode == "analytic-per-flux":
-        w1_arr, alpha1_arr = _transmon_analytic_w01_alpha(EJ1_arr, system_params.q1.EC)
-        w2_arr, alpha2_arr = _transmon_analytic_w01_alpha(EJ2_arr, system_params.q2.EC)
+        w1_arr, alpha1_arr = _transmon_analytic_w01_alpha(
+            EJ=EJ1_arr,
+            EC=system_params.q1.EC
+        )
+        w2_arr, alpha2_arr = _transmon_analytic_w01_alpha(
+            EJ=EJ2_arr,
+            EC=system_params.q2.EC
+        )
     elif calibration_mode == "fixed":
-        EJ1_ref = float(flux_dependent_EJ(system_params.q1.EJmax, system_params.q1.flux, system_params.q1.d))
-        EJ2_ref = float(flux_dependent_EJ(system_params.q2.EJmax, system_params.q2.flux, system_params.q2.d))
+        EJ1_ref = float(flux_dependent_EJ(
+            EJ_max=system_params.q1.EJmax,
+            flux_bias=system_params.q1.flux,
+            d=system_params.q1.d
+        ))
+        EJ2_ref = float(flux_dependent_EJ(
+            EJ_max=system_params.q2.EJmax,
+            flux_bias=system_params.q2.flux,
+            d=system_params.q2.d)
+        )
         w1_ref, alpha1_ref = _transmon_w01_alpha(
-            EJ1_ref,
-            system_params.q1.EC,
-            system_params.q1.ng,
-            ncut,
-            trunc_dim,
+            EJ=EJ1_ref,
+            EC=system_params.q1.EC,
+            ng=system_params.q1.ng,
+            ncut=ncut,
+            truncated_dim=trunc_dim,
         )
         w2_ref, alpha2_ref = _transmon_w01_alpha(
-            EJ2_ref,
-            system_params.q2.EC,
-            system_params.q2.ng,
-            ncut,
-            trunc_dim,
+            EJ=EJ2_ref,
+            EC=system_params.q2.EC,
+            ng=system_params.q2.ng,
+            ncut=ncut,
+            truncated_dim=trunc_dim,
         )
         w1_arr = np.full_like(flux_arr, float(w1_ref), dtype=float)
         w2_arr = np.full_like(flux_arr, float(w2_ref), dtype=float)
@@ -155,18 +182,18 @@ def _build_mode_parameter_arrays(
         alpha2_arr = np.empty_like(flux_arr, dtype=float)
         for k in range(flux_arr.shape[0]):
             w1_arr[k], alpha1_arr[k] = _transmon_w01_alpha(
-                float(EJ1_arr[k]),
-                system_params.q1.EC,
-                system_params.q1.ng,
-                ncut,
-                trunc_dim,
+                EJ=float(EJ1_arr[k]),
+                EC=system_params.q1.EC,
+                ng=system_params.q1.ng,
+                ncut=ncut,
+                truncated_dim=trunc_dim,
             )
             w2_arr[k], alpha2_arr[k] = _transmon_w01_alpha(
-                float(EJ2_arr[k]),
-                system_params.q2.EC,
-                system_params.q2.ng,
-                ncut,
-                trunc_dim,
+                EJ=float(EJ2_arr[k]),
+                EC=system_params.q2.EC,
+                ng=system_params.q2.ng,
+                ncut=ncut,
+                truncated_dim=trunc_dim,
             )
     else:
         raise ValueError(f"Unsupported Duffing calibration_mode {duffing_config.calibration_mode!r}")
@@ -268,9 +295,9 @@ def fit_duffing_mode_parameters_to_reference(
 
     initial = _build_mode_parameter_arrays(
         flux_values,
-        system_params,
-        coupler_frequency,
-        duffing_config,
+        system_params=system_params,
+        coupler_frequency=coupler_frequency,
+        duffing_config=duffing_config,
         sweep_target=sweep_target,
     )
     ref_params = extract_model1_parameters_from_4x4_stack(reference_dressed_stack)
@@ -399,9 +426,9 @@ def build_duffing_model_stack(
 
     mode_parameters = _build_mode_parameter_arrays(
         flux_values,
-        system_params,
-        coupler_frequency,
-        duffing_config,
+        system_params=system_params,
+        coupler_frequency=coupler_frequency,
+        duffing_config=duffing_config,
         sweep_target=sweep_target,
     )
     return build_duffing_model_stack_from_parameters(

@@ -26,6 +26,7 @@ def lowdin_orthonormalize_columns(
 
 def _validate_projector_blocks(
     projector_blocks: tuple[tuple[int, ...], ...] | None,
+    *,
     m: int,
 ) -> tuple[tuple[int, ...], ...]:
     if projector_blocks is None:
@@ -104,8 +105,8 @@ def build_dressed_effective_stack(
     H_stack: np.ndarray,
     *,
     subspace_indices: np.ndarray,
-    n_candidate_states: int = 16,
     selection_mode: str = "continuous",
+    n_candidate_states: int = 16,
     projector_blocks: tuple[tuple[int, ...], ...] | None = None,
 ) -> np.ndarray:
     """Return dressed effective subspace Hamiltonians from a full stack."""
@@ -129,7 +130,7 @@ def build_dressed_effective_stack(
         )
 
     n_cand = max(m, min(int(n_candidate_states), d))
-    projector_blocks = _validate_projector_blocks(projector_blocks, m)
+    projector_blocks = _validate_projector_blocks(projector_blocks, m=m)
     H_eff = np.empty((n_flux, m, m), dtype=complex)
     prev_selected_full: np.ndarray | None = None
 
@@ -167,15 +168,15 @@ def build_dressed_effective_stack(
 
 def build_dressed_effective_computational_stack(
     H_stack: np.ndarray,
+    *,
     nlevels_qubit: int,
     nlevels_coupler: int,
-    *,
-    n_candidate_states: int = 16,
-    selection_mode: str = "continuous",
+    selection_mode: str,
+    n_candidate_states: int,
     projector_track_single_excitation: bool = True,
 ) -> np.ndarray:
     """Return dressed effective computational ``4x4`` Hamiltonians from full stacks."""
-    idx = computational_state_indices(int(nlevels_qubit), int(nlevels_coupler))
+    idx = computational_state_indices(nlevels_qubit=int(nlevels_qubit), nlevels_coupler=int(nlevels_coupler))
     projector_blocks: tuple[tuple[int, ...], ...] | None = ((1, 2),) if projector_track_single_excitation else None
     return build_dressed_effective_stack(
         H_stack,

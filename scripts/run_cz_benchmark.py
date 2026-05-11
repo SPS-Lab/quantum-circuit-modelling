@@ -47,8 +47,8 @@ def main() -> None:
     repo_root = _REPO_ROOT
     reporter = CliReporter(benchmark_name="cz", script_name=Path(__file__).name)
     config = load_study_config(
-        repo_root / "params" / "system_params.json",
-        repo_root / "params" / "benchmark_params.json",
+        system_params_path=repo_root / "params" / "system_params.json",
+        study_params_path=repo_root / "params" / "benchmark_params.json",
     )
     cz_cfg = config.cz_benchmark
     ramp_time_ns = float(cz_cfg.ramp_time_ns)

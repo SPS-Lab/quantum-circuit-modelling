@@ -36,7 +36,12 @@ def _coeff_for_ham(c: np.ndarray | float) -> np.ndarray | float:
 
 
 
-def heff(w1: np.ndarray | float, w2: np.ndarray | float, J: np.ndarray | float, zeta: np.ndarray | float) -> np.ndarray:
+def heff(
+    *,
+    w1: np.ndarray | float,
+    w2: np.ndarray | float,
+    J: np.ndarray | float,
+    zeta: np.ndarray | float) -> np.ndarray:
     """Build effective model Hamiltonian in spin convention."""
     w1c = _coeff_for_ham(w1)
     w2c = _coeff_for_ham(w2)
@@ -51,7 +56,12 @@ def heff(w1: np.ndarray | float, w2: np.ndarray | float, J: np.ndarray | float, 
 
 
 
-def heff_spin_to_lab_hamiltonian(H_eff: np.ndarray, w1: np.ndarray, w2: np.ndarray) -> np.ndarray:
+def heff_spin_to_lab_hamiltonian(
+    H_eff: np.ndarray,
+    *,
+    w1: np.ndarray,
+    w2: np.ndarray
+) -> np.ndarray:
     """Convert model-1 ``(w/2) sigma_z`` convention to lab-frame ``w n``."""
     H_eff_arr = np.asarray(H_eff, dtype=complex)
     w1_arr = np.asarray(w1, dtype=float).reshape(-1)
@@ -86,9 +96,10 @@ def _even_three_harmonic_design_matrix(flux_values: np.ndarray) -> np.ndarray:
 
 def fit_single_harmonic_parameters(
     flux_values: np.ndarray,
+    *,
     extracted_parameters: Mapping[str, np.ndarray],
 ) -> EffectiveParameterFitResult:
-    """Fit ``x0 + a cos(2πφ) + b sin(2πφ)`` for each effective parameter."""
+    """Fit ``x0 + a cos(2*pi*psi) + b sin(2*pi*psi)`` for each effective parameter."""
     X = _single_harmonic_design_matrix(flux_values)
     coeff_names = ("x0", "a", "b")
     coeff_name_map: dict[str, tuple[str, ...]] = {}
@@ -118,6 +129,7 @@ def _fit_even_three_harmonic_parameter(
 
 
 def _fit_magnitude_exchange_single_parameter(
+    *,
     w1: np.ndarray,
     w2: np.ndarray,
     wc: np.ndarray,
@@ -154,8 +166,8 @@ def _fit_magnitude_exchange_single_parameter(
 
 def fit_magnitude_exchange_parameters(
     flux_values: np.ndarray,
-    extracted_parameters: Mapping[str, np.ndarray],
     *,
+    extracted_parameters: Mapping[str, np.ndarray],
     coupler_frequency_values: np.ndarray,
 ) -> EffectiveParameterFitResult:
     """Fit ``w1,w2`` with even harmonics and ``J,zeta`` with a magnitude-exchange surrogate."""
@@ -201,21 +213,21 @@ def fit_magnitude_exchange_parameters(
 
 def derive_effective_model_from_dressed_stack(
     flux_values: np.ndarray,
+    *,
     dressed_stack: np.ndarray,
     fit_basis: str,
-    *,
     coupler_frequency_values: np.ndarray | None = None,
 ) -> EffectiveModelDerivationResult:
     """Extract effective parameters from a dressed stack and fit compact flux laws."""
     extracted = extract_model1_parameters_from_4x4_stack(dressed_stack)
     if fit_basis == "single-harmonic":
-        parameter_fit = fit_single_harmonic_parameters(flux_values, extracted)
+        parameter_fit = fit_single_harmonic_parameters(flux_values, extracted_parameters=extracted)
     elif fit_basis == "magnitude-exchange-like":
         if coupler_frequency_values is None:
             raise ValueError("coupler_frequency_values are required for fit_basis 'magnitude-exchange-like'")
         parameter_fit = fit_magnitude_exchange_parameters(
             flux_values,
-            extracted,
+            extracted_parameters=extracted,
             coupler_frequency_values=coupler_frequency_values,
         )
     else:
@@ -234,5 +246,5 @@ def build_effective_hamiltonian_stack(parameters: Mapping[str, np.ndarray]) -> n
     j = np.asarray(parameters["J"], dtype=float).ravel()
     zeta = np.asarray(parameters["zeta"], dtype=float).ravel()
 
-    H_eff_spin = np.asarray(heff(w1, w2, j, zeta), dtype=complex)
-    return heff_spin_to_lab_hamiltonian(H_eff_spin, w1, w2)
+    H_eff_spin = np.asarray(heff(w1=w1, w2=w2, J=j, zeta=zeta), dtype=complex)
+    return heff_spin_to_lab_hamiltonian(H_eff_spin, w1=w1, w2=w2)

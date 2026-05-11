@@ -30,9 +30,9 @@ def resolve_static_sweep_values(
         q2_flux = np.full_like(flux_arr, float(system_params.q2.flux), dtype=float)
         wc = np.asarray(
             coupler_frequency(
-                float(coupler_frequency_config.wc0),
-                float(coupler_frequency_config.amplitude),
-                flux_arr,
+                wc0=float(coupler_frequency_config.wc0),
+                A=float(coupler_frequency_config.amplitude),
+                flux=flux_arr,
             ),
             dtype=float,
         ).ravel()

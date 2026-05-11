@@ -26,6 +26,7 @@ def _require_scqubits_module():
 
 
 def _build_circuit_hamiltonian(
+    *,
     system_params: SystemParams,
     circuit_config: CircuitModelConfig,
     q1_flux: float,
@@ -80,12 +81,12 @@ def _build_circuit_hamiltonian(
 
 
 def build_circuit_model_stack(
+    *,
     flux_values: np.ndarray,
     system_params: SystemParams,
     coupler_frequency: CouplerFrequencyConfig,
     circuit_config: CircuitModelConfig,
-    *,
-    sweep_target: str = "coupler",
+    sweep_target: str,
 ) -> CircuitModelBuildResult:
     """Build circuit-model Hamiltonians for the configured static sweep target."""
     q1_flux_arr, q2_flux_arr, wc = resolve_static_sweep_values(

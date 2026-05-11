@@ -97,8 +97,8 @@ def _write_small_study_params(
 
 def test_load_study_config(tmp_path: Path) -> None:
     cfg = load_study_config(
-        _write_small_system_params(tmp_path),
-        _write_small_study_params(tmp_path),
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(tmp_path),
     )
     assert cfg.system.q1.EJmax > 0.0
     assert cfg.static_benchmark.flux_sweep.num_points > 2
@@ -143,7 +143,7 @@ def test_effective_fit_is_compact_global_model() -> None:
         "J": 0.05 * non_harmonic,
         "zeta": 0.01 * non_harmonic,
     }
-    fit = fit_single_harmonic_parameters(flux, extracted)
+    fit = fit_single_harmonic_parameters(flux, extracted_parameters=extracted)
     mismatch = np.max(np.abs(fit.fitted_parameters["w1"] - extracted["w1"]))
     assert mismatch > 1e-3
 
@@ -170,7 +170,7 @@ def test_extract_model1_parameters_gauge_fixes_exchange_phase() -> None:
 def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_path, study_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
 
     out = run_static_benchmark(cfg)
 
@@ -191,7 +191,7 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
 def test_static_benchmark_fit_coefficients_roundtrip_through_hdf5(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_path, study_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
 
     out = run_static_benchmark(cfg)
     results_path = tmp_path / "static_results.h5"
@@ -210,8 +210,8 @@ def test_static_benchmark_uses_coupler_amplitude_from_config(tmp_path: Path) -> 
     study_path_zero = _write_small_study_params(tmp_path, coupler_amplitude=0.0, sweep_target="coupler")
     study_path_nonzero = _write_small_study_params(tmp_path, coupler_amplitude=0.8, sweep_target="coupler")
 
-    out_zero = run_static_benchmark(load_study_config(system_path, study_path_zero))
-    out_nonzero = run_static_benchmark(load_study_config(system_path, study_path_nonzero))
+    out_zero = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path_zero))
+    out_nonzero = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path_nonzero))
 
     # Nonzero coupler modulation must produce flux variation in the static spectrum.
     assert float(np.ptp(out_zero.circuit_relative_energies[:, 1])) < 1e-10
@@ -222,7 +222,7 @@ def test_static_benchmark_q1_sweep_varies_spectrum_with_fixed_coupler(tmp_path: 
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path, coupler_amplitude=0.0, sweep_target="q1")
 
-    out = run_static_benchmark(load_study_config(system_path, study_path))
+    out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
 
     assert float(np.ptp(out.circuit_relative_energies[:, 1])) > 1e-6
 
@@ -235,7 +235,7 @@ def test_duffing_fixed_calibration_is_not_recomputed_per_flux(tmp_path: Path) ->
         sweep_target="q1",
         duffing_calibration_mode="fixed",
     )
-    out = run_static_benchmark(load_study_config(system_path, study_path))
+    out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
     assert float(np.ptp(out.duffing_relative_energies[:, 1])) < 1e-10
 
 
@@ -247,7 +247,7 @@ def test_duffing_per_flux_calibration_can_be_enabled_explicitly(tmp_path: Path) 
         sweep_target="q1",
         duffing_calibration_mode="per-flux",
     )
-    out = run_static_benchmark(load_study_config(system_path, study_path))
+    out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
     assert float(np.ptp(out.duffing_relative_energies[:, 1])) > 1e-6
 
 
@@ -259,7 +259,7 @@ def test_duffing_analytic_per_flux_calibration_varies_with_flux(tmp_path: Path) 
         sweep_target="q1",
         duffing_calibration_mode="analytic-per-flux",
     )
-    out = run_static_benchmark(load_study_config(system_path, study_path))
+    out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
     assert float(np.ptp(out.duffing_relative_energies[:, 1])) > 1e-6
 
 
@@ -271,7 +271,7 @@ def test_duffing_fitted_static_calibration_runs_and_exposes_mode_parameters(tmp_
         sweep_target="q1",
         duffing_calibration_mode="fitted-static",
     )
-    out = run_static_benchmark(load_study_config(system_path, study_path))
+    out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
     assert set(out.duffing_mode_parameters) == {"w1", "w2", "alpha1", "alpha2", "wc"}
     assert all(np.all(np.isfinite(values)) for values in out.duffing_mode_parameters.values())
     assert out.duffing_mode_parameters["w1"].shape == out.flux_values.shape
@@ -282,7 +282,7 @@ def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
 
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_path, study_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
 
     out = run_cz_benchmark(
         cfg,
@@ -297,7 +297,7 @@ def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
 def test_rx_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_path, study_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
 
     out = run_rx_benchmark(
         cfg,
@@ -330,7 +330,7 @@ def test_cz_plot_writes_pdf(tmp_path: Path) -> None:
 
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_path, study_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
 
     out = run_cz_benchmark(
         cfg,
@@ -347,7 +347,7 @@ def test_cz_plot_writes_pdf(tmp_path: Path) -> None:
 def test_leakage_flow_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_path, study_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
 
     out = run_leakage_flow_benchmark(
         cfg,
@@ -380,7 +380,7 @@ def test_leakage_flow_benchmark_runs_with_small_config(tmp_path: Path) -> None:
 def test_leakage_flow_plot_writes_pdf(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_path, study_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
 
     out = run_leakage_flow_benchmark(
         cfg,
@@ -401,7 +401,7 @@ def test_leakage_flow_plot_writes_pdf(tmp_path: Path) -> None:
 def test_rx_plots_write_pdf(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_path, study_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
 
     out = run_rx_benchmark(
         cfg,

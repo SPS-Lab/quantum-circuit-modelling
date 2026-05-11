@@ -15,7 +15,10 @@ import numpy as np
 
 from toolkit.solver import eigensystem_single_mode
 
-def transition_frequencies(evals: np.ndarray) -> np.ndarray:
+def transition_frequencies(
+    *,
+    evals: np.ndarray
+) -> np.ndarray:
     """Transition angular frequencies omega_{mn} = (E_n - E_m) / hbar with hbar = 1.
 
     Returns ``omega`` with ``omega[m, n] = evals[n] - evals[m]``.
@@ -63,7 +66,7 @@ def single_mode_static_metrics(H: np.ndarray) -> SingleModeStaticMetrics:
     """
     evals, evecs = eigensystem_single_mode(H)
     n = evals.size
-    omega_mn = transition_frequencies(evals)
+    omega_mn = transition_frequencies(evals=evals)
 
     if n < 2:
         raise ValueError("Need at least two levels for omega_01.")

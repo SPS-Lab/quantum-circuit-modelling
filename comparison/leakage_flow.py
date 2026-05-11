@@ -546,8 +546,8 @@ def run_leakage_flow_benchmark(
     tr_curr_duf = _align_by_union_labels(tr_labels_union, tr_labels_duf_local, tr_curr_duf_local)
     tr_curr_cir = _align_by_union_labels(tr_labels_union, tr_labels_cir_local, tr_curr_cir_local)
 
-    duf_comp_idx = computational_state_indices(n_q_duf, n_c_duf)
-    cir_comp_idx = computational_state_indices(n_q1_cir, n_c_cir)
+    duf_comp_idx = computational_state_indices(nlevels_qubit=n_q_duf, nlevels_coupler=n_c_duf)
+    cir_comp_idx = computational_state_indices(nlevels_qubit=n_q1_cir, nlevels_coupler=n_c_cir)
     duf_leakage = _leakage_from_computational(psi_duf, duf_comp_idx)
     cir_leakage = _leakage_from_computational(psi_cir, cir_comp_idx)
 

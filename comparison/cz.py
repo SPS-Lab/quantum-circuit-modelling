@@ -404,12 +404,12 @@ def run_cz_benchmark(
 
     idx_effective = np.array([0, 1, 2, 3], dtype=int)
     idx_duffing = computational_state_indices(
-        config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
-        config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
+        nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
+        nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
     )
     idx_circuit = computational_state_indices(
-        config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
-        config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
+        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
+        nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
     )
     idx_duffing_intermediate = _intermediate_channel_indices(
         nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,

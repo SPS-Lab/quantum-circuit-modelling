@@ -229,12 +229,16 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _deep_merge_dict(base: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
+def _deep_merge_dict(
+    *,
+    base: dict[str, Any],
+    update: dict[str, Any]
+) -> dict[str, Any]:
     merged: dict[str, Any] = dict(base)
     for key, value in update.items():
         base_value = merged.get(key)
         if isinstance(base_value, dict) and isinstance(value, dict):
-            merged[key] = _deep_merge_dict(base_value, value)
+            merged[key] = _deep_merge_dict(base=base_value, update=value)
         else:
             merged[key] = value
     return merged
@@ -266,7 +270,7 @@ def _flatten_run_all_benchmark_params(payload: dict[str, Any]) -> dict[str, Any]
             continue
         if not isinstance(category_payload, dict):
             raise TypeError(f"study.run_all_benchmark_params.{category} must be an object")
-        normalized = _deep_merge_dict(normalized, category_payload)
+        normalized = _deep_merge_dict(base=normalized, update=category_payload)
 
     unknown_categories = sorted(set(grouped.keys()) - set(_RUN_ALL_BENCHMARK_CATEGORY_ORDER))
     if unknown_categories:
@@ -742,7 +746,11 @@ def _parse_state_to_state_leakage_benchmark(study_payload: dict[str, Any]) -> St
 
 
 
-def load_study_config(system_params_path: Path, study_params_path: Path) -> StudyConfig:
+def load_study_config(
+    *,
+    system_params_path: Path,
+    study_params_path: Path
+) -> StudyConfig:
     system_payload = _load_json(system_params_path)
     raw_study_payload = _load_json(study_params_path)
     study_payload = _flatten_run_all_benchmark_params(raw_study_payload)

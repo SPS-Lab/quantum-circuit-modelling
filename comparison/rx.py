@@ -54,7 +54,11 @@ class RxBenchmarkResult:
     summary: dict[str, float]
 
 
-def _time_grid(total_time_ns: float, dt_ns: float) -> np.ndarray:
+def _time_grid(
+    *,
+    total_time_ns: float,
+    dt_ns: float
+) -> np.ndarray:
     total = float(total_time_ns)
     dt = float(dt_ns)
     if total <= 0.0:
@@ -82,7 +86,7 @@ def _cosine_edge_envelope(*, total_time_ns: float, rise_time_ns: float, dt_ns: f
     if total < 2.0 * rise:
         raise ValueError("total_time_ns must be >= 2 * rise_time_ns")
 
-    times = _time_grid(total, dt_ns)
+    times = _time_grid(total_time_ns=total, dt_ns=dt_ns)
     envelope = np.zeros_like(times, dtype=float)
     flat_stop = total - rise
     for k, t in enumerate(times):
@@ -99,6 +103,7 @@ def _cosine_edge_envelope(*, total_time_ns: float, rise_time_ns: float, dt_ns: f
 
 def _simulate_computational_basis(
     H_stack: np.ndarray,
+    *,
     times_ns: np.ndarray,
     computational_indices: np.ndarray,
 ) -> np.ndarray:
@@ -424,17 +429,17 @@ def run_rx_benchmark(
 
     idx_effective = np.array([0, 1, 2, 3], dtype=int)
     idx_duffing = computational_state_indices(
-        config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
-        config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
+        nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
+        nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
     )
     idx_circuit = computational_state_indices(
-        config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
-        config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
+        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
+        nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
     )
 
-    amp_effective = _simulate_computational_basis(H_effective, times_ns, idx_effective)
-    amp_duffing = _simulate_computational_basis(H_duffing, times_ns, idx_duffing)
-    amp_circuit = _simulate_computational_basis(H_circuit, times_ns, idx_circuit)
+    amp_effective = _simulate_computational_basis(H_effective, times_ns=times_ns, computational_indices=idx_effective)
+    amp_duffing = _simulate_computational_basis(H_duffing, times_ns=times_ns, computational_indices=idx_duffing)
+    amp_circuit = _simulate_computational_basis(H_circuit, times_ns=times_ns, computational_indices=idx_circuit)
 
     eff_00_to_01 = _population_trace(amp_effective, row=1, col=0)
     duf_00_to_01 = _population_trace(amp_duffing, row=1, col=0)

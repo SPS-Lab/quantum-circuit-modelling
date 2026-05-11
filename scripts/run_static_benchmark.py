@@ -60,7 +60,10 @@ def main() -> None:
     system_params_path = repo_root / "params" / "system_params.json"
     study_params_path = repo_root / "params" / "benchmark_params.json"
 
-    config = load_study_config(system_params_path, study_params_path)
+    config = load_study_config(
+        system_params_path=system_params_path,
+        study_params_path=study_params_path
+    )
     figure_path = repo_root / config.static_benchmark.outputs.figure
     results_path = (
         _resolve_repo_relative(repo_root, args.results)

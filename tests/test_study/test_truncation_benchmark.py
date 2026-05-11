@@ -80,8 +80,8 @@ def _write_small_study_params(tmp_path: Path) -> Path:
 
 def test_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     cfg = load_study_config(
-        _write_small_system_params(tmp_path),
-        _write_small_study_params(tmp_path),
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(tmp_path),
     )
 
     out = run_truncation_benchmark(
@@ -125,8 +125,8 @@ def test_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> None:
 
 def test_truncation_benchmark_rejects_nonpositive_ncut(tmp_path: Path) -> None:
     cfg = load_study_config(
-        _write_small_system_params(tmp_path),
-        _write_small_study_params(tmp_path),
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(tmp_path),
     )
 
     with pytest.raises(ValueError, match="positive"):
@@ -143,8 +143,8 @@ def test_truncation_benchmark_rejects_nonpositive_ncut(tmp_path: Path) -> None:
 
 def test_truncation_plot_writes_pdf(tmp_path: Path) -> None:
     cfg = load_study_config(
-        _write_small_system_params(tmp_path),
-        _write_small_study_params(tmp_path),
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(tmp_path),
     )
     out = run_truncation_benchmark(
         cfg,
@@ -159,7 +159,6 @@ def test_truncation_plot_writes_pdf(tmp_path: Path) -> None:
     plot_truncation_benchmark(
         out,
         outfile,
-        title="test",
         lowest_excited_levels_to_plot=cfg.truncation_benchmark.lowest_excited_levels_to_plot,
     )
     assert outfile.exists()

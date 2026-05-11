@@ -53,9 +53,8 @@ def _compact_level_legend(
 def plot_truncation_benchmark(
     result: TruncationBenchmarkResult,
     outfile: Path,
-    title: str,
     *,
-    lowest_excited_levels_to_plot: int = 6,
+    lowest_excited_levels_to_plot: int,
     font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     x = np.asarray(result.duffing_ncut_values, dtype=float)

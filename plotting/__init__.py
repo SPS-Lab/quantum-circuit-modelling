@@ -14,7 +14,5 @@ __all__ = [
     "plot_rx_populations_benchmark",
     "plot_rx_diagnostics_benchmark",
     "plot_leakage_flow_benchmark",
-    "plot_leakage_benchmark",
-    "plot_state_to_state_leakage_benchmark",
     "plot_truncation_benchmark",
 ]
