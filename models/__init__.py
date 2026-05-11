@@ -8,9 +8,12 @@ from models.dressed import (
 )
 from models.duffing import (
     DuffingModelBuildResult,
+    DuffingSymbolicParameterFitResult,
     build_duffing_model_stack,
     build_duffing_model_stack_from_parameters,
     fit_duffing_mode_parameters_to_reference,
+    fit_symbolic_duffing_mode_parameters_to_reference,
+    is_reference_calibrated_duffing_mode,
 )
 from models.effective import (
     EffectiveModelDerivationResult,
@@ -35,6 +38,7 @@ from models.three_mode import (
 __all__ = [
     "CircuitModelBuildResult",
     "DuffingModelBuildResult",
+    "DuffingSymbolicParameterFitResult",
     "EffectiveModelDerivationResult",
     "build_circuit_model_stack",
     "build_duffing_model_stack",
@@ -42,6 +46,7 @@ __all__ = [
     "build_effective_hamiltonian_stack",
     "derive_effective_model_from_dressed_stack",
     "fit_duffing_mode_parameters_to_reference",
+    "fit_symbolic_duffing_mode_parameters_to_reference",
     "fit_single_harmonic_parameters",
     "heff",
     "build_dressed_effective_stack",
@@ -57,4 +62,5 @@ __all__ = [
     "three_mode_hamiltonian_stack_vs_flux",
     "computational_state_indices",
     "computational_subspace_block",
+    "is_reference_calibrated_duffing_mode",
 ]

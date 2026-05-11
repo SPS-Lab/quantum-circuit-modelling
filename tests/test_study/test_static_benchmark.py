@@ -105,7 +105,13 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.static_benchmark.effective_model.derivation_source in {"duffing", "circuit"}
     assert cfg.static_benchmark.effective_model.fit_basis in {"single-harmonic", "magnitude-exchange-like"}
     assert cfg.static_benchmark.flux_control.sweep_target in {"coupler", "q0", "q1"}
-    assert cfg.static_benchmark.duffing_model.calibration_mode in {"fixed", "analytic-per-flux", "per-flux", "fitted-static"}
+    assert cfg.static_benchmark.duffing_model.calibration_mode in {
+        "fixed",
+        "analytic-per-flux",
+        "per-flux",
+        "fitted-static",
+        "symbolic-fitted-static",
+    }
     assert len(cfg.truncation_benchmark.duffing_ncut_values) > 0
     assert cfg.truncation_benchmark.duffing_truncated_dim >= 3
     assert cfg.truncation_benchmark.lowest_excited_levels_to_plot >= 1
@@ -202,6 +208,12 @@ def test_static_benchmark_fit_coefficients_roundtrip_through_hdf5(tmp_path: Path
     assert np.array_equal(loaded.effective_fit_coefficient_names["zeta"], out.effective_fit_coefficient_names["zeta"])
     assert np.allclose(loaded.effective_fit_coefficients["J"], out.effective_fit_coefficients["J"])
     assert np.allclose(loaded.effective_fit_coefficients["zeta"], out.effective_fit_coefficients["zeta"])
+    assert loaded.duffing_symbolic_coefficient_names.keys() == out.duffing_symbolic_coefficient_names.keys()
+    assert loaded.duffing_symbolic_coefficients.keys() == out.duffing_symbolic_coefficients.keys()
+    for key in loaded.duffing_symbolic_coefficient_names:
+        assert np.array_equal(loaded.duffing_symbolic_coefficient_names[key], out.duffing_symbolic_coefficient_names[key])
+    for key in loaded.duffing_symbolic_coefficients:
+        assert np.allclose(loaded.duffing_symbolic_coefficients[key], out.duffing_symbolic_coefficients[key])
 
 
 
@@ -275,6 +287,25 @@ def test_duffing_fitted_static_calibration_runs_and_exposes_mode_parameters(tmp_
     assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc"}
     assert all(np.all(np.isfinite(values)) for values in out.duffing_mode_parameters.values())
     assert out.duffing_mode_parameters["w0"].shape == out.flux_values.shape
+    assert out.duffing_symbolic_coefficient_names == {}
+    assert out.duffing_symbolic_coefficients == {}
+
+
+def test_duffing_symbolic_fitted_static_runs_and_exposes_symbolic_coefficients(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(
+        tmp_path,
+        coupler_amplitude=0.0,
+        sweep_target="q0",
+        duffing_calibration_mode="symbolic-fitted-static",
+    )
+    out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
+    assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc"}
+    assert set(out.duffing_symbolic_coefficient_names) == {"w0", "w1", "alpha0", "alpha1"}
+    assert set(out.duffing_symbolic_coefficients) == {"w0", "w1", "alpha0", "alpha1"}
+    assert all(np.all(np.isfinite(values)) for values in out.duffing_mode_parameters.values())
+    assert all(np.all(np.isfinite(values)) for values in out.duffing_symbolic_coefficients.values())
+    assert all(values.shape == out.duffing_symbolic_coefficients["w0"].shape for values in out.duffing_symbolic_coefficients.values())
 
 
 def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:

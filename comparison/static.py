@@ -15,6 +15,7 @@ from models import (
     derive_effective_model_from_dressed_stack,
     extract_model1_parameters_from_4x4_stack,
     fit_duffing_mode_parameters_to_reference,
+    fit_symbolic_duffing_mode_parameters_to_reference,
     resolve_static_sweep_values,
 )
 from study_config import StudyConfig, build_flux_values
@@ -35,6 +36,8 @@ class StaticBenchmarkResult:
     effective_fit_coefficient_names: dict[str, np.ndarray]
     effective_fit_coefficients: dict[str, np.ndarray]
     duffing_mode_parameters: dict[str, np.ndarray]
+    duffing_symbolic_coefficient_names: dict[str, np.ndarray]
+    duffing_symbolic_coefficients: dict[str, np.ndarray]
     duffing_parameters: dict[str, np.ndarray]
     circuit_parameters: dict[str, np.ndarray]
     detuning_ratio: np.ndarray
@@ -97,6 +100,8 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     )
 
     duffing_mode = str(config.static_benchmark.duffing_model.calibration_mode).strip().lower()
+    duffing_symbolic_coefficient_names: dict[str, np.ndarray] = {}
+    duffing_symbolic_coefficients: dict[str, np.ndarray] = {}
     if duffing_mode == "fitted-static":
         duffing_mode_parameters = fit_duffing_mode_parameters_to_reference(
             flux_values=flux_values,
@@ -108,6 +113,25 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
             selection_mode=dressed_mode,
             n_candidate_states=n_cand,
         )
+        duffing = build_duffing_model_stack_from_parameters(
+            duffing_mode_parameters,
+            system_params=config.system,
+            duffing_config=config.static_benchmark.duffing_model,
+        )
+    elif duffing_mode == "symbolic-fitted-static":
+        duffing_symbolic_fit = fit_symbolic_duffing_mode_parameters_to_reference(
+            flux_values=flux_values,
+            reference_dressed_stack=H_circuit_eff,
+            system_params=config.system,
+            coupler_frequency=config.static_benchmark.coupler_frequency,
+            duffing_config=config.static_benchmark.duffing_model,
+            sweep_target=config.static_benchmark.flux_control.sweep_target,
+            selection_mode=dressed_mode,
+            n_candidate_states=n_cand,
+        )
+        duffing_mode_parameters = duffing_symbolic_fit.fitted_parameters
+        duffing_symbolic_coefficient_names = duffing_symbolic_fit.coefficient_names
+        duffing_symbolic_coefficients = duffing_symbolic_fit.coefficients
         duffing = build_duffing_model_stack_from_parameters(
             duffing_mode_parameters,
             system_params=config.system,
@@ -218,6 +242,12 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         effective_fit_coefficient_names=effective_fit_coefficient_names,
         effective_fit_coefficients=effective_fit_coefficients,
         duffing_mode_parameters={k: np.asarray(v, dtype=float) for k, v in duffing_mode_parameters.items()},
+        duffing_symbolic_coefficient_names={
+            k: np.asarray(v, dtype=str) for k, v in duffing_symbolic_coefficient_names.items()
+        },
+        duffing_symbolic_coefficients={
+            k: np.asarray(v, dtype=float) for k, v in duffing_symbolic_coefficients.items()
+        },
         duffing_parameters=params_duffing,
         circuit_parameters=params_circuit,
         detuning_ratio=np.asarray(detuning_ratio, dtype=float),

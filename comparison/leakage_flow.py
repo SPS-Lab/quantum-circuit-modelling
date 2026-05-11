@@ -20,6 +20,7 @@ from models import (
     build_duffing_model_stack,
     build_duffing_model_stack_from_parameters,
     computational_state_indices,
+    is_reference_calibrated_duffing_mode,
     resolve_static_sweep_values,
 )
 from study_config import StudyConfig
@@ -445,7 +446,7 @@ def run_leakage_flow_benchmark(
         target_flux=float(target_flux),
     )
 
-    if str(config.static_benchmark.duffing_model.calibration_mode).strip().lower() == "fitted-static":
+    if is_reference_calibrated_duffing_mode(config.static_benchmark.duffing_model.calibration_mode):
         _, _, wc_t = resolve_static_sweep_values(
             pulse_flux,
             system_params=config.system,

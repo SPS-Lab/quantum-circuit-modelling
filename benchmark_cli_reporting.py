@@ -72,7 +72,7 @@ def build_common_truncation_lines(config: StudyConfig) -> list[str]:
             f"selection_mode={str(sb.dressed_subspace.selection_mode)}"
         ),
     ]
-    if calibration_mode in ("fixed", "per-flux", "fitted-static"):
+    if calibration_mode in ("fixed", "per-flux", "fitted-static", "symbolic-fitted-static"):
         lines.insert(
             6,
             (

@@ -15,6 +15,7 @@ from models import (
     build_duffing_model_stack_from_parameters,
     build_effective_hamiltonian_stack,
     computational_state_indices,
+    is_reference_calibrated_duffing_mode,
     resolve_static_sweep_values,
 )
 from study_config import StudyConfig
@@ -522,7 +523,7 @@ def run_cz_benchmark(
     effective_build_runtime_s = float(time.perf_counter() - effective_build_started)
 
     duffing_build_started = time.perf_counter()
-    if str(config.static_benchmark.duffing_model.calibration_mode).strip().lower() == "fitted-static":
+    if is_reference_calibrated_duffing_mode(config.static_benchmark.duffing_model.calibration_mode):
         _, _, wc_t = resolve_static_sweep_values(
             pulse_flux,
             system_params=config.system,

@@ -18,7 +18,13 @@ SelectionMode = Literal["continuous", "bare"]
 DerivationSource = Literal["duffing", "circuit"]
 FitBasis = Literal["single-harmonic", "magnitude-exchange-like"]
 SweepTarget = Literal["coupler", "q0", "q1"]
-DuffingCalibrationMode = Literal["fixed", "analytic-per-flux", "per-flux", "fitted-static"]
+DuffingCalibrationMode = Literal[
+    "fixed",
+    "analytic-per-flux",
+    "per-flux",
+    "fitted-static",
+    "symbolic-fitted-static",
+]
 DriveQubit = Literal["q0"]
 
 
@@ -404,10 +410,17 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
         )
 
     calibration_mode = _require_str(duffing, "calibration_mode", "study.static_benchmark.duffing_model").strip().lower()
-    if calibration_mode not in ("fixed", "analytic-per-flux", "per-flux", "fitted-static"):
+    if calibration_mode not in (
+        "fixed",
+        "analytic-per-flux",
+        "per-flux",
+        "fitted-static",
+        "symbolic-fitted-static",
+    ):
         raise ValueError(
             "study.static_benchmark.duffing_model.calibration_mode must be "
-            "'fixed', 'analytic-per-flux', 'per-flux', or 'fitted-static'"
+            "'fixed', 'analytic-per-flux', 'per-flux', 'fitted-static', "
+            "or 'symbolic-fitted-static'"
         )
 
     sweep_target_str = _require_str(flux_control, "sweep_target", "study.static_benchmark.flux_control")

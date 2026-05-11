@@ -53,8 +53,12 @@ This reads:
 The Duffing model supports calibration modes via
 `static_benchmark.duffing_model.calibration_mode`:
 - `fixed`: calibrate transmon Duffing parameters once at system parking biases
-- `analytic-per-flux` (default): flux-dependent transmon approximation (no per-point numerical calibration)
+- `analytic-per-flux`: flux-dependent transmon approximation (no per-point numerical calibration)
 - `per-flux`: recalibrate transmon Duffing parameters at every sweep point using transmon diagonalization
+- `fitted-static`: fit latent Duffing parameters independently at each flux point to match circuit dressed observables
+- `symbolic-fitted-static`: fit one global Fourier-like symbolic surrogate for `w0`, `w1`, `alpha0`, `alpha1` over flux, refined against circuit dressed observables
+
+The checked-in benchmark config currently uses `symbolic-fitted-static`.
 
 Run the CZ dynamics benchmark:
 

@@ -17,6 +17,7 @@ from models import (
     computational_state_indices,
     extract_model1_parameters_from_4x4_stack,
     fit_duffing_mode_parameters_to_reference,
+    is_reference_calibrated_duffing_mode,
 )
 from study_config import StudyConfig
 from toolkit.helpers import I2, destroy
@@ -252,7 +253,7 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
 
 def _single_point_duffing_stack(config: StudyConfig, *, flux_value: float, sweep_target: str) -> np.ndarray:
     flux_arr = np.array([float(flux_value)], dtype=float)
-    if str(config.static_benchmark.duffing_model.calibration_mode).strip().lower() != "fitted-static":
+    if not is_reference_calibrated_duffing_mode(config.static_benchmark.duffing_model.calibration_mode):
         return build_duffing_model_stack(
             flux_values=flux_arr,
             system_params=config.system,
