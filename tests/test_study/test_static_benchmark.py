@@ -187,7 +187,7 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert np.isfinite(float(np.mean(out.duffing_error_rmse)))
     assert set(out.effective_fit_coefficient_names) == {"J", "zeta"}
     assert set(out.effective_fit_coefficients) == {"J", "zeta"}
-    assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc"}
+    assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
     assert len(out.effective_fit_coefficient_names["J"]) == out.effective_fit_coefficients["J"].shape[0]
     assert len(out.effective_fit_coefficient_names["zeta"]) == out.effective_fit_coefficients["zeta"].shape[0]
     assert out.effective_fit_coefficients["J"].shape[0] >= 3
@@ -284,7 +284,7 @@ def test_duffing_fitted_static_calibration_runs_and_exposes_mode_parameters(tmp_
         duffing_calibration_mode="fitted-static",
     )
     out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
-    assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc"}
+    assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
     assert all(np.all(np.isfinite(values)) for values in out.duffing_mode_parameters.values())
     assert out.duffing_mode_parameters["w0"].shape == out.flux_values.shape
     assert out.duffing_symbolic_coefficient_names == {}
@@ -300,12 +300,13 @@ def test_duffing_symbolic_fitted_static_runs_and_exposes_symbolic_coefficients(t
         duffing_calibration_mode="symbolic-fitted-static",
     )
     out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
-    assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc"}
-    assert set(out.duffing_symbolic_coefficient_names) == {"w0", "w1", "alpha0", "alpha1"}
-    assert set(out.duffing_symbolic_coefficients) == {"w0", "w1", "alpha0", "alpha1"}
+    assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
+    assert set(out.duffing_symbolic_coefficient_names) == {"w0", "w1", "alpha0", "alpha1", "g0c", "g1c"}
+    assert set(out.duffing_symbolic_coefficients) == {"w0", "w1", "alpha0", "alpha1", "g0c", "g1c"}
     assert all(np.all(np.isfinite(values)) for values in out.duffing_mode_parameters.values())
     assert all(np.all(np.isfinite(values)) for values in out.duffing_symbolic_coefficients.values())
-    assert all(values.shape == out.duffing_symbolic_coefficients["w0"].shape for values in out.duffing_symbolic_coefficients.values())
+    for key, values in out.duffing_symbolic_coefficients.items():
+        assert values.shape == out.duffing_symbolic_coefficient_names[key].shape
 
 
 def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:

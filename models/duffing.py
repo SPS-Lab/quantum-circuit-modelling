@@ -195,6 +195,8 @@ def _build_mode_parameter_arrays(
         "alpha0": np.asarray(alpha0_arr, dtype=float),
         "alpha1": np.asarray(alpha1_arr, dtype=float),
         "wc": np.asarray(wc_arr, dtype=float),
+        "g0c": np.full_like(flux_arr, float(system_params.interactions.g_0c), dtype=float),
+        "g1c": np.full_like(flux_arr, float(system_params.interactions.g_1c), dtype=float),
     }
 
 
@@ -209,15 +211,35 @@ def build_duffing_model_stack_from_parameters(
     alpha0_arr = np.asarray(mode_parameters["alpha0"], dtype=float).ravel()
     alpha1_arr = np.asarray(mode_parameters["alpha1"], dtype=float).ravel()
     wc_arr = np.asarray(mode_parameters["wc"], dtype=float).ravel()
+    g0c_arr = np.asarray(
+        mode_parameters.get(
+            "g0c",
+            np.full_like(w0_arr, float(system_params.interactions.g_0c), dtype=float),
+        ),
+        dtype=float,
+    ).ravel()
+    g1c_arr = np.asarray(
+        mode_parameters.get(
+            "g1c",
+            np.full_like(w0_arr, float(system_params.interactions.g_1c), dtype=float),
+        ),
+        dtype=float,
+    ).ravel()
 
-    if not (w0_arr.shape == w1_arr.shape == alpha0_arr.shape == alpha1_arr.shape == wc_arr.shape):
+    if not (
+        w0_arr.shape
+        == w1_arr.shape
+        == alpha0_arr.shape
+        == alpha1_arr.shape
+        == wc_arr.shape
+        == g0c_arr.shape
+        == g1c_arr.shape
+    ):
         raise ValueError("Duffing mode parameter arrays must all share the same shape")
 
     nlevels_q = int(duffing_config.hilbert_truncation.nlevels_qubit)
     nlevels_c = int(duffing_config.hilbert_truncation.nlevels_coupler)
     alpha_c = float(duffing_config.coupler_anharmonicity)
-    g_0c = float(system_params.interactions.g_0c)
-    g_1c = float(system_params.interactions.g_1c)
 
     mats: list[np.ndarray] = []
     for k in range(w0_arr.shape[0]):
@@ -229,8 +251,8 @@ def build_duffing_model_stack_from_parameters(
                 alpha_0=float(alpha0_arr[k]),
                 alpha_c=alpha_c,
                 alpha_1=float(alpha1_arr[k]),
-                g_0c=g_0c,
-                g_1c=g_1c,
+                g_0c=float(g0c_arr[k]),
+                g_1c=float(g1c_arr[k]),
                 nlevels_qubit=nlevels_q,
                 nlevels_coupler=nlevels_c,
             )
@@ -243,8 +265,8 @@ def build_duffing_model_stack_from_parameters(
         "alpha_0": float(alpha0_arr[0]),
         "alpha_c": alpha_c,
         "alpha_1": float(alpha1_arr[0]),
-        "g_0c": g_0c,
-        "g_1c": g_1c,
+        "g_0c": float(g0c_arr[0]),
+        "g_1c": float(g1c_arr[0]),
         "nlevels_qubit": nlevels_q,
         "nlevels_coupler": nlevels_c,
     }
@@ -264,6 +286,8 @@ def build_duffing_model_stack_from_parameters(
             "alpha0": np.asarray(alpha0_arr, dtype=float),
             "alpha1": np.asarray(alpha1_arr, dtype=float),
             "wc": np.asarray(wc_arr, dtype=float),
+            "g0c": np.asarray(g0c_arr, dtype=float),
+            "g1c": np.asarray(g1c_arr, dtype=float),
         },
     )
 
@@ -291,16 +315,21 @@ def _cosine_coefficient_names(*, n_harmonics: int) -> np.ndarray:
     return np.asarray(labels, dtype=str)
 
 
-def _fit_cosine_parameter_coefficients(
-    flux_values: np.ndarray,
+def _constant_design_matrix(flux_values: np.ndarray) -> np.ndarray:
+    flux_arr = np.asarray(flux_values, dtype=float).ravel()
+    return np.ones((flux_arr.size, 1), dtype=float)
+
+
+def _fit_parameter_coefficients_from_designs(
     *,
     parameter_targets: Mapping[str, np.ndarray],
-    n_harmonics: int,
+    design_map: Mapping[str, np.ndarray],
+    parameter_order: tuple[str, ...],
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
-    design = _cosine_design_matrix(flux_values, n_harmonics=n_harmonics)
     coefficients: dict[str, np.ndarray] = {}
     packed: list[np.ndarray] = []
-    for name in ("w0", "w1", "alpha0", "alpha1"):
+    for name in parameter_order:
+        design = np.asarray(design_map[name], dtype=float)
         target = np.asarray(parameter_targets[name], dtype=float).ravel()
         beta, *_ = np.linalg.lstsq(design, target, rcond=None)
         coeff = np.asarray(beta, dtype=float)
@@ -309,39 +338,104 @@ def _fit_cosine_parameter_coefficients(
     return np.concatenate(packed), coefficients
 
 
-def _unpack_cosine_parameter_coefficients(
+def _unpack_parameter_coefficients(
     packed: np.ndarray,
     *,
-    coeff_size: int,
+    coefficient_sizes: Mapping[str, int],
+    parameter_order: tuple[str, ...],
 ) -> dict[str, np.ndarray]:
     vector = np.asarray(packed, dtype=float).ravel()
-    if vector.size != 4 * int(coeff_size):
+    expected = int(sum(int(coefficient_sizes[name]) for name in parameter_order))
+    if vector.size != expected:
         raise ValueError("Packed symbolic Duffing coefficient vector has unexpected size")
-    return {
-        "w0": np.asarray(vector[0 * coeff_size:1 * coeff_size], dtype=float),
-        "w1": np.asarray(vector[1 * coeff_size:2 * coeff_size], dtype=float),
-        "alpha0": np.asarray(vector[2 * coeff_size:3 * coeff_size], dtype=float),
-        "alpha1": np.asarray(vector[3 * coeff_size:4 * coeff_size], dtype=float),
-    }
+    out: dict[str, np.ndarray] = {}
+    offset = 0
+    for name in parameter_order:
+        size = int(coefficient_sizes[name])
+        out[name] = np.asarray(vector[offset:offset + size], dtype=float)
+        offset += size
+    return out
 
 
-def _evaluate_cosine_parameter_coefficients(
-    flux_values: np.ndarray,
+def _evaluate_parameter_coefficients_from_designs(
     *,
     coefficient_map: Mapping[str, np.ndarray],
-    wc_values: np.ndarray,
+    design_map: Mapping[str, np.ndarray],
+    parameter_order: tuple[str, ...],
+    base_parameters: Mapping[str, np.ndarray],
 ) -> dict[str, np.ndarray]:
-    coeff_size = int(np.asarray(next(iter(coefficient_map.values())), dtype=float).size)
-    n_harmonics = max(0, coeff_size - 1)
-    design = _cosine_design_matrix(flux_values, n_harmonics=n_harmonics)
-    parameters = {
-        "w0": np.asarray(design @ np.asarray(coefficient_map["w0"], dtype=float).ravel(), dtype=float),
-        "w1": np.asarray(design @ np.asarray(coefficient_map["w1"], dtype=float).ravel(), dtype=float),
-        "alpha0": np.asarray(design @ np.asarray(coefficient_map["alpha0"], dtype=float).ravel(), dtype=float),
-        "alpha1": np.asarray(design @ np.asarray(coefficient_map["alpha1"], dtype=float).ravel(), dtype=float),
-        "wc": np.asarray(wc_values, dtype=float).ravel(),
-    }
+    parameters = {name: np.asarray(values, dtype=float).ravel() for name, values in base_parameters.items()}
+    for name in parameter_order:
+        design = np.asarray(design_map[name], dtype=float)
+        coeff = np.asarray(coefficient_map[name], dtype=float).ravel()
+        parameters[name] = np.asarray(design @ coeff, dtype=float)
     return parameters
+
+
+def _reference_calibration_designs(
+    flux_values: np.ndarray,
+    *,
+    sweep_target: str,
+    n_harmonics: int,
+) -> tuple[tuple[str, ...], dict[str, np.ndarray], dict[str, np.ndarray]]:
+    cosine_design = _cosine_design_matrix(flux_values, n_harmonics=n_harmonics)
+    constant_design = _constant_design_matrix(flux_values)
+    cosine_names = _cosine_coefficient_names(n_harmonics=n_harmonics)
+    constant_names = np.asarray(["c0"], dtype=str)
+    target = str(sweep_target).strip().lower()
+
+    if target == "q1":
+        design_map = {
+            "w0": constant_design,
+            "w1": cosine_design,
+            "alpha0": constant_design,
+            "alpha1": cosine_design,
+            "g0c": constant_design,
+            "g1c": cosine_design,
+        }
+        coefficient_names = {
+            "w0": constant_names,
+            "w1": cosine_names,
+            "alpha0": constant_names,
+            "alpha1": cosine_names,
+            "g0c": constant_names,
+            "g1c": cosine_names,
+        }
+    elif target == "q0":
+        design_map = {
+            "w0": cosine_design,
+            "w1": constant_design,
+            "alpha0": cosine_design,
+            "alpha1": constant_design,
+            "g0c": cosine_design,
+            "g1c": constant_design,
+        }
+        coefficient_names = {
+            "w0": cosine_names,
+            "w1": constant_names,
+            "alpha0": cosine_names,
+            "alpha1": constant_names,
+            "g0c": cosine_names,
+            "g1c": constant_names,
+        }
+    elif target == "coupler":
+        design_map = {
+            "w0": constant_design,
+            "w1": constant_design,
+            "alpha0": constant_design,
+            "alpha1": constant_design,
+            "g0c": constant_design,
+            "g1c": constant_design,
+        }
+        coefficient_names = {
+            name: constant_names
+            for name in ("w0", "w1", "alpha0", "alpha1", "g0c", "g1c")
+        }
+    else:
+        raise ValueError(f"Unsupported sweep_target {sweep_target!r}")
+
+    parameter_order = ("w0", "w1", "alpha0", "alpha1", "g0c", "g1c")
+    return parameter_order, design_map, coefficient_names
 
 
 def fit_duffing_mode_parameters_to_reference(
@@ -377,6 +471,8 @@ def fit_duffing_mode_parameters_to_reference(
         "alpha0": np.array(initial["alpha0"], copy=True, dtype=float),
         "alpha1": np.array(initial["alpha1"], copy=True, dtype=float),
         "wc": np.array(initial["wc"], copy=True, dtype=float),
+        "g0c": np.array(initial["g0c"], copy=True, dtype=float),
+        "g1c": np.array(initial["g1c"], copy=True, dtype=float),
     }
 
     for k in range(fitted["w0"].shape[0]):
@@ -505,18 +601,30 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         selection_mode=selection_mode,
         max_nfev=pointwise_max_nfev,
     )
+    pointwise_targets = {
+        "w0": np.asarray(pointwise["w0"], dtype=float).ravel(),
+        "w1": np.asarray(pointwise["w1"], dtype=float).ravel(),
+        "alpha0": np.asarray(pointwise["alpha0"], dtype=float).ravel(),
+        "alpha1": np.asarray(pointwise["alpha1"], dtype=float).ravel(),
+        "g0c": np.asarray(initial["g0c"], dtype=float).ravel(),
+        "g1c": np.asarray(initial["g1c"], dtype=float).ravel(),
+    }
     ref_params = extract_model1_parameters_from_4x4_stack(reference_dressed_stack)
     n_q = int(duffing_config.hilbert_truncation.nlevels_qubit)
     n_c = int(duffing_config.hilbert_truncation.nlevels_coupler)
-    # Use a cosine-only global surrogate to keep the reported Duffing calibration compact.
+    # Calibrate the swept-side qubit and coupling more flexibly than the parked side.
     n_harmonics = _select_symbolic_harmonic_count(flux_arr, max_harmonics=max_harmonics)
-    coeff_names = _cosine_coefficient_names(n_harmonics=n_harmonics)
-    x0, coeff_init = _fit_cosine_parameter_coefficients(
+    parameter_order, design_map, coefficient_names = _reference_calibration_designs(
         flux_arr,
-        parameter_targets=pointwise,
+        sweep_target=sweep_target,
         n_harmonics=n_harmonics,
     )
-    coeff_size = int(coeff_names.size)
+    x0, coeff_init = _fit_parameter_coefficients_from_designs(
+        parameter_targets=pointwise_targets,
+        design_map=design_map,
+        parameter_order=parameter_order,
+    )
+    coefficient_sizes = {name: int(np.asarray(design_map[name], dtype=float).shape[1]) for name in parameter_order}
 
     obs_scale = {
         "w0": np.maximum(np.abs(np.asarray(ref_params["w0"], dtype=float).ravel()), 1.0),
@@ -525,18 +633,25 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         "zeta": np.maximum(np.abs(np.asarray(ref_params["zeta"], dtype=float).ravel()), 2e-2),
     }
     latent_scale = {
-        "w0": np.maximum(np.abs(np.asarray(pointwise["w0"], dtype=float).ravel()), 1.0),
-        "w1": np.maximum(np.abs(np.asarray(pointwise["w1"], dtype=float).ravel()), 1.0),
-        "alpha0": np.maximum(np.abs(np.asarray(pointwise["alpha0"], dtype=float).ravel()), 0.25),
-        "alpha1": np.maximum(np.abs(np.asarray(pointwise["alpha1"], dtype=float).ravel()), 0.25),
+        "w0": np.maximum(np.abs(np.asarray(pointwise_targets["w0"], dtype=float).ravel()), 1.0),
+        "w1": np.maximum(np.abs(np.asarray(pointwise_targets["w1"], dtype=float).ravel()), 1.0),
+        "alpha0": np.maximum(np.abs(np.asarray(pointwise_targets["alpha0"], dtype=float).ravel()), 0.25),
+        "alpha1": np.maximum(np.abs(np.asarray(pointwise_targets["alpha1"], dtype=float).ravel()), 0.25),
+        "g0c": np.maximum(np.abs(np.asarray(pointwise_targets["g0c"], dtype=float).ravel()), 1e-3),
+        "g1c": np.maximum(np.abs(np.asarray(pointwise_targets["g1c"], dtype=float).ravel()), 1e-3),
     }
 
     def residual(packed: np.ndarray) -> np.ndarray:
-        coeff_map = _unpack_cosine_parameter_coefficients(packed, coeff_size=coeff_size)
-        symbolic_parameters = _evaluate_cosine_parameter_coefficients(
-            flux_arr,
+        coeff_map = _unpack_parameter_coefficients(
+            packed,
+            coefficient_sizes=coefficient_sizes,
+            parameter_order=parameter_order,
+        )
+        symbolic_parameters = _evaluate_parameter_coefficients_from_designs(
             coefficient_map=coeff_map,
-            wc_values=initial["wc"],
+            design_map=design_map,
+            parameter_order=parameter_order,
+            base_parameters=initial,
         )
         candidate = build_duffing_model_stack_from_parameters(
             symbolic_parameters,
@@ -561,10 +676,12 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         )
         reg_res = float(regularization_weight) * np.concatenate(
             [
-                (np.asarray(symbolic_parameters["w0"], dtype=float).ravel() - np.asarray(pointwise["w0"], dtype=float).ravel()) / latent_scale["w0"],
-                (np.asarray(symbolic_parameters["w1"], dtype=float).ravel() - np.asarray(pointwise["w1"], dtype=float).ravel()) / latent_scale["w1"],
-                (np.asarray(symbolic_parameters["alpha0"], dtype=float).ravel() - np.asarray(pointwise["alpha0"], dtype=float).ravel()) / latent_scale["alpha0"],
-                (np.asarray(symbolic_parameters["alpha1"], dtype=float).ravel() - np.asarray(pointwise["alpha1"], dtype=float).ravel()) / latent_scale["alpha1"],
+                (np.asarray(symbolic_parameters["w0"], dtype=float).ravel() - np.asarray(pointwise_targets["w0"], dtype=float).ravel()) / latent_scale["w0"],
+                (np.asarray(symbolic_parameters["w1"], dtype=float).ravel() - np.asarray(pointwise_targets["w1"], dtype=float).ravel()) / latent_scale["w1"],
+                (np.asarray(symbolic_parameters["alpha0"], dtype=float).ravel() - np.asarray(pointwise_targets["alpha0"], dtype=float).ravel()) / latent_scale["alpha0"],
+                (np.asarray(symbolic_parameters["alpha1"], dtype=float).ravel() - np.asarray(pointwise_targets["alpha1"], dtype=float).ravel()) / latent_scale["alpha1"],
+                (np.asarray(symbolic_parameters["g0c"], dtype=float).ravel() - np.asarray(pointwise_targets["g0c"], dtype=float).ravel()) / latent_scale["g0c"],
+                (np.asarray(symbolic_parameters["g1c"], dtype=float).ravel() - np.asarray(pointwise_targets["g1c"], dtype=float).ravel()) / latent_scale["g1c"],
             ]
         )
         return np.concatenate([obs_res, reg_res])
@@ -574,22 +691,26 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         x0=x0,
         max_nfev=int(refinement_max_nfev),
     )
-    coeff_best = coeff_init if not result.success else _unpack_cosine_parameter_coefficients(result.x, coeff_size=coeff_size)
-    fitted = _evaluate_cosine_parameter_coefficients(
-        flux_arr,
-        coefficient_map=coeff_best,
-        wc_values=initial["wc"],
+    coeff_best = coeff_init if not result.success else _unpack_parameter_coefficients(
+        result.x,
+        coefficient_sizes=coefficient_sizes,
+        parameter_order=parameter_order,
     )
-    coefficient_names = {
-        name: np.array(coeff_names, copy=True, dtype=str)
-        for name in ("w0", "w1", "alpha0", "alpha1")
-    }
+    fitted = _evaluate_parameter_coefficients_from_designs(
+        coefficient_map=coeff_best,
+        design_map=design_map,
+        parameter_order=parameter_order,
+        base_parameters=initial,
+    )
     coefficients = {
         name: np.asarray(values, dtype=float)
         for name, values in coeff_best.items()
     }
     return DuffingSymbolicParameterFitResult(
-        coefficient_names=coefficient_names,
+        coefficient_names={
+            name: np.array(coefficient_names[name], copy=True, dtype=str)
+            for name in parameter_order
+        },
         coefficients=coefficients,
         fitted_parameters=fitted,
     )

@@ -457,7 +457,7 @@ def run_leakage_flow_benchmark(
             static_result.flux_values,
             static_result.duffing_mode_parameters,
             pulse_flux,
-            keys=("w0", "w1", "alpha0", "alpha1"),
+            keys=("w0", "w1", "alpha0", "alpha1", "g0c", "g1c"),
         )
         duffing_mode_parameters_t["wc"] = np.asarray(wc_t, dtype=float)
         duffing_stack = build_duffing_model_stack_from_parameters(
