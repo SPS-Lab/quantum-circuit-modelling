@@ -10,6 +10,7 @@ from scipy.linalg import expm
 from comparison.cz import (
     TWO_PI,
     _idle_flux_for_target,
+    _interpolate_parameter_mapping,
     _pick_target_flux_from_static,
     _ramp_hold_ramp_flux_pulse,
 )
@@ -17,7 +18,9 @@ from comparison.static import run_static_benchmark
 from models import (
     build_circuit_model_stack,
     build_duffing_model_stack,
+    build_duffing_model_stack_from_parameters,
     computational_state_indices,
+    resolve_static_sweep_values,
 )
 from study_config import StudyConfig
 
@@ -442,13 +445,33 @@ def run_leakage_flow_benchmark(
         target_flux=float(target_flux),
     )
 
-    duffing_stack = build_duffing_model_stack(
-        flux_values=pulse_flux,
-        system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
-        duffing_config=config.static_benchmark.duffing_model,
-        sweep_target=sweep_target,
-    ).hamiltonian_stack
+    if str(config.static_benchmark.duffing_model.calibration_mode).strip().lower() == "fitted-static":
+        _, _, wc_t = resolve_static_sweep_values(
+            pulse_flux,
+            system_params=config.system,
+            coupler_frequency_config=config.static_benchmark.coupler_frequency,
+            sweep_target=sweep_target,
+        )
+        duffing_mode_parameters_t = _interpolate_parameter_mapping(
+            static_result.flux_values,
+            static_result.duffing_mode_parameters,
+            pulse_flux,
+            keys=("w1", "w2", "alpha1", "alpha2"),
+        )
+        duffing_mode_parameters_t["wc"] = np.asarray(wc_t, dtype=float)
+        duffing_stack = build_duffing_model_stack_from_parameters(
+            duffing_mode_parameters_t,
+            system_params=config.system,
+            duffing_config=config.static_benchmark.duffing_model,
+        ).hamiltonian_stack
+    else:
+        duffing_stack = build_duffing_model_stack(
+            flux_values=pulse_flux,
+            system_params=config.system,
+            coupler_frequency=config.static_benchmark.coupler_frequency,
+            duffing_config=config.static_benchmark.duffing_model,
+            sweep_target=sweep_target,
+        ).hamiltonian_stack
 
     circuit_stack = build_circuit_model_stack(
         flux_values=pulse_flux,

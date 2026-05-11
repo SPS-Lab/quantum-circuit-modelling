@@ -12,8 +12,10 @@ from comparison.static import run_static_benchmark
 from models import (
     build_circuit_model_stack,
     build_duffing_model_stack,
+    build_duffing_model_stack_from_parameters,
     build_effective_hamiltonian_stack,
     computational_state_indices,
+    resolve_static_sweep_values,
 )
 from study_config import StudyConfig
 
@@ -166,15 +168,17 @@ def _ramp_hold_ramp_flux_pulse(
     return times, flux
 
 
-def _interpolate_effective_parameters(
+def _interpolate_parameter_mapping(
     flux_reference: np.ndarray,
     parameters_reference: dict[str, np.ndarray],
     pulse_flux: np.ndarray,
+    *,
+    keys: tuple[str, ...],
 ) -> dict[str, np.ndarray]:
     x_ref = np.asarray(flux_reference, dtype=float).ravel()
     x = np.asarray(pulse_flux, dtype=float).ravel()
     out: dict[str, np.ndarray] = {}
-    for key in ("w1", "w2", "J", "zeta"):
+    for key in keys:
         y_ref = np.asarray(parameters_reference[key], dtype=float).ravel()
         out[key] = np.interp(x, x_ref, y_ref)
     return out
@@ -508,22 +512,43 @@ def run_cz_benchmark(
     )
 
     effective_build_started = time.perf_counter()
-    effective_parameters_t = _interpolate_effective_parameters(
+    effective_parameters_t = _interpolate_parameter_mapping(
         static_result.flux_values,
         static_result.effective_parameters,
         pulse_flux,
+        keys=("w1", "w2", "J", "zeta"),
     )
     H_effective = build_effective_hamiltonian_stack(effective_parameters_t)
     effective_build_runtime_s = float(time.perf_counter() - effective_build_started)
 
     duffing_build_started = time.perf_counter()
-    duffing_stack = build_duffing_model_stack(
-        flux_values=pulse_flux,
-        system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
-        duffing_config=config.static_benchmark.duffing_model,
-        sweep_target=sweep_target,
-    ).hamiltonian_stack
+    if str(config.static_benchmark.duffing_model.calibration_mode).strip().lower() == "fitted-static":
+        _, _, wc_t = resolve_static_sweep_values(
+            pulse_flux,
+            system_params=config.system,
+            coupler_frequency_config=config.static_benchmark.coupler_frequency,
+            sweep_target=sweep_target,
+        )
+        duffing_mode_parameters_t = _interpolate_parameter_mapping(
+            static_result.flux_values,
+            static_result.duffing_mode_parameters,
+            pulse_flux,
+            keys=("w1", "w2", "alpha1", "alpha2"),
+        )
+        duffing_mode_parameters_t["wc"] = np.asarray(wc_t, dtype=float)
+        duffing_stack = build_duffing_model_stack_from_parameters(
+            duffing_mode_parameters_t,
+            system_params=config.system,
+            duffing_config=config.static_benchmark.duffing_model,
+        ).hamiltonian_stack
+    else:
+        duffing_stack = build_duffing_model_stack(
+            flux_values=pulse_flux,
+            system_params=config.system,
+            coupler_frequency=config.static_benchmark.coupler_frequency,
+            duffing_config=config.static_benchmark.duffing_model,
+            sweep_target=sweep_target,
+        ).hamiltonian_stack
     duffing_build_runtime_s = float(time.perf_counter() - duffing_build_started)
 
     circuit_build_started = time.perf_counter()

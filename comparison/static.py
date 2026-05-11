@@ -10,9 +10,11 @@ from models import (
     build_circuit_model_stack,
     build_dressed_effective_computational_stack,
     build_duffing_model_stack,
+    build_duffing_model_stack_from_parameters,
     build_effective_hamiltonian_stack,
     derive_effective_model_from_dressed_stack,
     extract_model1_parameters_from_4x4_stack,
+    fit_duffing_mode_parameters_to_reference,
     resolve_static_sweep_values,
 )
 from study_config import StudyConfig, build_flux_values
@@ -32,6 +34,7 @@ class StaticBenchmarkResult:
     effective_parameters: dict[str, np.ndarray]
     effective_fit_coefficient_names: dict[str, np.ndarray]
     effective_fit_coefficients: dict[str, np.ndarray]
+    duffing_mode_parameters: dict[str, np.ndarray]
     duffing_parameters: dict[str, np.ndarray]
     circuit_parameters: dict[str, np.ndarray]
     detuning_ratio: np.ndarray
@@ -74,13 +77,6 @@ def _masked_rmse_max(err: np.ndarray, mask: np.ndarray) -> tuple[float, float]:
 def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     flux_values = build_flux_values(config.static_benchmark.flux_sweep)
 
-    duffing = build_duffing_model_stack(
-        flux_values=flux_values,
-        system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
-        duffing_config=config.static_benchmark.duffing_model,
-        sweep_target=config.static_benchmark.flux_control.sweep_target,
-    )
     circuit = build_circuit_model_stack(
         flux_values=flux_values,
         system_params=config.system,
@@ -92,17 +88,45 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     dressed_mode = config.static_benchmark.dressed_subspace.selection_mode
     n_cand = config.static_benchmark.dressed_subspace.n_candidate_states
 
-    H_duffing_eff = build_dressed_effective_computational_stack(
-        duffing.hamiltonian_stack,
-        nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
-        nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
-        n_candidate_states=n_cand,
-        selection_mode=dressed_mode,
-    )
     H_circuit_eff = build_dressed_effective_computational_stack(
         circuit.hamiltonian_stack,
         nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
         nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
+        n_candidate_states=n_cand,
+        selection_mode=dressed_mode,
+    )
+
+    duffing_mode = str(config.static_benchmark.duffing_model.calibration_mode).strip().lower()
+    if duffing_mode == "fitted-static":
+        duffing_mode_parameters = fit_duffing_mode_parameters_to_reference(
+            flux_values=flux_values,
+            reference_dressed_stack=H_circuit_eff,
+            system_params=config.system,
+            coupler_frequency=config.static_benchmark.coupler_frequency,
+            duffing_config=config.static_benchmark.duffing_model,
+            sweep_target=config.static_benchmark.flux_control.sweep_target,
+            n_candidate_states=n_cand,
+            selection_mode=dressed_mode,
+        )
+        duffing = build_duffing_model_stack_from_parameters(
+            duffing_mode_parameters,
+            system_params=config.system,
+            duffing_config=config.static_benchmark.duffing_model,
+        )
+    else:
+        duffing = build_duffing_model_stack(
+            flux_values=flux_values,
+            system_params=config.system,
+            coupler_frequency=config.static_benchmark.coupler_frequency,
+            duffing_config=config.static_benchmark.duffing_model,
+            sweep_target=config.static_benchmark.flux_control.sweep_target,
+        )
+        duffing_mode_parameters = duffing.mode_parameters
+
+    H_duffing_eff = build_dressed_effective_computational_stack(
+        duffing.hamiltonian_stack,
+        nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
+        nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
         n_candidate_states=n_cand,
         selection_mode=dressed_mode,
     )
@@ -193,6 +217,7 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         effective_parameters={k: np.asarray(v, dtype=float) for k, v in effective_parameters.items()},
         effective_fit_coefficient_names=effective_fit_coefficient_names,
         effective_fit_coefficients=effective_fit_coefficients,
+        duffing_mode_parameters={k: np.asarray(v, dtype=float) for k, v in duffing_mode_parameters.items()},
         duffing_parameters=params_duffing,
         circuit_parameters=params_circuit,
         detuning_ratio=np.asarray(detuning_ratio, dtype=float),

@@ -12,9 +12,11 @@ from models import (
     build_circuit_model_stack,
     build_dressed_effective_computational_stack,
     build_duffing_model_stack,
+    build_duffing_model_stack_from_parameters,
     build_effective_hamiltonian_stack,
     computational_state_indices,
     extract_model1_parameters_from_4x4_stack,
+    fit_duffing_mode_parameters_to_reference,
 )
 from study_config import StudyConfig
 from toolkit.helpers import I2, destroy
@@ -243,17 +245,57 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
     return H, drive_lower, total_excitation
 
 
-def _single_point_effective_hamiltonian(config: StudyConfig) -> np.ndarray:
-    flux_value = np.array([float(config.system.q1.flux)], dtype=float)
-    sweep_target = "q1"
+def _single_point_duffing_stack(config: StudyConfig, *, flux_value: float, sweep_target: str) -> np.ndarray:
+    flux_arr = np.array([float(flux_value)], dtype=float)
+    if str(config.static_benchmark.duffing_model.calibration_mode).strip().lower() != "fitted-static":
+        return build_duffing_model_stack(
+            flux_values=flux_arr,
+            system_params=config.system,
+            coupler_frequency=config.static_benchmark.coupler_frequency,
+            duffing_config=config.static_benchmark.duffing_model,
+            sweep_target=sweep_target,
+        ).hamiltonian_stack
 
-    duffing_stack = build_duffing_model_stack(
-        flux_values=flux_value,
+    circuit_stack = build_circuit_model_stack(
+        flux_values=flux_arr,
+        system_params=config.system,
+        coupler_frequency=config.static_benchmark.coupler_frequency,
+        circuit_config=config.static_benchmark.circuit_model,
+        sweep_target=sweep_target,
+    ).hamiltonian_stack
+    H_circuit_eff = build_dressed_effective_computational_stack(
+        circuit_stack,
+        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim,
+        nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
+        n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+        selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+    )
+    duffing_mode_parameters = fit_duffing_mode_parameters_to_reference(
+        flux_values=flux_arr,
+        reference_dressed_stack=H_circuit_eff,
         system_params=config.system,
         coupler_frequency=config.static_benchmark.coupler_frequency,
         duffing_config=config.static_benchmark.duffing_model,
         sweep_target=sweep_target,
+        n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+        selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+    )
+    return build_duffing_model_stack_from_parameters(
+        duffing_mode_parameters,
+        system_params=config.system,
+        duffing_config=config.static_benchmark.duffing_model,
     ).hamiltonian_stack
+
+
+def _single_point_effective_hamiltonian(config: StudyConfig) -> np.ndarray:
+    flux_value = np.array([float(config.system.q1.flux)], dtype=float)
+    sweep_target = "q1"
+
+    duffing_stack = _single_point_duffing_stack(
+        config,
+        flux_value=float(flux_value[0]),
+        sweep_target=sweep_target,
+    )
     circuit_stack = build_circuit_model_stack(
         flux_values=flux_value,
         system_params=config.system,
@@ -328,13 +370,11 @@ def run_rx_benchmark(
     )
 
     H_effective_lab = _single_point_effective_hamiltonian(config)
-    H_duffing_lab = build_duffing_model_stack(
-        flux_values=np.array([float(config.system.q1.flux)], dtype=float),
-        system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
-        duffing_config=config.static_benchmark.duffing_model,
+    H_duffing_lab = _single_point_duffing_stack(
+        config,
+        flux_value=float(config.system.q1.flux),
         sweep_target="q1",
-    ).hamiltonian_stack[0]
+    )[0]
     H_circuit_lab, b_circuit, N_circuit = _build_circuit_idle_components(config)
 
     b_effective = _effective_q1_lowering_operator()

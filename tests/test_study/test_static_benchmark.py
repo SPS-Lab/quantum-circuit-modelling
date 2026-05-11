@@ -105,7 +105,7 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.static_benchmark.effective_model.derivation_source in {"duffing", "circuit"}
     assert cfg.static_benchmark.effective_model.fit_basis in {"single-harmonic", "magnitude-exchange-like"}
     assert cfg.static_benchmark.flux_control.sweep_target in {"coupler", "q1", "q2"}
-    assert cfg.static_benchmark.duffing_model.calibration_mode in {"fixed", "analytic-per-flux", "per-flux"}
+    assert cfg.static_benchmark.duffing_model.calibration_mode in {"fixed", "analytic-per-flux", "per-flux", "fitted-static"}
     assert len(cfg.truncation_benchmark.duffing_ncut_values) > 0
     assert cfg.truncation_benchmark.duffing_truncated_dim >= 3
     assert cfg.truncation_benchmark.lowest_excited_levels_to_plot >= 1
@@ -181,6 +181,7 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert np.isfinite(float(np.mean(out.duffing_error_rmse)))
     assert set(out.effective_fit_coefficient_names) == {"J", "zeta"}
     assert set(out.effective_fit_coefficients) == {"J", "zeta"}
+    assert set(out.duffing_mode_parameters) == {"w1", "w2", "alpha1", "alpha2", "wc"}
     assert len(out.effective_fit_coefficient_names["J"]) == out.effective_fit_coefficients["J"].shape[0]
     assert len(out.effective_fit_coefficient_names["zeta"]) == out.effective_fit_coefficients["zeta"].shape[0]
     assert out.effective_fit_coefficients["J"].shape[0] >= 3
@@ -260,6 +261,20 @@ def test_duffing_analytic_per_flux_calibration_varies_with_flux(tmp_path: Path) 
     )
     out = run_static_benchmark(load_study_config(system_path, study_path))
     assert float(np.ptp(out.duffing_relative_energies[:, 1])) > 1e-6
+
+
+def test_duffing_fitted_static_calibration_runs_and_exposes_mode_parameters(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(
+        tmp_path,
+        coupler_amplitude=0.0,
+        sweep_target="q1",
+        duffing_calibration_mode="fitted-static",
+    )
+    out = run_static_benchmark(load_study_config(system_path, study_path))
+    assert set(out.duffing_mode_parameters) == {"w1", "w2", "alpha1", "alpha2", "wc"}
+    assert all(np.all(np.isfinite(values)) for values in out.duffing_mode_parameters.values())
+    assert out.duffing_mode_parameters["w1"].shape == out.flux_values.shape
 
 
 def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:

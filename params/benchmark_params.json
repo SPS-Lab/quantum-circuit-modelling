@@ -1,7 +1,7 @@
 {
   "parameter_notes": {
-    "static_benchmark.duffing_model.transmon_spectral_extraction.ncut": "Used only when static_benchmark.duffing_model.calibration_mode is 'fixed' or 'per-flux'. Ignored for 'analytic-per-flux'.",
-    "static_benchmark.duffing_model.transmon_spectral_extraction.truncated_dim": "Used only when static_benchmark.duffing_model.calibration_mode is 'fixed' or 'per-flux'. Ignored for 'analytic-per-flux'.",
+    "static_benchmark.duffing_model.transmon_spectral_extraction.ncut": "Used when static_benchmark.duffing_model.calibration_mode is 'fixed', 'per-flux', or 'fitted-static'. Ignored for 'analytic-per-flux'.",
+    "static_benchmark.duffing_model.transmon_spectral_extraction.truncated_dim": "Used when static_benchmark.duffing_model.calibration_mode is 'fixed', 'per-flux', or 'fitted-static'. Ignored for 'analytic-per-flux'.",
     "truncation_benchmark.duffing_ncut_values": "Used only when truncation_benchmark.duffing_calibration_mode is 'fixed' or 'per-flux'. Not used for 'analytic-per-flux'.",
     "truncation_benchmark.duffing_truncated_dim": "Used only when truncation_benchmark.duffing_calibration_mode is 'fixed' or 'per-flux'. Not used for 'analytic-per-flux'.",
     "cz_benchmark.scan_dt_ns": "Used only when cz_benchmark.enable_hold_time_scan is true.",
@@ -46,7 +46,7 @@
             "nlevels_coupler": 3
           },
           "coupler_anharmonicity": 0.0,
-          "calibration_mode": "analytic-per-flux"
+          "calibration_mode": "fitted-static"
         },
         "circuit_model": {
           "hilbert_truncation": {
