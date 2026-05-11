@@ -27,7 +27,7 @@ The paper-aligned workflow is organized by responsibility:
 
 Legacy `model0/1/2/3` packages have been merged into the modules above.
 
-State labels in this repo follow `|q2,c,q0>` (so `q0` is the right/LSB qubit when bit significance matters).
+State labels in this repo follow `|q1,c,q0>` (so `q0` is the right/LSB qubit when bit significance matters).
 
 Run the static benchmark:
 
@@ -130,7 +130,7 @@ This benchmark uses a short pulse and writes one figure with 4 heatmaps:
 - bottom row: signed transition-current heatmaps for Duffing and circuit models
 
 Transition channels follow a fixed canonical ordering rule:
-`(q2 + c + q0, q2, c, q0)` (excitation-first then lexicographic), and each row is directed `|a> -> |b>` with that ordering.
+`(q1 + c + q0, q1, c, q0)` (excitation-first then lexicographic), and each row is directed `|a> -> |b>` with that ordering.
 Rows are aligned between Duffing and circuit by taking the union of states/transitions selected by each model.
 
 Timing/selection settings are read from `params/benchmark_params.json` under:

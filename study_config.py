@@ -17,7 +17,7 @@ import numpy as np
 SelectionMode = Literal["continuous", "bare"]
 DerivationSource = Literal["duffing", "circuit"]
 FitBasis = Literal["single-harmonic", "magnitude-exchange-like"]
-SweepTarget = Literal["coupler", "q0", "q2"]
+SweepTarget = Literal["coupler", "q0", "q1"]
 DuffingCalibrationMode = Literal["fixed", "analytic-per-flux", "per-flux", "fitted-static"]
 DriveQubit = Literal["q0"]
 
@@ -43,13 +43,13 @@ class OscillatorSystemParams:
 @dataclass(frozen=True)
 class InteractionSystemParams:
     g_0c: float
-    g_2c: float
+    g_1c: float
 
 
 @dataclass(frozen=True)
 class SystemParams:
     q0: TransmonSystemParams
-    q2: TransmonSystemParams
+    q1: TransmonSystemParams
     c: OscillatorSystemParams
     interactions: InteractionSystemParams
 
@@ -101,7 +101,7 @@ class DuffingModelConfig:
 @dataclass(frozen=True)
 class CircuitHilbertTruncationConfig:
     q0_truncated_dim: int
-    q2_truncated_dim: int
+    q1_truncated_dim: int
     c_truncated_dim: int
 
 
@@ -337,7 +337,7 @@ def _parse_system(system_payload: dict[str, Any]) -> SystemParams:
     p = _require_dict(system_payload, "parameters", "system")
 
     q0p = _require_dict(p, "q0", "system.parameters")
-    q2p = _require_dict(p, "q2", "system.parameters")
+    q1p = _require_dict(p, "q1", "system.parameters")
     cp = _require_dict(p, "c", "system.parameters")
     ip = _require_dict(p, "interactions", "system.parameters")
 
@@ -350,14 +350,14 @@ def _parse_system(system_payload: dict[str, Any]) -> SystemParams:
         ncut=_require_int(q0p, "ncut", "system.parameters.q0"),
         id_str=_require_str(q0p, "id_str", "system.parameters.q0"),
     )
-    q2 = TransmonSystemParams(
-        EJmax=_require_float(q2p, "EJmax", "system.parameters.q2"),
-        EC=_require_float(q2p, "EC", "system.parameters.q2"),
-        d=_require_float(q2p, "d", "system.parameters.q2"),
-        flux=_require_float(q2p, "flux", "system.parameters.q2"),
-        ng=_require_float(q2p, "ng", "system.parameters.q2"),
-        ncut=_require_int(q2p, "ncut", "system.parameters.q2"),
-        id_str=_require_str(q2p, "id_str", "system.parameters.q2"),
+    q1 = TransmonSystemParams(
+        EJmax=_require_float(q1p, "EJmax", "system.parameters.q1"),
+        EC=_require_float(q1p, "EC", "system.parameters.q1"),
+        d=_require_float(q1p, "d", "system.parameters.q1"),
+        flux=_require_float(q1p, "flux", "system.parameters.q1"),
+        ng=_require_float(q1p, "ng", "system.parameters.q1"),
+        ncut=_require_int(q1p, "ncut", "system.parameters.q1"),
+        id_str=_require_str(q1p, "id_str", "system.parameters.q1"),
     )
     c = OscillatorSystemParams(
         E_osc=_require_float(cp, "E_osc", "system.parameters.c"),
@@ -366,9 +366,9 @@ def _parse_system(system_payload: dict[str, Any]) -> SystemParams:
     )
     interactions = InteractionSystemParams(
         g_0c=_require_float(ip, "g_0c", "system.parameters.interactions"),
-        g_2c=_require_float(ip, "g_2c", "system.parameters.interactions"),
+        g_1c=_require_float(ip, "g_1c", "system.parameters.interactions"),
     )
-    return SystemParams(q0=q0, q2=q2, c=c, interactions=interactions)
+    return SystemParams(q0=q0, q1=q1, c=c, interactions=interactions)
 
 
 
@@ -411,16 +411,16 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
         )
 
     sweep_target_str = _require_str(flux_control, "sweep_target", "study.static_benchmark.flux_control")
-    if sweep_target_str not in ("coupler", "q0", "q2"):
-        raise ValueError("study.static_benchmark.flux_control.sweep_target must be 'coupler', 'q0', or 'q2'")
+    if sweep_target_str not in ("coupler", "q0", "q1"):
+        raise ValueError("study.static_benchmark.flux_control.sweep_target must be 'coupler', 'q0', or 'q1'")
     sweep_target: SweepTarget = sweep_target_str
 
     q0_trunc = _require_int(c_hilbert, "q0_truncated_dim", "study.static_benchmark.circuit_model.hilbert_truncation")
-    q2_trunc = _require_int(c_hilbert, "q2_truncated_dim", "study.static_benchmark.circuit_model.hilbert_truncation")
-    if q0_trunc != q2_trunc:
+    q1_trunc = _require_int(c_hilbert, "q1_truncated_dim", "study.static_benchmark.circuit_model.hilbert_truncation")
+    if q0_trunc != q1_trunc:
         raise ValueError(
             "study.static_benchmark.circuit_model.hilbert_truncation requires "
-            "q0_truncated_dim == q2_truncated_dim for computational-subspace indexing"
+            "q0_truncated_dim == q1_truncated_dim for computational-subspace indexing"
         )
 
     return StaticBenchmarkConfig(
@@ -467,7 +467,7 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
         circuit_model=CircuitModelConfig(
             hilbert_truncation=CircuitHilbertTruncationConfig(
                 q0_truncated_dim=q0_trunc,
-                q2_truncated_dim=q2_trunc,
+                q1_truncated_dim=q1_trunc,
                 c_truncated_dim=_require_int(c_hilbert, "c_truncated_dim", "study.static_benchmark.circuit_model.hilbert_truncation"),
             ),
             interaction_validity_check=_require_bool(

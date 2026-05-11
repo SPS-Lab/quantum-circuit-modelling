@@ -194,7 +194,7 @@ def extract_model1_parameters_from_4x4_stack(
     zeta_tol: float = 1e-12,
     gauge_fix_exchange: bool = True,
 ) -> dict[str, np.ndarray]:
-    """Extract ``w0, w2, J, zeta`` from dressed effective computational ``4x4`` stack."""
+    """Extract ``w0, w1, J, zeta`` from dressed effective computational ``4x4`` stack."""
     H_eff = np.asarray(H_eff, dtype=complex)
     if H_eff.ndim == 2:
         H_eff = H_eff[np.newaxis, ...]
@@ -223,9 +223,9 @@ def extract_model1_parameters_from_4x4_stack(
 
     zeta = d11 - d10 - d01 + d00
     zeta = np.where(np.abs(zeta) < float(zeta_tol), 0.0, zeta)
-    # Computational ordering follows |q2,q0>, so q0 excitations are at index 1.
+    # Computational ordering follows |q1,q0>, so q0 excitations are at index 1.
     w0 = d01 - d00 + 0.5 * zeta
-    w2 = d10 - d00 + 0.5 * zeta
+    w1 = d10 - d00 + 0.5 * zeta
     j = 0.5 * np.real(H_param[:, 1, 2])
 
-    return {"w0": w0, "w2": w2, "J": j, "zeta": zeta}
+    return {"w0": w0, "w1": w1, "J": j, "zeta": zeta}

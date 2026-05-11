@@ -98,7 +98,7 @@ def _extract_circuit_metrics(
     system_ref = replace(
         config.system,
         q0=replace(config.system.q0, ncut=ncut_ref),
-        q2=replace(config.system.q2, ncut=ncut_ref),
+        q1=replace(config.system.q1, ncut=ncut_ref),
     )
 
     H_cir = build_circuit_model_stack(

@@ -71,8 +71,8 @@ class CzBenchmarkResult:
 def _idle_flux_for_target(config: StudyConfig, sweep_target: str) -> float:
     if sweep_target == "q0":
         return float(config.system.q0.flux)
-    if sweep_target == "q2":
-        return float(config.system.q2.flux)
+    if sweep_target == "q1":
+        return float(config.system.q1.flux)
     if sweep_target == "coupler":
         return 0.0
     raise ValueError(f"Unsupported sweep_target {sweep_target!r}")
@@ -317,8 +317,8 @@ def _simulate_piecewise_constant_qutip(
     )
 
 
-def _q2c0q0_index(q2: int, q0: int, *, nlevels_qubit: int, nlevels_coupler: int) -> int:
-    return int(q2) * int(nlevels_coupler) * int(nlevels_qubit) + int(q0)
+def _q1c0q0_index(q1: int, q0: int, *, nlevels_qubit: int, nlevels_coupler: int) -> int:
+    return int(q1) * int(nlevels_coupler) * int(nlevels_qubit) + int(q0)
 
 
 def _intermediate_channel_indices(*, nlevels_qubit: int, nlevels_coupler: int) -> np.ndarray:
@@ -326,8 +326,8 @@ def _intermediate_channel_indices(*, nlevels_qubit: int, nlevels_coupler: int) -
         return np.zeros(0, dtype=int)
     return np.array(
         [
-            _q2c0q0_index(0, 2, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler),
-            _q2c0q0_index(2, 0, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler),
+            _q1c0q0_index(0, 2, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler),
+            _q1c0q0_index(2, 0, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler),
         ],
         dtype=int,
     )
@@ -516,7 +516,7 @@ def run_cz_benchmark(
         static_result.flux_values,
         static_result.effective_parameters,
         pulse_flux,
-        keys=("w0", "w2", "J", "zeta"),
+        keys=("w0", "w1", "J", "zeta"),
     )
     H_effective = build_effective_hamiltonian_stack(effective_parameters_t)
     effective_build_runtime_s = float(time.perf_counter() - effective_build_started)
@@ -533,7 +533,7 @@ def run_cz_benchmark(
             static_result.flux_values,
             static_result.duffing_mode_parameters,
             pulse_flux,
-            keys=("w0", "w2", "alpha0", "alpha2"),
+            keys=("w0", "w1", "alpha0", "alpha1"),
         )
         duffing_mode_parameters_t["wc"] = np.asarray(wc_t, dtype=float)
         duffing_stack = build_duffing_model_stack_from_parameters(

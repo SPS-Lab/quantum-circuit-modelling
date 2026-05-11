@@ -185,7 +185,7 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
         raise ImportError("scqubits import failed while building circuit RX benchmark") from exc
 
     q0_trunc = int(config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim)
-    q2_trunc = int(config.static_benchmark.circuit_model.hilbert_truncation.q2_truncated_dim)
+    q1_trunc = int(config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim)
     c_trunc = int(config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim)
 
     q0 = scq.TunableTransmon(
@@ -198,15 +198,15 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
         truncated_dim=q0_trunc,
         id_str=str(config.system.q0.id_str),
     )
-    q2 = scq.TunableTransmon(
-        EJmax=float(config.system.q2.EJmax),
-        EC=float(config.system.q2.EC),
-        d=float(config.system.q2.d),
-        flux=float(config.system.q2.flux),
-        ng=float(config.system.q2.ng),
-        ncut=int(config.system.q2.ncut),
-        truncated_dim=q2_trunc,
-        id_str=str(config.system.q2.id_str),
+    q1 = scq.TunableTransmon(
+        EJmax=float(config.system.q1.EJmax),
+        EC=float(config.system.q1.EC),
+        d=float(config.system.q1.d),
+        flux=float(config.system.q1.flux),
+        ng=float(config.system.q1.ng),
+        ncut=int(config.system.q1.ncut),
+        truncated_dim=q1_trunc,
+        id_str=str(config.system.q1.id_str),
     )
     c = scq.Oscillator(
         E_osc=float(config.static_benchmark.coupler_frequency.wc0),
@@ -216,7 +216,7 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
     def _to_matrix(operator: object) -> np.ndarray:
         return np.asarray(operator.full(), dtype=complex) if hasattr(operator, "full") else np.asarray(operator, dtype=complex)
 
-    hilbertspace = scq.HilbertSpace([q2, c, q0])
+    hilbertspace = scq.HilbertSpace([q1, c, q0])
     x_c = c.creation_operator() + c.annihilation_operator()
     hilbertspace.add_interaction(
         check_validity=bool(config.static_benchmark.circuit_model.interaction_validity_check),
@@ -226,8 +226,8 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
     )
     hilbertspace.add_interaction(
         check_validity=bool(config.static_benchmark.circuit_model.interaction_validity_check),
-        g=float(config.system.interactions.g_2c),
-        op1=(q2.n_operator(), q2),
+        g=float(config.system.interactions.g_1c),
+        op1=(q1.n_operator(), q1),
         op2=(x_c, c),
     )
 
@@ -236,16 +236,16 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
     n_q0_local = _to_matrix(q0.n_operator(energy_esys=q0_esys))
     n_q0_lower_local = np.triu(n_q0_local, 1)
     id_c = np.eye(c_trunc, dtype=complex)
-    id_q2 = np.eye(q2_trunc, dtype=complex)
-    drive_lower = np.kron(np.kron(id_q2, id_c), n_q0_lower_local)
+    id_q1 = np.eye(q1_trunc, dtype=complex)
+    drive_lower = np.kron(np.kron(id_q1, id_c), n_q0_lower_local)
 
     n_q0 = np.diag(np.arange(q0_trunc, dtype=float)).astype(complex)
     n_c = np.diag(np.arange(c_trunc, dtype=float)).astype(complex)
-    n_q2 = np.diag(np.arange(q2_trunc, dtype=float)).astype(complex)
+    n_q1 = np.diag(np.arange(q1_trunc, dtype=float)).astype(complex)
     total_excitation = (
-        np.kron(np.kron(id_q2, id_c), n_q0)
-        + np.kron(np.kron(id_q2, n_c), np.eye(q0_trunc, dtype=complex))
-        + np.kron(np.kron(n_q2, id_c), np.eye(q0_trunc, dtype=complex))
+        np.kron(np.kron(id_q1, id_c), n_q0)
+        + np.kron(np.kron(id_q1, n_c), np.eye(q0_trunc, dtype=complex))
+        + np.kron(np.kron(n_q1, id_c), np.eye(q0_trunc, dtype=complex))
     )
     return H, drive_lower, total_excitation
 

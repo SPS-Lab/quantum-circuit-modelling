@@ -32,23 +32,23 @@ def _coeff_for_ham(c: np.ndarray | float) -> np.ndarray | float:
         return c
     if c.ndim == 1:
         return c[:, np.newaxis, np.newaxis]
-    raise ValueError("w0, w2, J, zeta must be scalars or 1D arrays")
+    raise ValueError("w0, w1, J, zeta must be scalars or 1D arrays")
 
 
 
 def heff(
     *,
     w0: np.ndarray | float,
-    w2: np.ndarray | float,
+    w1: np.ndarray | float,
     J: np.ndarray | float,
     zeta: np.ndarray | float) -> np.ndarray:
     """Build effective model Hamiltonian in spin convention."""
     w0c = _coeff_for_ham(w0)
-    w2c = _coeff_for_ham(w2)
+    w1c = _coeff_for_ham(w1)
     jc = _coeff_for_ham(J)
     zc = _coeff_for_ham(zeta)
     return (
-        0.5 * w2c * np.kron(pz, I2)
+        0.5 * w1c * np.kron(pz, I2)
         + 0.5 * w0c * np.kron(I2, pz)
         + jc * (np.kron(px, px) + np.kron(py, py))
         + 0.25 * zc * np.kron(pz, pz)
@@ -60,19 +60,19 @@ def heff_spin_to_lab_hamiltonian(
     H_eff: np.ndarray,
     *,
     w0: np.ndarray,
-    w2: np.ndarray
+    w1: np.ndarray
 ) -> np.ndarray:
     """Convert model-1 ``(w/2) sigma_z`` convention to lab-frame ``w n``."""
     H_eff_arr = np.asarray(H_eff, dtype=complex)
     w0_arr = np.asarray(w0, dtype=float).reshape(-1)
-    w2_arr = np.asarray(w2, dtype=float).reshape(-1)
+    w1_arr = np.asarray(w1, dtype=float).reshape(-1)
 
     w0_b = w0_arr[:, np.newaxis, np.newaxis]
-    w2_b = w2_arr[:, np.newaxis, np.newaxis]
-    pz_q2 = np.kron(pz, I2)
+    w1_b = w1_arr[:, np.newaxis, np.newaxis]
+    pz_q1 = np.kron(pz, I2)
     pz_q0 = np.kron(I2, pz)
     eye4 = np.eye(4, dtype=complex)
-    return H_eff_arr + 0.5 * (w0_b + w2_b) * eye4 - w0_b * pz_q0 - w2_b * pz_q2
+    return H_eff_arr + 0.5 * (w0_b + w1_b) * eye4 - w0_b * pz_q0 - w1_b * pz_q1
 
 
 
@@ -105,7 +105,7 @@ def fit_single_harmonic_parameters(
     coeff_name_map: dict[str, tuple[str, ...]] = {}
     coeff: dict[str, np.ndarray] = {}
     fitted: dict[str, np.ndarray] = {}
-    for name in ("w0", "w2", "J", "zeta"):
+    for name in ("w0", "w1", "J", "zeta"):
         y = np.asarray(extracted_parameters[name], dtype=float).ravel()
         beta, *_ = np.linalg.lstsq(X, y, rcond=None)
         coeff_name_map[name] = coeff_names
@@ -131,12 +131,12 @@ def _fit_even_three_harmonic_parameter(
 def _fit_magnitude_exchange_single_parameter(
     *,
     w0: np.ndarray,
-    w2: np.ndarray,
+    w1: np.ndarray,
     wc: np.ndarray,
     y: np.ndarray,
 ) -> tuple[tuple[str, ...], np.ndarray, np.ndarray]:
     delta1 = np.asarray(w0, dtype=float).ravel() - np.asarray(wc, dtype=float).ravel()
-    delta2 = np.asarray(w2, dtype=float).ravel() - np.asarray(wc, dtype=float).ravel()
+    delta2 = np.asarray(w1, dtype=float).ravel() - np.asarray(wc, dtype=float).ravel()
     y_arr = np.asarray(y, dtype=float).ravel()
 
     gamma_grid = np.geomspace(1e-3, 5.0, 600)
@@ -170,12 +170,12 @@ def fit_magnitude_exchange_parameters(
     extracted_parameters: Mapping[str, np.ndarray],
     coupler_frequency_values: np.ndarray,
 ) -> EffectiveParameterFitResult:
-    """Fit ``w0,w2`` with even harmonics and ``J,zeta`` with a magnitude-exchange surrogate."""
+    """Fit ``w0,w1`` with even harmonics and ``J,zeta`` with a magnitude-exchange surrogate."""
     coeff_name_map: dict[str, tuple[str, ...]] = {}
     coeff: dict[str, np.ndarray] = {}
     fitted: dict[str, np.ndarray] = {}
 
-    for name in ("w0", "w2"):
+    for name in ("w0", "w1"):
         coeff_names, beta, y_fit = _fit_even_three_harmonic_parameter(
             flux_values,
             np.asarray(extracted_parameters[name], dtype=float).ravel(),
@@ -185,7 +185,7 @@ def fit_magnitude_exchange_parameters(
         fitted[name] = y_fit
 
     w0_ref = np.asarray(extracted_parameters["w0"], dtype=float).ravel()
-    w2_ref = np.asarray(extracted_parameters["w2"], dtype=float).ravel()
+    w1_ref = np.asarray(extracted_parameters["w1"], dtype=float).ravel()
     wc_ref = np.asarray(coupler_frequency_values, dtype=float).ravel()
     if wc_ref.shape != w0_ref.shape:
         raise ValueError(
@@ -195,7 +195,7 @@ def fit_magnitude_exchange_parameters(
     for name in ("J", "zeta"):
         coeff_names, beta, y_fit = _fit_magnitude_exchange_single_parameter(
             w0=w0_ref,
-            w2=w2_ref,
+            w1=w1_ref,
             wc=wc_ref,
             y=np.asarray(extracted_parameters[name], dtype=float).ravel(),
         )
@@ -240,11 +240,11 @@ def derive_effective_model_from_dressed_stack(
 
 
 def build_effective_hamiltonian_stack(parameters: Mapping[str, np.ndarray]) -> np.ndarray:
-    """Build lab-frame effective Hamiltonian stack from ``w0,w2,J,zeta`` arrays."""
+    """Build lab-frame effective Hamiltonian stack from ``w0,w1,J,zeta`` arrays."""
     w0 = np.asarray(parameters["w0"], dtype=float).ravel()
-    w2 = np.asarray(parameters["w2"], dtype=float).ravel()
+    w1 = np.asarray(parameters["w1"], dtype=float).ravel()
     j = np.asarray(parameters["J"], dtype=float).ravel()
     zeta = np.asarray(parameters["zeta"], dtype=float).ravel()
 
-    H_eff_spin = np.asarray(heff(w0=w0, w2=w2, J=j, zeta=zeta), dtype=complex)
-    return heff_spin_to_lab_hamiltonian(H_eff_spin, w0=w0, w2=w2)
+    H_eff_spin = np.asarray(heff(w0=w0, w1=w1, J=j, zeta=zeta), dtype=complex)
+    return heff_spin_to_lab_hamiltonian(H_eff_spin, w0=w0, w1=w1)

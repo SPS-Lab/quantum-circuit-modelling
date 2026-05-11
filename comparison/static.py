@@ -180,8 +180,8 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     params_circuit = extract_model1_parameters_from_4x4_stack(H_circuit_eff)
 
     d1 = np.abs(params_circuit["w0"] - wc)
-    d2 = np.abs(params_circuit["w2"] - wc)
-    g_scale = max(abs(config.system.interactions.g_0c), abs(config.system.interactions.g_2c), 1e-12)
+    d2 = np.abs(params_circuit["w1"] - wc)
+    g_scale = max(abs(config.system.interactions.g_0c), abs(config.system.interactions.g_1c), 1e-12)
     detuning_ratio = np.minimum(d1, d2) / g_scale
 
     idle_thr = float(config.static_benchmark.regime_thresholds.idle_ratio)

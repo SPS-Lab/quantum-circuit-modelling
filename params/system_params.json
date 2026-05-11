@@ -9,14 +9,14 @@
       "ncut": 45,
       "id_str": "q0"
     },
-    "q2": {
+    "q1": {
       "EJmax": 28.48,
       "EC": 0.317,
       "d": 0.0,
       "flux": 0.0,
       "ng": 0.0,
       "ncut": 45,
-      "id_str": "q2"
+      "id_str": "q1"
     },
     "c": {
       "E_osc": 6.902,
@@ -25,12 +25,12 @@
     },
     "interactions": {
       "g_0c": 0.199,
-      "g_2c": 0.183
+      "g_1c": 0.183
     }
   },
   "where_from": {
     "paper": "DiCarlo et al., Nature 460, 240-244 (2009), doi:10.1038/nature08121",
     "fit_values": "EJL(R)/h = 28.48(42.34) GHz, ECL(R)/h = 317(297) MHz, gL(R)/2pi = 199(183) MHz, omegaC/2pi = 6.902 GHz, kappa/2pi = 1 MHz",
-    "assumptions": "q0=QR, q2=QL; d, flux, ng, and ncut are manual defaults."
+    "assumptions": "q0=QR, q1=QL; d, flux, ng, and ncut are manual defaults."
   }
 }

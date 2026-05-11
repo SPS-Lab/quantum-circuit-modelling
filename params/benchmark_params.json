@@ -26,7 +26,7 @@
           "num_points": 61
         },
         "flux_control": {
-          "sweep_target": "q2"
+          "sweep_target": "q1"
         },
         "coupler_frequency": {
           "wc0": 6.902,
@@ -51,7 +51,7 @@
         "circuit_model": {
           "hilbert_truncation": {
             "q0_truncated_dim": 5,
-            "q2_truncated_dim": 5,
+            "q1_truncated_dim": 5,
             "c_truncated_dim": 6
           },
           "interaction_validity_check": true

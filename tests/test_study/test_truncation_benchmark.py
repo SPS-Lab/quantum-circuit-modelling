@@ -41,7 +41,7 @@ def _add_required_study_sections(payload: dict[str, object]) -> None:
 def _write_small_system_params(tmp_path: Path) -> Path:
     payload = json.loads((_ROOT / "params" / "system_params.json").read_text(encoding="utf-8"))
     payload["parameters"]["q0"]["ncut"] = 25
-    payload["parameters"]["q2"]["ncut"] = 25
+    payload["parameters"]["q1"]["ncut"] = 25
     dst = tmp_path / "system_small.json"
     dst.write_text(json.dumps(payload), encoding="utf-8")
     return dst
@@ -60,7 +60,7 @@ def _write_small_study_params(tmp_path: Path) -> Path:
     sb["duffing_model"]["hilbert_truncation"]["nlevels_qubit"] = 3
     sb["duffing_model"]["hilbert_truncation"]["nlevels_coupler"] = 3
     sb["circuit_model"]["hilbert_truncation"]["q0_truncated_dim"] = 4
-    sb["circuit_model"]["hilbert_truncation"]["q2_truncated_dim"] = 4
+    sb["circuit_model"]["hilbert_truncation"]["q1_truncated_dim"] = 4
     sb["circuit_model"]["hilbert_truncation"]["c_truncated_dim"] = 4
     sb["flux_control"]["sweep_target"] = "q0"
 
