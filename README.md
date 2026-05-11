@@ -56,7 +56,7 @@ The Duffing model supports calibration modes via
 - `analytic-per-flux`: flux-dependent transmon approximation (no per-point numerical calibration)
 - `per-flux`: recalibrate transmon Duffing parameters at every sweep point using transmon diagonalization
 - `fitted-static`: fit latent Duffing parameters independently at each flux point to match circuit dressed observables
-- `symbolic-fitted-static`: fit one global Fourier-like symbolic surrogate for `w0`, `w1`, `alpha0`, `alpha1` over flux, refined against circuit dressed observables
+- `symbolic-fitted-static`: fit one global cosine-only symbolic surrogate for `w0`, `w1`, `alpha0`, `alpha1` over flux, refined against circuit dressed observables
 
 The checked-in benchmark config currently uses `symbolic-fitted-static`.
 

@@ -107,6 +107,17 @@ def main() -> None:
             result.effective_fit_coefficients["zeta"],
         )
     )
+    if result.duffing_symbolic_coefficients:
+        reporter.line("Duffing symbolic calibration coefficients (GHz):")
+        for name in ("w0", "w1", "alpha0", "alpha1"):
+            if name in result.duffing_symbolic_coefficients and name in result.duffing_symbolic_coefficient_names:
+                reporter.line(
+                    _format_fit_line(
+                        name,
+                        result.duffing_symbolic_coefficient_names[name],
+                        result.duffing_symbolic_coefficients[name],
+                    )
+                )
     if args.plot_only:
         reporter.line(f"Loaded results: {results_path}")
     else:

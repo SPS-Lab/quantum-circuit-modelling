@@ -268,38 +268,36 @@ def build_duffing_model_stack_from_parameters(
     )
 
 
-def _select_symbolic_harmonic_count(flux_values: np.ndarray, *, max_harmonics: int = 6) -> int:
+def _select_symbolic_harmonic_count(flux_values: np.ndarray, *, max_harmonics: int = 5) -> int:
     n_points = int(np.asarray(flux_values, dtype=float).size)
     if n_points < 3:
         return 1
-    return max(1, min(int(max_harmonics), (n_points - 1) // 2, n_points // 4))
+    return max(1, min(int(max_harmonics), n_points - 1, n_points // 3))
 
 
-def _fourier_design_matrix(flux_values: np.ndarray, *, n_harmonics: int) -> np.ndarray:
+def _cosine_design_matrix(flux_values: np.ndarray, *, n_harmonics: int) -> np.ndarray:
     flux_arr = np.asarray(flux_values, dtype=float).ravel()
     theta = 2.0 * np.pi * flux_arr
     columns = [np.ones_like(theta)]
     for harmonic in range(1, int(n_harmonics) + 1):
         columns.append(np.cos(float(harmonic) * theta))
-        columns.append(np.sin(float(harmonic) * theta))
     return np.column_stack(columns)
 
 
-def _fourier_coefficient_names(*, n_harmonics: int) -> np.ndarray:
+def _cosine_coefficient_names(*, n_harmonics: int) -> np.ndarray:
     labels = ["c0"]
     for harmonic in range(1, int(n_harmonics) + 1):
         labels.append(f"cos{harmonic}")
-        labels.append(f"sin{harmonic}")
     return np.asarray(labels, dtype=str)
 
 
-def _fit_fourier_parameter_coefficients(
+def _fit_cosine_parameter_coefficients(
     flux_values: np.ndarray,
     *,
     parameter_targets: Mapping[str, np.ndarray],
     n_harmonics: int,
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
-    design = _fourier_design_matrix(flux_values, n_harmonics=n_harmonics)
+    design = _cosine_design_matrix(flux_values, n_harmonics=n_harmonics)
     coefficients: dict[str, np.ndarray] = {}
     packed: list[np.ndarray] = []
     for name in ("w0", "w1", "alpha0", "alpha1"):
@@ -311,7 +309,7 @@ def _fit_fourier_parameter_coefficients(
     return np.concatenate(packed), coefficients
 
 
-def _unpack_fourier_parameter_coefficients(
+def _unpack_cosine_parameter_coefficients(
     packed: np.ndarray,
     *,
     coeff_size: int,
@@ -327,15 +325,15 @@ def _unpack_fourier_parameter_coefficients(
     }
 
 
-def _evaluate_fourier_parameter_coefficients(
+def _evaluate_cosine_parameter_coefficients(
     flux_values: np.ndarray,
     *,
     coefficient_map: Mapping[str, np.ndarray],
     wc_values: np.ndarray,
 ) -> dict[str, np.ndarray]:
     coeff_size = int(np.asarray(next(iter(coefficient_map.values())), dtype=float).size)
-    n_harmonics = max(0, (coeff_size - 1) // 2)
-    design = _fourier_design_matrix(flux_values, n_harmonics=n_harmonics)
+    n_harmonics = max(0, coeff_size - 1)
+    design = _cosine_design_matrix(flux_values, n_harmonics=n_harmonics)
     parameters = {
         "w0": np.asarray(design @ np.asarray(coefficient_map["w0"], dtype=float).ravel(), dtype=float),
         "w1": np.asarray(design @ np.asarray(coefficient_map["w1"], dtype=float).ravel(), dtype=float),
@@ -480,7 +478,7 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
     sweep_target: str,
     n_candidate_states: int,
     selection_mode: str,
-    max_harmonics: int = 6,
+    max_harmonics: int = 5,
     pointwise_max_nfev: int = 80,
     refinement_max_nfev: int = 30,
     regularization_weight: float = 0.02,
@@ -510,9 +508,10 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
     ref_params = extract_model1_parameters_from_4x4_stack(reference_dressed_stack)
     n_q = int(duffing_config.hilbert_truncation.nlevels_qubit)
     n_c = int(duffing_config.hilbert_truncation.nlevels_coupler)
+    # Use a cosine-only global surrogate to keep the reported Duffing calibration compact.
     n_harmonics = _select_symbolic_harmonic_count(flux_arr, max_harmonics=max_harmonics)
-    coeff_names = _fourier_coefficient_names(n_harmonics=n_harmonics)
-    x0, coeff_init = _fit_fourier_parameter_coefficients(
+    coeff_names = _cosine_coefficient_names(n_harmonics=n_harmonics)
+    x0, coeff_init = _fit_cosine_parameter_coefficients(
         flux_arr,
         parameter_targets=pointwise,
         n_harmonics=n_harmonics,
@@ -533,8 +532,8 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
     }
 
     def residual(packed: np.ndarray) -> np.ndarray:
-        coeff_map = _unpack_fourier_parameter_coefficients(packed, coeff_size=coeff_size)
-        symbolic_parameters = _evaluate_fourier_parameter_coefficients(
+        coeff_map = _unpack_cosine_parameter_coefficients(packed, coeff_size=coeff_size)
+        symbolic_parameters = _evaluate_cosine_parameter_coefficients(
             flux_arr,
             coefficient_map=coeff_map,
             wc_values=initial["wc"],
@@ -575,8 +574,8 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         x0=x0,
         max_nfev=int(refinement_max_nfev),
     )
-    coeff_best = coeff_init if not result.success else _unpack_fourier_parameter_coefficients(result.x, coeff_size=coeff_size)
-    fitted = _evaluate_fourier_parameter_coefficients(
+    coeff_best = coeff_init if not result.success else _unpack_cosine_parameter_coefficients(result.x, coeff_size=coeff_size)
+    fitted = _evaluate_cosine_parameter_coefficients(
         flux_arr,
         coefficient_map=coeff_best,
         wc_values=initial["wc"],
