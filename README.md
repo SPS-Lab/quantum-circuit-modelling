@@ -152,7 +152,7 @@ Replot from saved leakage/flow data only:
 python scripts/run_leakage_flow_benchmark.py --plot-only
 ```
 
-Run the fixed-flux circuit truncation benchmark:
+Run the circuit truncation benchmark:
 
 ```bash
 python scripts/run_circuit_truncation_benchmark.py
@@ -162,7 +162,7 @@ This reads settings from:
 - `params/benchmark_params.json` under `circuit_truncation_benchmark`
 
 This benchmark:
-- fixes one flux point,
+- aggregates static RMSE over 5 configured flux points,
 - sweeps circuit charge-basis `ncut`,
 - sweeps circuit dressed-space truncated dimensions `{qubit, coupler}`,
 - compares each sweep point to one strict circuit reference point,
@@ -175,7 +175,7 @@ Replot from saved circuit truncation data only:
 python scripts/run_circuit_truncation_benchmark.py --plot-only
 ```
 
-Run the fixed-flux Duffing truncation benchmark:
+Run the Duffing truncation benchmark:
 
 ```bash
 python scripts/run_duffing_truncation_benchmark.py
@@ -185,7 +185,7 @@ This reads settings from:
 - `params/benchmark_params.json` under `duffing_truncation_benchmark`
 
 This benchmark:
-- fixes one flux point,
+- aggregates static RMSE over 5 configured flux points,
 - sweeps Duffing transmon calibration `ncut`,
 - clips the extraction basis per point to `min(duffing_truncated_dim, 2*ncut+1)`,
 - sweeps Duffing Hilbert-space truncated dimensions `{qubit, coupler}`,

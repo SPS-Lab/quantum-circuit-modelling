@@ -71,7 +71,7 @@ def _write_small_study_params(
     sb["flux_control"]["sweep_target"] = "q0"
 
     ctb = payload["circuit_truncation_benchmark"]
-    ctb["fixed_flux"] = 0.4
+    ctb["flux_values"] = [0.10, 0.20, 0.30, 0.40, 0.50]
     ctb["circuit_ncut_values"] = [4, 20, 35]
     ctb["circuit_truncation_values"] = [
         {"qubit": 3, "coupler": 3},
@@ -84,7 +84,7 @@ def _write_small_study_params(
     ctb["outputs"]["figure"] = "results/test_circuit_truncation_benchmark.pdf"
 
     dtb = payload["duffing_truncation_benchmark"]
-    dtb["fixed_flux"] = 0.4
+    dtb["flux_values"] = [0.10, 0.20, 0.30, 0.40, 0.50]
     dtb["duffing_ncut_values"] = [3, 4, 6, 8] if duffing_ncut_values is None else list(duffing_ncut_values)
     dtb["duffing_truncated_dim"] = 12
     dtb["duffing_hilbert_truncation_values"] = [
@@ -111,6 +111,7 @@ def test_circuit_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
     out = run_circuit_truncation_benchmark(cfg)
 
     assert out.circuit_ncut_values.shape == (3,)
+    assert out.flux_values.shape == (5,)
     assert out.circuit_ncut_effective_qubit_truncated_dim_values.shape == (3,)
     assert out.circuit_ncut_total_rmse.shape == (3,)
     assert out.circuit_truncation_qubit_values.shape == (2,)
@@ -119,8 +120,10 @@ def test_circuit_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
     assert np.all(np.isfinite(out.circuit_ncut_total_rmse))
     assert np.all(out.circuit_ncut_effective_qubit_truncated_dim_values <= (2 * out.circuit_ncut_values + 1))
     assert np.all(np.isfinite(out.circuit_truncation_total_rmse))
-    assert np.isfinite(out.reference_circuit_j)
-    assert np.isfinite(out.reference_circuit_zeta)
+    assert out.reference_circuit_j_values.shape == (5,)
+    assert out.reference_circuit_zeta_values.shape == (5,)
+    assert np.all(np.isfinite(out.reference_circuit_j_values))
+    assert np.all(np.isfinite(out.reference_circuit_zeta_values))
 
 
 def test_duffing_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> None:
@@ -132,6 +135,7 @@ def test_duffing_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
     out = run_duffing_truncation_benchmark(cfg)
 
     assert out.duffing_ncut_values.shape == (4,)
+    assert out.flux_values.shape == (5,)
     assert out.duffing_ncut_effective_truncated_dim_values.shape == (4,)
     assert out.duffing_ncut_total_rmse.shape == (4,)
     assert out.duffing_hilbert_qubit_values.shape == (2,)
@@ -141,8 +145,10 @@ def test_duffing_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
     assert np.all(out.duffing_ncut_effective_truncated_dim_values <= out.duffing_truncated_dim)
     assert np.all(np.isfinite(out.duffing_ncut_total_rmse))
     assert np.all(np.isfinite(out.duffing_hilbert_total_rmse))
-    assert np.isfinite(out.reference_circuit_j)
-    assert np.isfinite(out.reference_circuit_zeta)
+    assert out.reference_circuit_j_values.shape == (5,)
+    assert out.reference_circuit_zeta_values.shape == (5,)
+    assert np.all(np.isfinite(out.reference_circuit_j_values))
+    assert np.all(np.isfinite(out.reference_circuit_zeta_values))
 
 
 def test_duffing_truncation_benchmark_rejects_nonpositive_ncut(tmp_path: Path) -> None:

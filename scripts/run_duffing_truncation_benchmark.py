@@ -49,11 +49,17 @@ def main() -> None:
     )
 
     if args.plot_only:
-        result = load_result_hdf5(
-            results_path,
-            DuffingTruncationBenchmarkResult,
-            expected_benchmark_name="duffing_truncation",
-        )
+        try:
+            result = load_result_hdf5(
+                results_path,
+                DuffingTruncationBenchmarkResult,
+                expected_benchmark_name="duffing_truncation",
+            )
+        except ValueError as exc:
+            raise ValueError(
+                f"{results_path} does not match the current Duffing truncation benchmark schema. "
+                "Re-run without --plot-only to regenerate the results file."
+            ) from exc
     else:
         result = run_duffing_truncation_benchmark(config)
         save_result_hdf5(result, results_path, benchmark_name="duffing_truncation")

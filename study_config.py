@@ -164,7 +164,7 @@ class StaticBenchmarkConfig:
 
 @dataclass(frozen=True)
 class CircuitTruncationBenchmarkConfig:
-    fixed_flux: float
+    flux_values: tuple[float, ...]
     circuit_ncut_values: tuple[int, ...]
     circuit_truncation_values: tuple[tuple[int, int], ...]
     lowest_excited_levels_to_plot: int
@@ -176,7 +176,7 @@ class CircuitTruncationBenchmarkConfig:
 
 @dataclass(frozen=True)
 class DuffingTruncationBenchmarkConfig:
-    fixed_flux: float
+    flux_values: tuple[float, ...]
     duffing_ncut_values: tuple[int, ...]
     duffing_truncated_dim: int
     duffing_hilbert_truncation_values: tuple[tuple[int, int], ...]
@@ -617,6 +617,10 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
 def _parse_circuit_truncation_benchmark(study_payload: dict[str, Any]) -> CircuitTruncationBenchmarkConfig:
     tb = _require_dict(study_payload, "circuit_truncation_benchmark", "study")
 
+    flux_values_raw = _require_list(tb, "flux_values", "study.circuit_truncation_benchmark")
+    flux_values = tuple(float(v) for v in flux_values_raw)
+    if len(flux_values) != 5:
+        raise ValueError("study.circuit_truncation_benchmark.flux_values must contain exactly 5 values")
     circuit_ncuts_raw = _require_list(tb, "circuit_ncut_values", "study.circuit_truncation_benchmark")
     circuit_ncuts = tuple(int(v) for v in circuit_ncuts_raw)
     if len(circuit_ncuts) == 0:
@@ -634,7 +638,7 @@ def _parse_circuit_truncation_benchmark(study_payload: dict[str, Any]) -> Circui
     outputs = _require_dict(tb, "outputs", "study.circuit_truncation_benchmark")
 
     return CircuitTruncationBenchmarkConfig(
-        fixed_flux=_require_float(tb, "fixed_flux", "study.circuit_truncation_benchmark"),
+        flux_values=flux_values,
         circuit_ncut_values=circuit_ncuts,
         circuit_truncation_values=circuit_truncation_values,
         lowest_excited_levels_to_plot=n_levels_to_plot,
@@ -656,6 +660,10 @@ def _parse_circuit_truncation_benchmark(study_payload: dict[str, Any]) -> Circui
 def _parse_duffing_truncation_benchmark(study_payload: dict[str, Any]) -> DuffingTruncationBenchmarkConfig:
     tb = _require_dict(study_payload, "duffing_truncation_benchmark", "study")
 
+    flux_values_raw = _require_list(tb, "flux_values", "study.duffing_truncation_benchmark")
+    flux_values = tuple(float(v) for v in flux_values_raw)
+    if len(flux_values) != 5:
+        raise ValueError("study.duffing_truncation_benchmark.flux_values must contain exactly 5 values")
     ncuts_raw = _require_list(tb, "duffing_ncut_values", "study.duffing_truncation_benchmark")
     ncuts = tuple(int(v) for v in ncuts_raw)
     if len(ncuts) == 0:
@@ -690,7 +698,7 @@ def _parse_duffing_truncation_benchmark(study_payload: dict[str, Any]) -> Duffin
     outputs = _require_dict(tb, "outputs", "study.duffing_truncation_benchmark")
 
     return DuffingTruncationBenchmarkConfig(
-        fixed_flux=_require_float(tb, "fixed_flux", "study.duffing_truncation_benchmark"),
+        flux_values=flux_values,
         duffing_ncut_values=ncuts,
         duffing_truncated_dim=trunc_dim,
         duffing_hilbert_truncation_values=duffing_hilbert_truncation_values,

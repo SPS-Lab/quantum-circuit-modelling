@@ -64,8 +64,8 @@ def plot_circuit_truncation_benchmark(
             xticklabels=trunc_labels,
         )
         fig.suptitle(
-            "Circuit static truncation convergence at "
-            f"flux={float(result.flux):.6f}, compared over {int(result.lowest_excited_levels_compared)} excited levels"
+            "Circuit static truncation convergence over "
+            f"{int(result.flux_values.size)} flux points, compared over {int(result.lowest_excited_levels_compared)} excited levels"
         )
         fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.94), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
         outfile.parent.mkdir(parents=True, exist_ok=True)
@@ -102,8 +102,8 @@ def plot_duffing_truncation_benchmark(
             xticklabels=trunc_labels,
         )
         fig.suptitle(
-            "Duffing static truncation convergence at "
-            f"flux={float(result.flux):.6f}, compared over {int(result.lowest_excited_levels_compared)} excited levels"
+            "Duffing static truncation convergence over "
+            f"{int(result.flux_values.size)} flux points, compared over {int(result.lowest_excited_levels_compared)} excited levels"
         )
         fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.94), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
         outfile.parent.mkdir(parents=True, exist_ok=True)
