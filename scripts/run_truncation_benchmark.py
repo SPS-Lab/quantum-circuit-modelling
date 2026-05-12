@@ -99,15 +99,16 @@ def main() -> None:
         reporter.line(f"  {key}: {value:.6e}")
 
     reporter.line("Circuit ncut sweep (RMSE in GHz):")
-    for ncut, total_rmse, energy_rmse, j_err, zeta_err in zip(
+    for ncut, qdim_eff, total_rmse, energy_rmse, j_err, zeta_err in zip(
         result.circuit_ncut_values,
+        result.circuit_ncut_effective_qubit_truncated_dim_values,
         result.circuit_ncut_total_rmse,
         result.circuit_ncut_energy_rmse,
         result.circuit_ncut_j_abs_error,
         result.circuit_ncut_zeta_abs_error,
     ):
         reporter.line(
-            f"  ncut={int(ncut):4d}: total_rmse={float(total_rmse):.6e}, "
+            f"  ncut={int(ncut):4d}, qdim_eff={int(qdim_eff):3d}: total_rmse={float(total_rmse):.6e}, "
             f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
         )
 

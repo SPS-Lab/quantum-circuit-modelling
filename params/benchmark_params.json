@@ -99,7 +99,7 @@
     "truncation_only": {
       "truncation_benchmark": {
         "fixed_flux": 0.000001,
-        "circuit_ncut_values": [20, 30, 45, 60, 90, 120],
+        "circuit_ncut_values": [4, 6, 8, 10, 20, 30, 45, 60, 90, 100, 110, 120],
         "circuit_truncation_values": [
           {"qubit": 4, "coupler": 3},
           {"qubit": 6, "coupler": 4},

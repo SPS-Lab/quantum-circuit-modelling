@@ -72,7 +72,7 @@ def _write_small_study_params(
 
     tb = payload["truncation_benchmark"]
     tb["fixed_flux"] = 0.4
-    tb["circuit_ncut_values"] = [20, 25, 35]
+    tb["circuit_ncut_values"] = [4, 20, 35]
     tb["circuit_truncation_values"] = [
         {"qubit": 3, "coupler": 3},
         {"qubit": 4, "coupler": 4},
@@ -111,6 +111,7 @@ def test_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     )
 
     assert out.circuit_ncut_values.shape == (3,)
+    assert out.circuit_ncut_effective_qubit_truncated_dim_values.shape == (3,)
     assert out.circuit_ncut_total_rmse.shape == (3,)
     assert out.circuit_truncation_qubit_values.shape == (2,)
     assert out.circuit_truncation_coupler_values.shape == (2,)
@@ -124,6 +125,7 @@ def test_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert np.all(out.duffing_ncut_effective_truncated_dim_values <= (2 * out.duffing_ncut_values + 1))
     assert np.all(out.duffing_ncut_effective_truncated_dim_values <= out.duffing_truncated_dim)
     assert np.all(np.isfinite(out.circuit_ncut_total_rmse))
+    assert np.all(out.circuit_ncut_effective_qubit_truncated_dim_values <= (2 * out.circuit_ncut_values + 1))
     assert np.all(np.isfinite(out.circuit_truncation_total_rmse))
     assert np.all(np.isfinite(out.duffing_ncut_total_rmse))
     assert np.all(np.isfinite(out.duffing_hilbert_total_rmse))

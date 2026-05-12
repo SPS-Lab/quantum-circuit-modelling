@@ -33,6 +33,7 @@ class TruncationBenchmarkResult:
     reference_circuit_j: float
     reference_circuit_zeta: float
     circuit_ncut_values: np.ndarray
+    circuit_ncut_effective_qubit_truncated_dim_values: np.ndarray
     circuit_ncut_total_rmse: np.ndarray
     circuit_ncut_energy_rmse: np.ndarray
     circuit_ncut_j_abs_error: np.ndarray
@@ -119,7 +120,10 @@ def _extract_circuit_metrics(
     circuit_ncut: int,
     qubit_truncated_dim: int,
     coupler_truncated_dim: int,
-) -> tuple[float, float, np.ndarray]:
+) -> tuple[float, float, np.ndarray, int]:
+    qubit_trunc_eff = int(min(int(qubit_truncated_dim), 2 * int(circuit_ncut) + 1))
+    if qubit_trunc_eff < 2:
+        raise ValueError("Effective circuit qubit truncated_dim must be >= 2")
     system_ref = replace(
         config.system,
         q0=replace(config.system.q0, ncut=int(circuit_ncut)),
@@ -127,7 +131,7 @@ def _extract_circuit_metrics(
     )
     circuit_cfg = _circuit_config_with_dims(
         config,
-        qubit_truncated_dim=int(qubit_truncated_dim),
+        qubit_truncated_dim=qubit_trunc_eff,
         coupler_truncated_dim=int(coupler_truncated_dim),
     )
     H_cir = build_circuit_model_stack(
@@ -139,7 +143,7 @@ def _extract_circuit_metrics(
     ).hamiltonian_stack
     H_cir_eff = build_dressed_effective_computational_stack(
         H_cir,
-        nlevels_qubit=int(qubit_truncated_dim),
+        nlevels_qubit=qubit_trunc_eff,
         nlevels_coupler=int(coupler_truncated_dim),
         n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
         selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
@@ -147,7 +151,7 @@ def _extract_circuit_metrics(
     params = extract_model1_parameters_from_4x4_stack(H_cir_eff)
     evals = np.linalg.eigvalsh(np.asarray(H_cir[0], dtype=complex))
     rel_e = np.asarray(evals - evals[0], dtype=float)
-    return float(params["J"][0]), float(params["zeta"][0]), rel_e
+    return float(params["J"][0]), float(params["zeta"][0]), rel_e, qubit_trunc_eff
 
 
 def _build_reference_dressed_stack(
@@ -376,7 +380,7 @@ def run_truncation_benchmark(
         raise ValueError("duffing_truncated_dim must be >= 3")
 
     with progress_heartbeat("truncation benchmark: build strict circuit reference point"):
-        reference_circuit_j, reference_circuit_zeta, reference_circuit_rel_e = _extract_circuit_metrics(
+        reference_circuit_j, reference_circuit_zeta, reference_circuit_rel_e, _ = _extract_circuit_metrics(
             config=config,
             flux=flux,
             circuit_ncut=reference_ncut,
@@ -393,19 +397,21 @@ def run_truncation_benchmark(
 
     circuit_ncut_values = np.asarray(trunc_cfg.circuit_ncut_values, dtype=int)
     log_progress(f"truncation benchmark: circuit ncut sweep with {circuit_ncut_values.size} points")
+    circuit_ncut_effective_qdim = np.empty(circuit_ncut_values.shape[0], dtype=int)
     circuit_ncut_total_rmse = np.empty(circuit_ncut_values.shape[0], dtype=float)
     circuit_ncut_energy_rmse = np.empty(circuit_ncut_values.shape[0], dtype=float)
     circuit_ncut_j_abs_error = np.empty(circuit_ncut_values.shape[0], dtype=float)
     circuit_ncut_zeta_abs_error = np.empty(circuit_ncut_values.shape[0], dtype=float)
     for i, ncut in enumerate(circuit_ncut_values):
         log_progress(f"truncation benchmark: circuit ncut point {i + 1}/{circuit_ncut_values.size} (ncut={int(ncut)})")
-        cand_j, cand_zeta, cand_rel_e = _extract_circuit_metrics(
+        cand_j, cand_zeta, cand_rel_e, qdim_eff = _extract_circuit_metrics(
             config=config,
             flux=flux,
             circuit_ncut=int(ncut),
             qubit_truncated_dim=reference_qdim,
             coupler_truncated_dim=reference_cdim,
         )
+        circuit_ncut_effective_qdim[i] = int(qdim_eff)
         (
             circuit_ncut_total_rmse[i],
             circuit_ncut_energy_rmse[i],
@@ -434,7 +440,7 @@ def run_truncation_benchmark(
             "truncation benchmark: circuit truncated-dim point "
             f"{i + 1}/{len(circuit_trunc_pairs)} (q/c={int(qdim)}/{int(cdim)})"
         )
-        cand_j, cand_zeta, cand_rel_e = _extract_circuit_metrics(
+        cand_j, cand_zeta, cand_rel_e, _ = _extract_circuit_metrics(
             config=config,
             flux=flux,
             circuit_ncut=reference_ncut,
@@ -549,6 +555,8 @@ def run_truncation_benchmark(
         "reference_circuit_zeta": float(reference_circuit_zeta),
         "lowest_excited_levels_compared": float(lowest_excited_levels),
         "duffing_extraction_truncated_dim_configured": float(duffing_extraction_trunc_dim),
+        "circuit_ncut_effective_qubit_truncated_dim_min": float(np.min(circuit_ncut_effective_qdim)),
+        "circuit_ncut_effective_qubit_truncated_dim_max": float(np.max(circuit_ncut_effective_qdim)),
     }
     summary.update(
         _summary_for_sweep(
@@ -604,6 +612,7 @@ def run_truncation_benchmark(
         reference_circuit_j=float(reference_circuit_j),
         reference_circuit_zeta=float(reference_circuit_zeta),
         circuit_ncut_values=np.asarray(circuit_ncut_values, dtype=int),
+        circuit_ncut_effective_qubit_truncated_dim_values=np.asarray(circuit_ncut_effective_qdim, dtype=int),
         circuit_ncut_total_rmse=np.asarray(circuit_ncut_total_rmse, dtype=float),
         circuit_ncut_energy_rmse=np.asarray(circuit_ncut_energy_rmse, dtype=float),
         circuit_ncut_j_abs_error=np.asarray(circuit_ncut_j_abs_error, dtype=float),
