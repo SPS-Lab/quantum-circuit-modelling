@@ -165,10 +165,15 @@ class StaticBenchmarkConfig:
 @dataclass(frozen=True)
 class TruncationBenchmarkConfig:
     fixed_flux: float
+    circuit_ncut_values: tuple[int, ...]
+    circuit_truncation_values: tuple[tuple[int, int], ...]
     duffing_ncut_values: tuple[int, ...]
     duffing_truncated_dim: int
+    duffing_hilbert_truncation_values: tuple[tuple[int, int], ...]
     lowest_excited_levels_to_plot: int
     circuit_reference_ncut: int
+    circuit_reference_qubit_truncated_dim: int
+    circuit_reference_coupler_truncated_dim: int
     duffing_calibration_mode: DuffingCalibrationMode
     outputs: OutputConfig
 
@@ -357,6 +362,29 @@ def _require_list(parent: dict[str, Any], key: str, path: str) -> list[Any]:
     if not isinstance(value, list):
         raise TypeError(f"{path}.{key} must be a list")
     return value
+
+
+def _require_truncation_pair_list(
+    parent: dict[str, Any],
+    key: str,
+    path: str,
+) -> tuple[tuple[int, int], ...]:
+    raw = _require_list(parent, key, path)
+    pairs: list[tuple[int, int]] = []
+    for idx, item in enumerate(raw):
+        item_path = f"{path}.{key}[{idx}]"
+        if not isinstance(item, dict):
+            raise TypeError(f"{item_path} must be an object")
+        if "qubit" not in item or "coupler" not in item:
+            raise KeyError(f"{item_path} must contain keys 'qubit' and 'coupler'")
+        qubit = int(item["qubit"])
+        coupler = int(item["coupler"])
+        if qubit < 1 or coupler < 1:
+            raise ValueError(f"{item_path} values must be positive integers")
+        pairs.append((qubit, coupler))
+    if len(pairs) == 0:
+        raise ValueError(f"{path}.{key} must be non-empty")
+    return tuple(pairs)
 
 
 def _parse_system(system_payload: dict[str, Any]) -> SystemParams:
@@ -578,6 +606,18 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
 def _parse_truncation_benchmark(study_payload: dict[str, Any]) -> TruncationBenchmarkConfig:
     tb = _require_dict(study_payload, "truncation_benchmark", "study")
 
+    circuit_ncuts_raw = _require_list(tb, "circuit_ncut_values", "study.truncation_benchmark")
+    circuit_ncuts = tuple(int(v) for v in circuit_ncuts_raw)
+    if len(circuit_ncuts) == 0:
+        raise ValueError("study.truncation_benchmark.circuit_ncut_values must be non-empty")
+    if any(v < 1 for v in circuit_ncuts):
+        raise ValueError("study.truncation_benchmark.circuit_ncut_values must contain positive integers")
+    circuit_truncation_values = _require_truncation_pair_list(
+        tb,
+        "circuit_truncation_values",
+        "study.truncation_benchmark",
+    )
+
     ncuts_raw = _require_list(tb, "duffing_ncut_values", "study.truncation_benchmark")
     ncuts = tuple(int(v) for v in ncuts_raw)
     if len(ncuts) == 0:
@@ -587,6 +627,11 @@ def _parse_truncation_benchmark(study_payload: dict[str, Any]) -> TruncationBenc
     trunc_dim = _require_int(tb, "duffing_truncated_dim", "study.truncation_benchmark")
     if trunc_dim < 3:
         raise ValueError("study.truncation_benchmark.duffing_truncated_dim must be >= 3")
+    duffing_hilbert_truncation_values = _require_truncation_pair_list(
+        tb,
+        "duffing_hilbert_truncation_values",
+        "study.truncation_benchmark",
+    )
     n_levels_to_plot = _require_int(tb, "lowest_excited_levels_to_plot", "study.truncation_benchmark")
     if n_levels_to_plot < 1:
         raise ValueError("study.truncation_benchmark.lowest_excited_levels_to_plot must be >= 1")
@@ -608,10 +653,23 @@ def _parse_truncation_benchmark(study_payload: dict[str, Any]) -> TruncationBenc
 
     return TruncationBenchmarkConfig(
         fixed_flux=_require_float(tb, "fixed_flux", "study.truncation_benchmark"),
+        circuit_ncut_values=circuit_ncuts,
+        circuit_truncation_values=circuit_truncation_values,
         duffing_ncut_values=ncuts,
         duffing_truncated_dim=trunc_dim,
+        duffing_hilbert_truncation_values=duffing_hilbert_truncation_values,
         lowest_excited_levels_to_plot=n_levels_to_plot,
         circuit_reference_ncut=_require_int(tb, "circuit_reference_ncut", "study.truncation_benchmark"),
+        circuit_reference_qubit_truncated_dim=_require_int(
+            tb,
+            "circuit_reference_qubit_truncated_dim",
+            "study.truncation_benchmark",
+        ),
+        circuit_reference_coupler_truncated_dim=_require_int(
+            tb,
+            "circuit_reference_coupler_truncated_dim",
+            "study.truncation_benchmark",
+        ),
         duffing_calibration_mode=mode,
         outputs=OutputConfig(figure=_require_str(outputs, "figure", "study.truncation_benchmark.outputs")),
     )

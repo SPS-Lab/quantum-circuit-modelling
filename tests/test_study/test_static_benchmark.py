@@ -118,9 +118,14 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.static_benchmark.duffing_model.symbolic_fit.refinement_max_nfev >= 1
     assert cfg.static_benchmark.duffing_model.symbolic_fit.regularization_weight >= 0.0
     assert len(cfg.truncation_benchmark.duffing_ncut_values) > 0
+    assert len(cfg.truncation_benchmark.circuit_ncut_values) > 0
+    assert len(cfg.truncation_benchmark.circuit_truncation_values) > 0
     assert cfg.truncation_benchmark.duffing_truncated_dim >= 3
+    assert len(cfg.truncation_benchmark.duffing_hilbert_truncation_values) > 0
     assert cfg.truncation_benchmark.lowest_excited_levels_to_plot >= 1
     assert cfg.truncation_benchmark.circuit_reference_ncut > 0
+    assert cfg.truncation_benchmark.circuit_reference_qubit_truncated_dim > 0
+    assert cfg.truncation_benchmark.circuit_reference_coupler_truncated_dim > 0
     assert cfg.truncation_benchmark.duffing_calibration_mode in {
         "fixed",
         "analytic-per-flux",

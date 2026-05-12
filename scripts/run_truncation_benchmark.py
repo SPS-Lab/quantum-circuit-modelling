@@ -1,4 +1,4 @@
-"""Run fixed-flux Duffing truncation benchmark with parameters loaded from /params."""
+"""Run static truncation-convergence benchmark with parameters loaded from /params."""
 
 from __future__ import annotations
 
@@ -23,8 +23,6 @@ from benchmark_cli_reporting import (
 from comparison.truncation import TruncationBenchmarkResult, run_truncation_benchmark
 from plotting.truncation import plot_truncation_benchmark
 from study_config import load_study_config
-
-_NUMERICAL_ERROR_LEVELS_TO_REPORT = (5, 6, 7, 8)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -81,7 +79,6 @@ def main() -> None:
             fixed_flux=float(trunc_cfg.fixed_flux),
             duffing_truncated_dim=int(trunc_cfg.duffing_truncated_dim),
             lowest_excited_levels_to_report=int(trunc_cfg.lowest_excited_levels_to_plot),
-            reported_excited_levels=list(_NUMERICAL_ERROR_LEVELS_TO_REPORT),
             circuit_reference_ncut=int(trunc_cfg.circuit_reference_ncut),
             duffing_calibration_mode=str(trunc_cfg.duffing_calibration_mode),
         )
@@ -101,38 +98,68 @@ def main() -> None:
     for key, value in result.summary.items():
         reporter.line(f"  {key}: {value:.6e}")
 
-    reporter.line("Per-ncut metrics (GHz):")
-    for ncut, trunc_dim, j, zeta in zip(
-        result.duffing_ncut_values,
-        result.duffing_effective_truncated_dim_values,
-        result.duffing_j,
-        result.duffing_zeta,
+    reporter.line("Circuit ncut sweep (RMSE in GHz):")
+    for ncut, total_rmse, energy_rmse, j_err, zeta_err in zip(
+        result.circuit_ncut_values,
+        result.circuit_ncut_total_rmse,
+        result.circuit_ncut_energy_rmse,
+        result.circuit_ncut_j_abs_error,
+        result.circuit_ncut_zeta_abs_error,
     ):
         reporter.line(
-            f"  ncut={int(ncut):4d}, trunc_dim={int(trunc_dim):3d}: "
-            f"J={j:.6e}, zeta={zeta:.6e}"
+            f"  ncut={int(ncut):4d}: total_rmse={float(total_rmse):.6e}, "
+            f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
         )
+
+    reporter.line("Circuit truncated-dim sweep (q/c -> RMSE in GHz):")
+    for qdim, cdim, total_rmse, energy_rmse, j_err, zeta_err in zip(
+        result.circuit_truncation_qubit_values,
+        result.circuit_truncation_coupler_values,
+        result.circuit_truncation_total_rmse,
+        result.circuit_truncation_energy_rmse,
+        result.circuit_truncation_j_abs_error,
+        result.circuit_truncation_zeta_abs_error,
+    ):
+        reporter.line(
+            f"  {int(qdim):2d}/{int(cdim):2d}: total_rmse={float(total_rmse):.6e}, "
+            f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+        )
+
+    reporter.line("Duffing extraction ncut sweep (RMSE in GHz):")
+    for ncut, trunc_dim, total_rmse, energy_rmse, j_err, zeta_err in zip(
+        result.duffing_ncut_values,
+        result.duffing_ncut_effective_truncated_dim_values,
+        result.duffing_ncut_total_rmse,
+        result.duffing_ncut_energy_rmse,
+        result.duffing_ncut_j_abs_error,
+        result.duffing_ncut_zeta_abs_error,
+    ):
+        reporter.line(
+            f"  ncut={int(ncut):4d}, trunc_dim={int(trunc_dim):3d}: total_rmse={float(total_rmse):.6e}, "
+            f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+        )
+
+    reporter.line("Duffing Hilbert truncation sweep (q/c -> RMSE in GHz):")
+    for qdim, cdim, total_rmse, energy_rmse, j_err, zeta_err in zip(
+        result.duffing_hilbert_qubit_values,
+        result.duffing_hilbert_coupler_values,
+        result.duffing_hilbert_total_rmse,
+        result.duffing_hilbert_energy_rmse,
+        result.duffing_hilbert_j_abs_error,
+        result.duffing_hilbert_zeta_abs_error,
+    ):
+        reporter.line(
+            f"  {int(qdim):2d}/{int(cdim):2d}: total_rmse={float(total_rmse):.6e}, "
+            f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+        )
+
     reporter.line(
         "Circuit reference (GHz): "
-        f"ncut={result.circuit_reference_ncut}, "
-        f"J={result.circuit_j:.6e}, zeta={result.circuit_zeta:.6e}"
+        f"ncut={result.reference_circuit_ncut}, "
+        f"qdim/cdim={result.reference_circuit_qubit_truncated_dim}/"
+        f"{result.reference_circuit_coupler_truncated_dim}, "
+        f"J={result.reference_circuit_j:.6e}, zeta={result.reference_circuit_zeta:.6e}"
     )
-    levels_reported_text = ", ".join(f"E{int(level)}" for level in result.max_ncut_reported_excited_levels)
-    if not levels_reported_text:
-        levels_reported_text = "none available"
-    reporter.line(
-        "Duffing - circuit at max Duffing ncut "
-        f"(ncut={result.max_duffing_ncut}) for excited levels {levels_reported_text} (GHz):"
-    )
-    for level, diff, rel_pct in zip(
-        result.max_ncut_reported_excited_levels,
-        result.duffing_minus_circuit_at_max_ncut,
-        result.duffing_minus_circuit_percent_of_circuit_at_max_ncut,
-    ):
-        rel_text = f"{float(rel_pct):.6f}%"
-        if not (float(rel_pct) == float(rel_pct)):  # NaN check
-            rel_text = "nan%"
-        reporter.line(f"  E{int(level)}: {float(diff):.12e} ({rel_text} of circuit)")
     if args.plot_only:
         reporter.line(f"Loaded results: {results_path}")
     else:

@@ -72,10 +72,21 @@ def _write_small_study_params(
 
     tb = payload["truncation_benchmark"]
     tb["fixed_flux"] = 0.4
+    tb["circuit_ncut_values"] = [20, 25, 35]
+    tb["circuit_truncation_values"] = [
+        {"qubit": 3, "coupler": 3},
+        {"qubit": 4, "coupler": 4},
+    ]
     tb["duffing_ncut_values"] = [3, 4, 6, 8] if duffing_ncut_values is None else list(duffing_ncut_values)
     tb["duffing_truncated_dim"] = 12
+    tb["duffing_hilbert_truncation_values"] = [
+        {"qubit": 2, "coupler": 2},
+        {"qubit": 3, "coupler": 3},
+    ]
     tb["lowest_excited_levels_to_plot"] = 2
     tb["circuit_reference_ncut"] = 35
+    tb["circuit_reference_qubit_truncated_dim"] = 4
+    tb["circuit_reference_coupler_truncated_dim"] = 4
     tb["duffing_calibration_mode"] = str(duffing_calibration_mode)
     tb["outputs"]["figure"] = "results/test_truncation_benchmark.pdf"
     dst = tmp_path / "study_small.json"
@@ -99,33 +110,25 @@ def test_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> None:
         duffing_calibration_mode=cfg.truncation_benchmark.duffing_calibration_mode,
     )
 
+    assert out.circuit_ncut_values.shape == (3,)
+    assert out.circuit_ncut_total_rmse.shape == (3,)
+    assert out.circuit_truncation_qubit_values.shape == (2,)
+    assert out.circuit_truncation_coupler_values.shape == (2,)
+    assert out.circuit_truncation_total_rmse.shape == (2,)
     assert out.duffing_ncut_values.shape == (4,)
-    assert out.duffing_j.shape == (4,)
-    assert out.duffing_zeta.shape == (4,)
-    assert out.duffing_effective_truncated_dim_values.shape == (4,)
-    assert out.duffing_lowest_relative_energies.shape[0] == 4
-    assert out.duffing_lowest_relative_energies.shape[1] >= 2
-    assert out.circuit_lowest_relative_energies.shape == (out.duffing_lowest_relative_energies.shape[1],)
-    assert out.max_duffing_ncut == int(np.max(out.duffing_ncut_values))
-    n_report = min(
-        int(cfg.truncation_benchmark.lowest_excited_levels_to_plot),
-        max(0, int(out.duffing_lowest_relative_energies.shape[1]) - 1),
-    )
-    assert out.max_ncut_reported_excited_levels.shape == (n_report,)
-    assert out.duffing_minus_circuit_at_max_ncut.shape == (n_report,)
-    assert out.duffing_minus_circuit_percent_of_circuit_at_max_ncut.shape == (n_report,)
-    assert np.all(np.isfinite(out.duffing_j))
-    assert np.all(np.isfinite(out.duffing_zeta))
-    assert np.all(out.duffing_effective_truncated_dim_values <= (2 * out.duffing_ncut_values + 1))
-    assert np.all(out.duffing_effective_truncated_dim_values <= out.duffing_truncated_dim)
-    assert np.all(np.isfinite(out.duffing_lowest_relative_energies))
-    assert np.all(np.isfinite(out.circuit_lowest_relative_energies))
-    assert np.all(np.isfinite(out.duffing_minus_circuit_at_max_ncut))
-    assert np.all(np.isfinite(out.duffing_minus_circuit_percent_of_circuit_at_max_ncut))
-    assert np.allclose(out.duffing_lowest_relative_energies[:, 0], 0.0, atol=1e-12)
-    assert np.isclose(out.circuit_lowest_relative_energies[0], 0.0, atol=1e-12)
-    assert np.isfinite(out.circuit_j)
-    assert np.isfinite(out.circuit_zeta)
+    assert out.duffing_ncut_effective_truncated_dim_values.shape == (4,)
+    assert out.duffing_ncut_total_rmse.shape == (4,)
+    assert out.duffing_hilbert_qubit_values.shape == (2,)
+    assert out.duffing_hilbert_coupler_values.shape == (2,)
+    assert out.duffing_hilbert_total_rmse.shape == (2,)
+    assert np.all(out.duffing_ncut_effective_truncated_dim_values <= (2 * out.duffing_ncut_values + 1))
+    assert np.all(out.duffing_ncut_effective_truncated_dim_values <= out.duffing_truncated_dim)
+    assert np.all(np.isfinite(out.circuit_ncut_total_rmse))
+    assert np.all(np.isfinite(out.circuit_truncation_total_rmse))
+    assert np.all(np.isfinite(out.duffing_ncut_total_rmse))
+    assert np.all(np.isfinite(out.duffing_hilbert_total_rmse))
+    assert np.isfinite(out.reference_circuit_j)
+    assert np.isfinite(out.reference_circuit_zeta)
 
 
 
@@ -192,5 +195,5 @@ def test_truncation_benchmark_runs_with_symbolic_fitted_static(tmp_path: Path) -
 
     assert out.duffing_calibration_mode == "symbolic-fitted-static"
     assert out.duffing_ncut_values.shape == (1,)
-    assert np.all(np.isfinite(out.duffing_j))
-    assert np.all(np.isfinite(out.duffing_zeta))
+    assert np.all(np.isfinite(out.duffing_ncut_total_rmse))
+    assert np.all(np.isfinite(out.duffing_hilbert_total_rmse))
