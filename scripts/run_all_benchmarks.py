@@ -19,6 +19,7 @@ _BENCHMARK_SCRIPTS = (
     "run_rx_benchmark.py",
     "run_leakage_flow_benchmark.py",
     "run_truncation_benchmark.py",
+    "run_runtime_benchmark.py",
 )
 
 

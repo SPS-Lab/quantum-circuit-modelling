@@ -476,7 +476,7 @@ def fit_duffing_mode_parameters_to_reference(
     }
 
     for k in range(fitted["w0"].shape[0]):
-        x0 = np.array(
+        x0_raw = np.array(
             [
                 float(initial["w0"][k]),
                 float(initial["w1"][k]),
@@ -485,6 +485,12 @@ def fit_duffing_mode_parameters_to_reference(
             ],
             dtype=float,
         )
+        lower_bounds = np.array([0.0, 0.0, -5.0, -5.0], dtype=float)
+        upper_bounds = np.array([20.0, 20.0, -1e-6, -1e-6], dtype=float)
+        # Small-ncut or aggressively truncated initial spectra can yield
+        # non-physical positive anharmonicities. Project the optimizer seed
+        # into the feasible box so reference-driven modes remain usable.
+        x0 = np.clip(x0_raw, lower_bounds + 1e-12, upper_bounds - 1e-12)
         target = np.array(
             [
                 float(ref_params["w0"][k]),
@@ -549,10 +555,7 @@ def fit_duffing_mode_parameters_to_reference(
         result = least_squares(
             residual,
             x0=x0,
-            bounds=(
-                np.array([0.0, 0.0, -5.0, -5.0], dtype=float),
-                np.array([20.0, 20.0, -1e-6, -1e-6], dtype=float),
-            ),
+            bounds=(lower_bounds, upper_bounds),
             max_nfev=int(max_nfev),
         )
         x_best = x0 if not result.success else np.asarray(result.x, dtype=float)

@@ -116,7 +116,24 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.truncation_benchmark.duffing_truncated_dim >= 3
     assert cfg.truncation_benchmark.lowest_excited_levels_to_plot >= 1
     assert cfg.truncation_benchmark.circuit_reference_ncut > 0
-    assert cfg.truncation_benchmark.duffing_calibration_mode in {"fixed", "analytic-per-flux", "per-flux"}
+    assert cfg.truncation_benchmark.duffing_calibration_mode in {
+        "fixed",
+        "analytic-per-flux",
+        "per-flux",
+        "fitted-static",
+        "symbolic-fitted-static",
+    }
+    assert len(cfg.runtime_benchmark.qubit_truncation_values) > 0
+    assert all(v >= 2 for v in cfg.runtime_benchmark.qubit_truncation_values)
+    assert cfg.runtime_benchmark.duffing_calibration_mode in {
+        "fixed",
+        "analytic-per-flux",
+        "per-flux",
+        "fitted-static",
+        "symbolic-fitted-static",
+    }
+    assert cfg.runtime_benchmark.repeats >= 1
+    assert cfg.runtime_benchmark.hold_time_ns is None or cfg.runtime_benchmark.hold_time_ns >= 0.0
     assert cfg.cz_benchmark.total_time_ns is None or cfg.cz_benchmark.total_time_ns > 0.0
     assert cfg.cz_benchmark.hold_time_ns is None or cfg.cz_benchmark.hold_time_ns >= 0.0
     assert cfg.cz_benchmark.ramp_time_ns > 0.0
@@ -310,8 +327,6 @@ def test_duffing_symbolic_fitted_static_runs_and_exposes_symbolic_coefficients(t
 
 
 def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
-    pytest.importorskip("qutip")
-
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
     cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
@@ -358,8 +373,6 @@ def test_rx_benchmark_runs_with_small_config(tmp_path: Path) -> None:
 
 
 def test_cz_plot_writes_pdf(tmp_path: Path) -> None:
-    pytest.importorskip("qutip")
-
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
     cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)

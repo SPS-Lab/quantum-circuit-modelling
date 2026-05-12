@@ -69,8 +69,8 @@ python scripts/run_cz_benchmark.py
 The CZ benchmark:
 - uses a shared flux pulse schedule for all models,
 - uses a ramp-hold-ramp pulse configured under `cz_benchmark`,
-- propagates effective + Duffing models with `numpy/scipy`,
-- propagates the circuit model with `scqubits` Hamiltonians + `qutip`,
+- propagates all models with dense `numpy/scipy` matrix exponentials,
+- builds the circuit Hamiltonians with `scqubits`,
 - reports shared precompute time plus per-model build/propagation runtimes in the saved summary,
 - focuses on CZ behavior/statevector from `|++>`,
 - writes a figure with:
@@ -180,6 +180,36 @@ Replot from saved truncation data only:
 
 ```bash
 python scripts/run_truncation_benchmark.py --plot-only
+```
+
+Run the CZ runtime benchmark (qubit truncation vs time for Duffing and circuit):
+
+```bash
+python scripts/run_runtime_benchmark.py
+```
+
+This benchmark:
+- sweeps `runtime_benchmark.qubit_truncation_values`,
+- applies each sweep value to Duffing `hilbert_truncation.nlevels_qubit`
+  and to circuit `hilbert_truncation.q0_truncated_dim/q1_truncated_dim`,
+- reuses the configured CZ benchmark pulse settings with one fixed hold time across the whole sweep,
+- measures per-model CZ build and propagation time for Duffing and circuit,
+- plots build and propagation runtime separately vs qubit truncation,
+- stores the split runtime components plus spread across repeats in the saved `.h5`.
+
+Runtime-benchmark settings are read from:
+- `params/benchmark_params.json` under `runtime_benchmark`
+
+For cleaner runtime results:
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python scripts/run_runtime_benchmark.py
+```
+
+Replot from saved runtime benchmark data only:
+
+```bash
+python scripts/run_runtime_benchmark.py --plot-only
 ```
 
 All scripts support `--results <path>` to override the default HDF5 path.
