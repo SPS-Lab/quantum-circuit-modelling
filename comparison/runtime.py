@@ -168,7 +168,7 @@ def run_runtime_benchmark(
         static_started = time.perf_counter()
         static_results.append(run_static_benchmark(sweep_cfg))
         static_runtimes_s[i] = float(time.perf_counter() - static_started)
-        print(f"--- run_static_benchmark for truncation={i} Finished in {static_runtimes_s[i]}s ---")
+        print(f"--- run_static_benchmark for {qubit_truncation=} Finished in {static_runtimes_s[i]}s ---")
 
     if sweep_configs:
         # Prime lazy imports and BLAS/Qutip solver setup outside the measured sweep
