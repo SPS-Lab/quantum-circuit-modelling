@@ -151,9 +151,7 @@ def run_runtime_benchmark(
     shared_hold_scan_samples = np.empty((n_trunc, repeats_int), dtype=float)
 
     cz_cfg = config.cz_benchmark
-    print(f"--- Resolving fixed hold time ---")
     fixed_hold_time_ns = _resolve_fixed_hold_time_ns(config, hold_time_ns=hold_time_ns)
-    print(f"--- Resolving fixed hold time Done---")
     sweep_configs: list[StudyConfig] = []
     static_results: list[object] = []
     static_runtimes_s = np.empty(n_trunc, dtype=float)
@@ -164,16 +162,16 @@ def run_runtime_benchmark(
             duffing_calibration_mode=str(duffing_calibration_mode),
         )
         sweep_configs.append(sweep_cfg)
-        print(f"--- run_static_benchmark for truncation={i} Starting ---")
+        print(f"--- run_static_benchmark for qubit truncation {qubit_truncation} Starting ---")
         static_started = time.perf_counter()
         static_results.append(run_static_benchmark(sweep_cfg))
         static_runtimes_s[i] = float(time.perf_counter() - static_started)
-        print(f"--- run_static_benchmark for {qubit_truncation=} Finished in {static_runtimes_s[i]}s ---")
+        print(f"--- run_static_benchmark for qubit truncation {qubit_truncation} Finished in {static_runtimes_s[i]}s ---")
 
     if sweep_configs:
         # Prime lazy imports and BLAS/Qutip solver setup outside the measured sweep
         # so the first truncation value does not inherit all cold-start overhead.
-        print(f"--- Propagation outside measurement ---")
+        print(f"--- Propagation outside measurement Starting ---")
         run_cz_benchmark(
             sweep_configs[0],
             ramp_time_ns=float(cz_cfg.ramp_time_ns),
@@ -186,6 +184,7 @@ def run_runtime_benchmark(
             precomputed_static_result=static_results[0],
             precomputed_static_runtime_s=float(static_runtimes_s[0]),
         )
+        print(f"--- Propagation outside measurement Done ---")
 
     for j in range(repeats_int):
         print(f"--- Repeat {j=} ---")
