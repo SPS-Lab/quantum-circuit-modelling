@@ -182,6 +182,29 @@ Replot from saved truncation data only:
 python scripts/run_truncation_benchmark.py --plot-only
 ```
 
+Run the CZ runtime benchmark (`ncut` vs time for Duffing and circuit):
+
+```bash
+python scripts/run_runtime_benchmark.py
+```
+
+This benchmark:
+- sweeps `runtime_benchmark.ncut_values`,
+- applies each `ncut` both to the circuit transmon charge basis and the Duffing transmon spectral extraction,
+- reuses the configured CZ benchmark pulse settings with one fixed hold time across the whole sweep,
+- measures per-model CZ build and propagation time for Duffing and circuit,
+- plots build and propagation runtime separately vs `ncut`,
+- stores the split runtime components plus spread across repeats in the saved `.h5`.
+
+Runtime-benchmark settings are read from:
+- `params/benchmark_params.json` under `runtime_benchmark`
+
+Replot from saved runtime benchmark data only:
+
+```bash
+python scripts/run_runtime_benchmark.py --plot-only
+```
+
 All scripts support `--results <path>` to override the default HDF5 path.
 You can also rerender all plots from existing results:
 

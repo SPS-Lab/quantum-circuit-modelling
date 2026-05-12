@@ -117,6 +117,17 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.truncation_benchmark.lowest_excited_levels_to_plot >= 1
     assert cfg.truncation_benchmark.circuit_reference_ncut > 0
     assert cfg.truncation_benchmark.duffing_calibration_mode in {"fixed", "analytic-per-flux", "per-flux"}
+    assert len(cfg.runtime_benchmark.ncut_values) > 0
+    assert cfg.runtime_benchmark.duffing_truncated_dim >= 3
+    assert cfg.runtime_benchmark.duffing_calibration_mode in {
+        "fixed",
+        "analytic-per-flux",
+        "per-flux",
+        "fitted-static",
+        "symbolic-fitted-static",
+    }
+    assert cfg.runtime_benchmark.repeats >= 1
+    assert cfg.runtime_benchmark.hold_time_ns is None or cfg.runtime_benchmark.hold_time_ns >= 0.0
     assert cfg.cz_benchmark.total_time_ns is None or cfg.cz_benchmark.total_time_ns > 0.0
     assert cfg.cz_benchmark.hold_time_ns is None or cfg.cz_benchmark.hold_time_ns >= 0.0
     assert cfg.cz_benchmark.ramp_time_ns > 0.0

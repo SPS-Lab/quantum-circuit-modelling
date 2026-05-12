@@ -165,6 +165,16 @@ class TruncationBenchmarkConfig:
 
 
 @dataclass(frozen=True)
+class RuntimeBenchmarkConfig:
+    ncut_values: tuple[int, ...]
+    duffing_truncated_dim: int
+    duffing_calibration_mode: DuffingCalibrationMode
+    repeats: int
+    hold_time_ns: float | None
+    outputs: OutputConfig
+
+
+@dataclass(frozen=True)
 class CzBenchmarkConfig:
     total_time_ns: float | None
     hold_time_ns: float | None
@@ -225,6 +235,7 @@ class StudyConfig:
     rx_benchmark: RxBenchmarkConfig
     leakage_flow_benchmark: LeakageFlowBenchmarkConfig
     truncation_benchmark: TruncationBenchmarkConfig
+    runtime_benchmark: RuntimeBenchmarkConfig
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -256,6 +267,7 @@ _RUN_ALL_BENCHMARK_CATEGORY_ORDER: tuple[str, ...] = (
     "shared_static_and_rx",
     "static_only",
     "truncation_only",
+    "runtime_only",
     "cz_only",
     "rx_only",
     "leakage_flow_only",
@@ -609,6 +621,55 @@ def _parse_cz_benchmark(study_payload: dict[str, Any]) -> CzBenchmarkConfig:
     )
 
 
+def _parse_runtime_benchmark(study_payload: dict[str, Any]) -> RuntimeBenchmarkConfig:
+    rb = _require_dict(study_payload, "runtime_benchmark", "study")
+
+    ncuts_raw = _require_list(rb, "ncut_values", "study.runtime_benchmark")
+    ncuts = tuple(int(v) for v in ncuts_raw)
+    if len(ncuts) == 0:
+        raise ValueError("study.runtime_benchmark.ncut_values must be non-empty")
+    if any(v < 1 for v in ncuts):
+        raise ValueError("study.runtime_benchmark.ncut_values must contain positive integers")
+
+    trunc_dim = _require_int(rb, "duffing_truncated_dim", "study.runtime_benchmark")
+    if trunc_dim < 3:
+        raise ValueError("study.runtime_benchmark.duffing_truncated_dim must be >= 3")
+
+    calibration_mode = _require_str(rb, "duffing_calibration_mode", "study.runtime_benchmark").strip().lower()
+    if calibration_mode not in (
+        "fixed",
+        "analytic-per-flux",
+        "per-flux",
+        "fitted-static",
+        "symbolic-fitted-static",
+    ):
+        raise ValueError(
+            "study.runtime_benchmark.duffing_calibration_mode must be "
+            "'fixed', 'analytic-per-flux', 'per-flux', 'fitted-static', "
+            "or 'symbolic-fitted-static'"
+        )
+
+    repeats = _require_int(rb, "repeats", "study.runtime_benchmark")
+    if repeats < 1:
+        raise ValueError("study.runtime_benchmark.repeats must be >= 1")
+
+    hold_time_ns: float | None = None
+    if "hold_time_ns" in rb:
+        hold_time_ns = _require_float(rb, "hold_time_ns", "study.runtime_benchmark")
+        if hold_time_ns < 0.0:
+            raise ValueError("study.runtime_benchmark.hold_time_ns must be >= 0")
+
+    outputs = _require_dict(rb, "outputs", "study.runtime_benchmark")
+    return RuntimeBenchmarkConfig(
+        ncut_values=ncuts,
+        duffing_truncated_dim=trunc_dim,
+        duffing_calibration_mode=calibration_mode,
+        repeats=repeats,
+        hold_time_ns=None if hold_time_ns is None else float(hold_time_ns),
+        outputs=OutputConfig(figure=_require_str(outputs, "figure", "study.runtime_benchmark.outputs")),
+    )
+
+
 def _parse_leakage_flow_benchmark(study_payload: dict[str, Any]) -> LeakageFlowBenchmarkConfig:
     lf = _require_dict(study_payload, "leakage_flow_benchmark", "study")
     outputs = _require_dict(lf, "outputs", "study.leakage_flow_benchmark")
@@ -775,6 +836,7 @@ def load_study_config(
         rx_benchmark=_parse_rx_benchmark(study_payload),
         leakage_flow_benchmark=_parse_leakage_flow_benchmark(study_payload),
         truncation_benchmark=_parse_truncation_benchmark(study_payload),
+        runtime_benchmark=_parse_runtime_benchmark(study_payload),
     )
 
 
