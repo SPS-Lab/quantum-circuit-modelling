@@ -262,62 +262,6 @@ def _simulate_piecewise_constant_scipy(
     )
 
 
-def _simulate_piecewise_constant_qutip(
-    H_stack: np.ndarray,
-    times_ns: np.ndarray,
-    computational_indices: np.ndarray,
-    *,
-    monitor_indices: np.ndarray | None = None,
-) -> _DynamicsObservables:
-    try:
-        import qutip as qt
-    except Exception as exc:  # pragma: no cover - import guard only
-        raise ImportError("qutip import failed while simulating circuit CZ benchmark") from exc
-
-    H = np.asarray(H_stack, dtype=complex)
-    t = np.asarray(times_ns, dtype=float).ravel()
-    comp_idx = np.asarray(computational_indices, dtype=int).ravel()
-
-    n_time, d, d2 = H.shape
-    if d != d2:
-        raise ValueError(f"H_stack must be square, got {H.shape}")
-    if n_time != t.size:
-        raise ValueError(f"H_stack first axis ({n_time}) must match time size ({t.size})")
-    if comp_idx.size != 4:
-        raise ValueError("Need exactly 4 computational indices")
-
-    states = np.zeros((d, 4), dtype=complex)
-    for j in range(4):
-        states[int(comp_idx[j]), j] = 1.0
-
-    comp_amp = np.zeros((n_time, 4, 4), dtype=complex)
-    comp_amp[0] = states[comp_idx, :]
-    mon_idx = None if monitor_indices is None else np.asarray(monitor_indices, dtype=int).ravel()
-    mon = np.zeros(n_time, dtype=float)
-    if mon_idx is not None and mon_idx.size > 0:
-        mon[0] = float(np.sum(np.abs(states[mon_idx, 3]) ** 2))
-
-    for k in range(n_time - 1):
-        dt = float(t[k + 1] - t[k])
-        if dt <= 0.0:
-            raise ValueError("times_ns must be strictly increasing")
-        step_h = qt.Qobj(H[k])
-        U = (-1.0j * TWO_PI * dt * step_h).expm()
-        states = U.full() @ states
-        comp_amp[k + 1] = states[comp_idx, :]
-        if mon_idx is not None and mon_idx.size > 0:
-            mon[k + 1] = float(np.sum(np.abs(states[mon_idx, 3]) ** 2))
-
-    obs = _extract_observables_from_amplitudes(comp_amp)
-    return _DynamicsObservables(
-        computational_amplitudes=obs.computational_amplitudes,
-        populations_11=obs.populations_11,
-        leakage_11=obs.leakage_11,
-        conditional_phase=obs.conditional_phase,
-        monitor_population_11=mon,
-    )
-
-
 def _q1c0q0_index(q1: int, q0: int, *, nlevels_qubit: int, nlevels_coupler: int) -> int:
     return int(q1) * int(nlevels_coupler) * int(nlevels_qubit) + int(q0)
 
@@ -359,7 +303,7 @@ def _evaluate_circuit_candidate(
         circuit_config=config.static_benchmark.circuit_model,
         sweep_target=sweep_target,
     ).hamiltonian_stack
-    obs = _simulate_piecewise_constant_qutip(circuit_stack, times_ns, idx_circuit)
+    obs = _simulate_piecewise_constant_scipy(circuit_stack, times_ns, idx_circuit)
     phase_final = float(obs.conditional_phase[-1])
     phase_error = _phase_error_to_cz_target(phase_final)
     max_leak = float(np.max(obs.leakage_11))
@@ -382,7 +326,7 @@ def run_cz_benchmark(
     """Run a CZ-relevant dynamics benchmark under a shared flux pulse schedule.
 
     Circuit model:
-      Hamiltonians from scqubits, piecewise propagation via qutip.
+      Hamiltonians from scqubits, piecewise propagation via numpy/scipy.
     Effective + Duffing models:
       piecewise propagation via numpy/scipy.
     """
@@ -589,7 +533,7 @@ def run_cz_benchmark(
     )
     duffing_prop_runtime_s = float(time.perf_counter() - duffing_prop_started)
     circuit_prop_started = time.perf_counter()
-    obs_circuit = _simulate_piecewise_constant_qutip(
+    obs_circuit = _simulate_piecewise_constant_scipy(
         circuit_stack,
         times_ns,
         idx_circuit,

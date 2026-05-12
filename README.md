@@ -69,8 +69,8 @@ python scripts/run_cz_benchmark.py
 The CZ benchmark:
 - uses a shared flux pulse schedule for all models,
 - uses a ramp-hold-ramp pulse configured under `cz_benchmark`,
-- propagates effective + Duffing models with `numpy/scipy`,
-- propagates the circuit model with `scqubits` Hamiltonians + `qutip`,
+- propagates all models with dense `numpy/scipy` matrix exponentials,
+- builds the circuit Hamiltonians with `scqubits`,
 - reports shared precompute time plus per-model build/propagation runtimes in the saved summary,
 - focuses on CZ behavior/statevector from `|++>`,
 - writes a figure with:
