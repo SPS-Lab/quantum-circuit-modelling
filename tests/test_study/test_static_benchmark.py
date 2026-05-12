@@ -123,8 +123,8 @@ def test_load_study_config(tmp_path: Path) -> None:
         "fitted-static",
         "symbolic-fitted-static",
     }
-    assert len(cfg.runtime_benchmark.ncut_values) > 0
-    assert cfg.runtime_benchmark.duffing_truncated_dim >= 3
+    assert len(cfg.runtime_benchmark.qubit_truncation_values) > 0
+    assert all(v >= 2 for v in cfg.runtime_benchmark.qubit_truncation_values)
     assert cfg.runtime_benchmark.duffing_calibration_mode in {
         "fixed",
         "analytic-per-flux",

@@ -67,8 +67,7 @@ def _write_small_study_params(tmp_path: Path) -> Path:
     cz["hold_time_ns"] = 0.5
 
     rb = payload["runtime_benchmark"]
-    rb["ncut_values"] = [3, 4]
-    rb["duffing_truncated_dim"] = 8
+    rb["qubit_truncation_values"] = [2, 3]
     rb["duffing_calibration_mode"] = "per-flux"
     rb["repeats"] = 3
     rb["hold_time_ns"] = 0.5
@@ -87,27 +86,26 @@ def test_runtime_benchmark_runs_with_small_config(tmp_path: Path) -> None:
 
     out = run_runtime_benchmark(
         cfg,
-        ncut_values=list(cfg.runtime_benchmark.ncut_values),
-        duffing_truncated_dim=cfg.runtime_benchmark.duffing_truncated_dim,
+        qubit_truncation_values=list(cfg.runtime_benchmark.qubit_truncation_values),
         duffing_calibration_mode=cfg.runtime_benchmark.duffing_calibration_mode,
         repeats=cfg.runtime_benchmark.repeats,
     )
 
-    assert out.ncut_values.shape == (2,)
-    assert out.duffing_effective_truncated_dim_values.shape == (2,)
+    assert out.qubit_truncation_values.shape == (2,)
     assert out.repeats == 3
     assert np.isclose(out.fixed_hold_time_ns, 0.5)
     assert out.duffing_dynamics_runtime_s.shape == (2,)
     assert out.circuit_dynamics_runtime_s.shape == (2,)
     assert np.all(np.isfinite(out.duffing_dynamics_runtime_s))
     assert np.all(np.isfinite(out.circuit_dynamics_runtime_s))
-    assert np.all(out.duffing_effective_truncated_dim_values <= (2 * out.ncut_values + 1))
-    assert np.all(out.duffing_effective_truncated_dim_values <= cfg.runtime_benchmark.duffing_truncated_dim)
     assert np.all(out.selected_hold_times_ns >= 0.0)
     assert np.allclose(out.selected_hold_times_ns, out.fixed_hold_time_ns)
     assert np.all(out.n_time_points >= 2)
     assert np.all(out.duffing_hilbert_dims > 0)
     assert np.all(out.circuit_hilbert_dims > 0)
+    assert np.array_equal(out.qubit_truncation_values, np.array([2, 3], dtype=int))
+    assert np.array_equal(out.duffing_hilbert_dims, np.array([12, 27], dtype=int))
+    assert np.array_equal(out.circuit_hilbert_dims, np.array([16, 36], dtype=int))
 
 
 def test_runtime_plot_writes_pdf(tmp_path: Path) -> None:
@@ -117,8 +115,7 @@ def test_runtime_plot_writes_pdf(tmp_path: Path) -> None:
     )
     out = run_runtime_benchmark(
         cfg,
-        ncut_values=list(cfg.runtime_benchmark.ncut_values[:1]),
-        duffing_truncated_dim=cfg.runtime_benchmark.duffing_truncated_dim,
+        qubit_truncation_values=list(cfg.runtime_benchmark.qubit_truncation_values[:1]),
         duffing_calibration_mode=cfg.runtime_benchmark.duffing_calibration_mode,
         repeats=cfg.runtime_benchmark.repeats,
     )

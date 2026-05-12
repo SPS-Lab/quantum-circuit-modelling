@@ -166,8 +166,7 @@ class TruncationBenchmarkConfig:
 
 @dataclass(frozen=True)
 class RuntimeBenchmarkConfig:
-    ncut_values: tuple[int, ...]
-    duffing_truncated_dim: int
+    qubit_truncation_values: tuple[int, ...]
     duffing_calibration_mode: DuffingCalibrationMode
     repeats: int
     hold_time_ns: float | None
@@ -631,16 +630,14 @@ def _parse_cz_benchmark(study_payload: dict[str, Any]) -> CzBenchmarkConfig:
 def _parse_runtime_benchmark(study_payload: dict[str, Any]) -> RuntimeBenchmarkConfig:
     rb = _require_dict(study_payload, "runtime_benchmark", "study")
 
-    ncuts_raw = _require_list(rb, "ncut_values", "study.runtime_benchmark")
-    ncuts = tuple(int(v) for v in ncuts_raw)
-    if len(ncuts) == 0:
-        raise ValueError("study.runtime_benchmark.ncut_values must be non-empty")
-    if any(v < 1 for v in ncuts):
-        raise ValueError("study.runtime_benchmark.ncut_values must contain positive integers")
-
-    trunc_dim = _require_int(rb, "duffing_truncated_dim", "study.runtime_benchmark")
-    if trunc_dim < 3:
-        raise ValueError("study.runtime_benchmark.duffing_truncated_dim must be >= 3")
+    trunc_raw = _require_list(rb, "qubit_truncation_values", "study.runtime_benchmark")
+    trunc_values = tuple(int(v) for v in trunc_raw)
+    if len(trunc_values) == 0:
+        raise ValueError("study.runtime_benchmark.qubit_truncation_values must be non-empty")
+    if any(v < 2 for v in trunc_values):
+        raise ValueError(
+            "study.runtime_benchmark.qubit_truncation_values must contain integers >= 2"
+        )
 
     calibration_mode = _require_str(rb, "duffing_calibration_mode", "study.runtime_benchmark").strip().lower()
     if calibration_mode not in (
@@ -668,8 +665,7 @@ def _parse_runtime_benchmark(study_payload: dict[str, Any]) -> RuntimeBenchmarkC
 
     outputs = _require_dict(rb, "outputs", "study.runtime_benchmark")
     return RuntimeBenchmarkConfig(
-        ncut_values=ncuts,
-        duffing_truncated_dim=trunc_dim,
+        qubit_truncation_values=trunc_values,
         duffing_calibration_mode=calibration_mode,
         repeats=repeats,
         hold_time_ns=None if hold_time_ns is None else float(hold_time_ns),

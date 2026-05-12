@@ -1,4 +1,4 @@
-"""Run CZ runtime-vs-ncut benchmark with parameters loaded from /params."""
+"""Run CZ runtime-vs-qubit-truncation benchmark with parameters loaded from /params."""
 
 from __future__ import annotations
 
@@ -67,8 +67,7 @@ def main() -> None:
     else:
         result = run_runtime_benchmark(
             config,
-            ncut_values=list(runtime_cfg.ncut_values),
-            duffing_truncated_dim=int(runtime_cfg.duffing_truncated_dim),
+            qubit_truncation_values=list(runtime_cfg.qubit_truncation_values),
             duffing_calibration_mode=str(runtime_cfg.duffing_calibration_mode),
             repeats=int(runtime_cfg.repeats),
             hold_time_ns=runtime_cfg.hold_time_ns,
@@ -83,15 +82,16 @@ def main() -> None:
     reporter.line(f"  duffing_calibration_mode={result.duffing_calibration_mode}")
     reporter.line(f"  repeats={int(result.repeats)}")
     reporter.line(f"  fixed_hold_time_ns={float(result.fixed_hold_time_ns):.6f}")
-    reporter.line(f"  ncut_values={[int(v) for v in result.ncut_values]}")
+    reporter.line(f"  qubit_truncation_values={[int(v) for v in result.qubit_truncation_values]}")
     reporter.line("Runtime benchmark summary:")
     for key, value in result.summary.items():
         reporter.line(f"  {key}: {value:.6e}")
-    reporter.line("Per-ncut CZ build/propagation runtime (s):")
-    for idx, ncut in enumerate(result.ncut_values):
+    reporter.line("Per-truncation CZ build/propagation runtime (s):")
+    for idx, trunc in enumerate(result.qubit_truncation_values):
         reporter.line(
-            f"  ncut={int(ncut):4d}, "
-            f"duf_trunc_dim={int(result.duffing_effective_truncated_dim_values[idx]):3d}, "
+            f"  qubit_trunc={int(trunc):4d}, "
+            f"duf_dim={int(result.duffing_hilbert_dims[idx]):4d}, "
+            f"cir_dim={int(result.circuit_hilbert_dims[idx]):4d}, "
             f"hold_ns={float(result.selected_hold_times_ns[idx]):9.6f}, "
             f"duffing_build={float(result.duffing_build_runtime_s[idx]):.6e} +/- "
             f"{float(result.duffing_build_runtime_std_s[idx]):.2e}, "

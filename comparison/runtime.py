@@ -1,4 +1,4 @@
-"""Runtime benchmark for CZ dynamics versus transmon charge cutoff ``ncut``."""
+"""Runtime benchmark for CZ dynamics versus propagated qubit truncation."""
 
 from __future__ import annotations
 
@@ -19,8 +19,7 @@ class RuntimeBenchmarkResult:
     ramp_time_ns: float
     dt_ns: float
     fixed_hold_time_ns: float
-    ncut_values: np.ndarray
-    duffing_effective_truncated_dim_values: np.ndarray
+    qubit_truncation_values: np.ndarray
     repeats: int
     selected_hold_times_ns: np.ndarray
     n_time_points: np.ndarray
@@ -45,36 +44,42 @@ class RuntimeBenchmarkResult:
     summary: dict[str, float]
 
 
-def _config_with_ncut(
+def _config_with_qubit_truncation(
     config: StudyConfig,
     *,
-    ncut: int,
-    duffing_truncated_dim: int,
+    qubit_truncation: int,
     duffing_calibration_mode: str,
-) -> tuple[StudyConfig, int]:
-    ncut_int = int(ncut)
-    eff_trunc_dim = int(min(int(duffing_truncated_dim), 2 * ncut_int + 1))
-    if eff_trunc_dim < 3:
-        raise ValueError("Effective Duffing truncated dimension must be >= 3")
-
-    system_cfg = replace(
-        config.system,
-        q0=replace(config.system.q0, ncut=ncut_int),
-        q1=replace(config.system.q1, ncut=ncut_int),
+) -> StudyConfig:
+    trunc_int = int(qubit_truncation)
+    max_circuit_trunc = min(
+        2 * int(config.system.q0.ncut) + 1,
+        2 * int(config.system.q1.ncut) + 1,
     )
+    if trunc_int > max_circuit_trunc:
+        raise ValueError(
+            "qubit_truncation exceeds the circuit transmon basis available from "
+            f"system ncut; got {trunc_int}, max supported is {max_circuit_trunc}"
+        )
     static_cfg = replace(
         config.static_benchmark,
         duffing_model=replace(
             config.static_benchmark.duffing_model,
-            transmon_spectral_extraction=replace(
-                config.static_benchmark.duffing_model.transmon_spectral_extraction,
-                ncut=ncut_int,
-                truncated_dim=eff_trunc_dim,
+            hilbert_truncation=replace(
+                config.static_benchmark.duffing_model.hilbert_truncation,
+                nlevels_qubit=trunc_int,
             ),
             calibration_mode=str(duffing_calibration_mode),
         ),
+        circuit_model=replace(
+            config.static_benchmark.circuit_model,
+            hilbert_truncation=replace(
+                config.static_benchmark.circuit_model.hilbert_truncation,
+                q0_truncated_dim=trunc_int,
+                q1_truncated_dim=trunc_int,
+            ),
+        ),
     )
-    return replace(config, system=system_cfg, static_benchmark=static_cfg), eff_trunc_dim
+    return replace(config, static_benchmark=static_cfg)
 
 
 def _aggregate_samples(samples: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -114,52 +119,48 @@ def _resolve_fixed_hold_time_ns(
 def run_runtime_benchmark(
     config: StudyConfig,
     *,
-    ncut_values: list[int] | np.ndarray,
-    duffing_truncated_dim: int,
+    qubit_truncation_values: list[int] | np.ndarray,
     duffing_calibration_mode: str,
     repeats: int = 1,
     hold_time_ns: float | None = None,
 ) -> RuntimeBenchmarkResult:
-    """Benchmark CZ runtime for Duffing and circuit models across ``ncut``."""
-    ncuts = np.asarray(ncut_values, dtype=int).ravel()
-    if ncuts.size == 0:
-        raise ValueError("ncut_values must be non-empty")
-    if np.any(ncuts < 1):
-        raise ValueError("ncut_values must contain positive integers")
+    """Benchmark CZ runtime for Duffing and circuit models across qubit truncation."""
+    trunc_values = np.asarray(qubit_truncation_values, dtype=int).ravel()
+    if trunc_values.size == 0:
+        raise ValueError("qubit_truncation_values must be non-empty")
+    if np.any(trunc_values < 2):
+        raise ValueError("qubit_truncation_values must contain integers >= 2")
 
     repeats_int = int(repeats)
     if repeats_int < 1:
         raise ValueError("repeats must be >= 1")
 
-    n_ncut = int(ncuts.size)
-    duffing_trunc_dims_used = np.empty(n_ncut, dtype=int)
+    n_trunc = int(trunc_values.size)
 
-    hold_samples = np.empty((n_ncut, repeats_int), dtype=float)
-    n_time_point_samples = np.empty((n_ncut, repeats_int), dtype=float)
-    duffing_dim_samples = np.empty((n_ncut, repeats_int), dtype=float)
-    circuit_dim_samples = np.empty((n_ncut, repeats_int), dtype=float)
-    duffing_build_samples = np.empty((n_ncut, repeats_int), dtype=float)
-    duffing_prop_samples = np.empty((n_ncut, repeats_int), dtype=float)
-    duffing_dyn_samples = np.empty((n_ncut, repeats_int), dtype=float)
-    circuit_build_samples = np.empty((n_ncut, repeats_int), dtype=float)
-    circuit_prop_samples = np.empty((n_ncut, repeats_int), dtype=float)
-    circuit_dyn_samples = np.empty((n_ncut, repeats_int), dtype=float)
-    shared_static_samples = np.empty((n_ncut, repeats_int), dtype=float)
-    shared_hold_scan_samples = np.empty((n_ncut, repeats_int), dtype=float)
+    hold_samples = np.empty((n_trunc, repeats_int), dtype=float)
+    n_time_point_samples = np.empty((n_trunc, repeats_int), dtype=float)
+    duffing_dim_samples = np.empty((n_trunc, repeats_int), dtype=float)
+    circuit_dim_samples = np.empty((n_trunc, repeats_int), dtype=float)
+    duffing_build_samples = np.empty((n_trunc, repeats_int), dtype=float)
+    duffing_prop_samples = np.empty((n_trunc, repeats_int), dtype=float)
+    duffing_dyn_samples = np.empty((n_trunc, repeats_int), dtype=float)
+    circuit_build_samples = np.empty((n_trunc, repeats_int), dtype=float)
+    circuit_prop_samples = np.empty((n_trunc, repeats_int), dtype=float)
+    circuit_dyn_samples = np.empty((n_trunc, repeats_int), dtype=float)
+    shared_static_samples = np.empty((n_trunc, repeats_int), dtype=float)
+    shared_hold_scan_samples = np.empty((n_trunc, repeats_int), dtype=float)
 
     cz_cfg = config.cz_benchmark
     fixed_hold_time_ns = _resolve_fixed_hold_time_ns(config, hold_time_ns=hold_time_ns)
     sweep_configs: list[StudyConfig] = []
     static_results: list[object] = []
-    static_runtimes_s = np.empty(n_ncut, dtype=float)
-    for i, ncut in enumerate(ncuts):
-        sweep_cfg, eff_trunc_dim = _config_with_ncut(
+    static_runtimes_s = np.empty(n_trunc, dtype=float)
+    for i, qubit_truncation in enumerate(trunc_values):
+        sweep_cfg = _config_with_qubit_truncation(
             config,
-            ncut=int(ncut),
-            duffing_truncated_dim=int(duffing_truncated_dim),
+            qubit_truncation=int(qubit_truncation),
             duffing_calibration_mode=str(duffing_calibration_mode),
         )
-        duffing_trunc_dims_used[i] = eff_trunc_dim
         sweep_configs.append(sweep_cfg)
         static_started = time.perf_counter()
         static_results.append(run_static_benchmark(sweep_cfg))
@@ -167,7 +168,7 @@ def run_runtime_benchmark(
 
     if sweep_configs:
         # Prime lazy imports and BLAS/Qutip solver setup outside the measured sweep
-        # so the first ncut value does not inherit all cold-start overhead.
+        # so the first truncation value does not inherit all cold-start overhead.
         run_cz_benchmark(
             sweep_configs[0],
             ramp_time_ns=float(cz_cfg.ramp_time_ns),
@@ -182,7 +183,7 @@ def run_runtime_benchmark(
         )
 
     for j in range(repeats_int):
-        order = range(n_ncut) if (j % 2 == 0) else range(n_ncut - 1, -1, -1)
+        order = range(n_trunc) if (j % 2 == 0) else range(n_trunc - 1, -1, -1)
         for i in order:
             sweep_cfg = sweep_configs[i]
             result = run_cz_benchmark(
@@ -226,12 +227,9 @@ def run_runtime_benchmark(
 
     summary = {
         "repeats": float(repeats_int),
-        "ncut_min": float(np.min(ncuts)),
-        "ncut_max": float(np.max(ncuts)),
-        "ncut_count": float(n_ncut),
-        "duffing_truncated_dim_configured": float(duffing_truncated_dim),
-        "duffing_truncated_dim_used_min": float(np.min(duffing_trunc_dims_used)),
-        "duffing_truncated_dim_used_max": float(np.max(duffing_trunc_dims_used)),
+        "qubit_truncation_min": float(np.min(trunc_values)),
+        "qubit_truncation_max": float(np.max(trunc_values)),
+        "qubit_truncation_count": float(n_trunc),
         "fixed_hold_time_ns": float(fixed_hold_time_ns),
         "selected_hold_time_ns_median_min": float(np.min(hold_ns)),
         "selected_hold_time_ns_median_max": float(np.max(hold_ns)),
@@ -258,8 +256,7 @@ def run_runtime_benchmark(
         ramp_time_ns=float(cz_cfg.ramp_time_ns),
         dt_ns=float(cz_cfg.dt_ns),
         fixed_hold_time_ns=float(fixed_hold_time_ns),
-        ncut_values=np.asarray(ncuts, dtype=int),
-        duffing_effective_truncated_dim_values=np.asarray(duffing_trunc_dims_used, dtype=int),
+        qubit_truncation_values=np.asarray(trunc_values, dtype=int),
         repeats=repeats_int,
         selected_hold_times_ns=np.asarray(hold_ns, dtype=float),
         n_time_points=np.asarray(np.rint(n_time_points), dtype=int),

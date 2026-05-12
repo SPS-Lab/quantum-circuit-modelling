@@ -1,4 +1,4 @@
-"""Plotting for CZ runtime benchmark versus ``ncut``."""
+"""Plotting for CZ runtime benchmark versus propagated qubit truncation."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def plot_runtime_benchmark(
     title: str,
     font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
-    x = np.asarray(result.ncut_values, dtype=int)
+    x = np.asarray(result.qubit_truncation_values, dtype=int)
     duffing_build = np.asarray(result.duffing_build_runtime_s, dtype=float)
     duffing_build_std = np.asarray(result.duffing_build_runtime_std_s, dtype=float)
     circuit_build = np.asarray(result.circuit_build_runtime_s, dtype=float)
@@ -56,7 +56,7 @@ def plot_runtime_benchmark(
             label="duffing",
             **model_plot_kwargs("duffing"),
         )
-        ax_build.set_xlabel("ncut")
+        ax_build.set_xlabel("qubit truncation")
         ax_build.set_ylabel("Build runtime (s)")
         ax_build.set_title("Build")
         ax_build.grid(True, alpha=0.3)
@@ -83,7 +83,7 @@ def plot_runtime_benchmark(
             label="duffing",
             **model_plot_kwargs("duffing"),
         )
-        ax_prop.set_xlabel("ncut")
+        ax_prop.set_xlabel("qubit truncation")
         ax_prop.set_ylabel("Propagation runtime (s)")
         ax_prop.set_title("Propagation")
         ax_prop.grid(True, alpha=0.3)

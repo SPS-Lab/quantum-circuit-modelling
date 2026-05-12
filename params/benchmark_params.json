@@ -9,11 +9,10 @@
     "cz_benchmark.scan_leakage_penalty": "Used only when cz_benchmark.enable_hold_time_scan is true.",
     "cz_benchmark.total_time_ns": "Mutually exclusive with hold_time_ns. Used only when enable_hold_time_scan is false; implies hold_time_ns = total_time_ns - 2*ramp_time_ns.",
     "cz_benchmark.hold_time_ns": "Mutually exclusive with total_time_ns. Used only when enable_hold_time_scan is false.",
-    "runtime_benchmark.ncut_values": "Charge-basis cutoffs swept for both circuit transmons and Duffing transmon spectral extraction during the CZ runtime benchmark.",
-    "runtime_benchmark.duffing_truncated_dim": "Duffing transmon diagonalization truncated_dim for the runtime benchmark, clipped per point to min(duffing_truncated_dim, 2*ncut+1).",
+    "runtime_benchmark.qubit_truncation_values": "Propagated qubit truncations swept for both models during the CZ runtime benchmark: Duffing hilbert_truncation.nlevels_qubit and circuit_model.hilbert_truncation.q0_truncated_dim/q1_truncated_dim are all set to the same value at each sweep point.",
     "runtime_benchmark.duffing_calibration_mode": "Duffing calibration mode used only for the runtime benchmark sweep; may differ from static_benchmark.duffing_model.calibration_mode.",
-    "runtime_benchmark.repeats": "How many times to rerun each ncut point before aggregating median/std runtimes.",
-    "runtime_benchmark.hold_time_ns": "Optional fixed CZ hold time in ns used for every ncut point in the runtime benchmark. If omitted, a single reference hold time is resolved once and then reused across the sweep.",
+    "runtime_benchmark.repeats": "How many times to rerun each qubit-truncation point before aggregating median/std runtimes.",
+    "runtime_benchmark.hold_time_ns": "Optional fixed CZ hold time in ns used for every qubit-truncation point in the runtime benchmark. If omitted, a single reference hold time is resolved once and then reused across the sweep.",
     "rx_benchmark.drive_qubit": "Currently this benchmark supports only 'q0'.",
     "rx_benchmark.drive_frequency": "Drive frequency in GHz used in the rotating-frame/RWA benchmark Hamiltonian.",
     "rx_benchmark.drive_amplitude": "On-resonance drive amplitude in GHz for the shared microwave envelope.",
@@ -89,7 +88,7 @@
         "duffing_truncated_dim": 40,
         "lowest_excited_levels_to_plot": 12,
         "circuit_reference_ncut": 120,
-        "duffing_calibration_mode": "symbolic-fitted-static",
+        "duffing_calibration_mode": "analytic-per-flux",
         "outputs": {
           "figure": "results/model_comparison_truncation_static_metrics.pdf"
         }
@@ -97,8 +96,7 @@
     },
     "runtime_only": {
       "runtime_benchmark": {
-        "ncut_values": [5, 10, 20],
-        "duffing_truncated_dim": 40,
+        "qubit_truncation_values": [2, 3, 4, 5, 6],
         "duffing_calibration_mode": "symbolic-fitted-static",
         "repeats": 2,
         "hold_time_ns": 237.9595316591736,
