@@ -105,8 +105,8 @@ def build_dressed_effective_stack(
     H_stack: np.ndarray,
     *,
     subspace_indices: np.ndarray,
-    selection_mode: str = "continuous",
-    n_candidate_states: int = 16,
+    selection_mode: str,
+    n_candidate_states: int,
     projector_blocks: tuple[tuple[int, ...], ...] | None = None,
 ) -> np.ndarray:
     """Return dressed effective subspace Hamiltonians from a full stack."""
