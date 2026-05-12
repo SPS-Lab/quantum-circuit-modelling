@@ -9,6 +9,7 @@ import numpy as np
 
 from comparison.cz import run_cz_benchmark
 from comparison.static import run_static_benchmark
+from runtime_utils import log_progress
 from study_config import StudyConfig
 
 
@@ -162,16 +163,22 @@ def run_runtime_benchmark(
             duffing_calibration_mode=str(duffing_calibration_mode),
         )
         sweep_configs.append(sweep_cfg)
-        print(f"--- run_static_benchmark for qubit truncation {qubit_truncation} Starting ---")
+        log_progress(
+            f"runtime benchmark: static precompute {i + 1}/{n_trunc} for qubit truncation {qubit_truncation}"
+        )
         static_started = time.perf_counter()
         static_results.append(run_static_benchmark(sweep_cfg))
         static_runtimes_s[i] = float(time.perf_counter() - static_started)
-        print(f"--- run_static_benchmark for qubit truncation {qubit_truncation} Finished in {static_runtimes_s[i]}s ---")
+        log_progress(
+            "runtime benchmark: completed static precompute "
+            f"{i + 1}/{n_trunc} for qubit truncation {qubit_truncation} "
+            f"in {static_runtimes_s[i]:.3f}s"
+        )
 
     if sweep_configs:
         # Prime lazy imports and BLAS/Qutip solver setup outside the measured sweep
         # so the first truncation value does not inherit all cold-start overhead.
-        print(f"--- Propagation outside measurement Starting ---")
+        log_progress("runtime benchmark: priming propagation outside measured sweep")
         run_cz_benchmark(
             sweep_configs[0],
             ramp_time_ns=float(cz_cfg.ramp_time_ns),
@@ -184,13 +191,18 @@ def run_runtime_benchmark(
             precomputed_static_result=static_results[0],
             precomputed_static_runtime_s=float(static_runtimes_s[0]),
         )
-        print(f"--- Propagation outside measurement Done ---")
+        log_progress("runtime benchmark: propagation priming complete")
 
     for j in range(repeats_int):
-        print(f"--- Repeat {j=} ---")
+        log_progress(f"runtime benchmark: repeat {j + 1}/{repeats_int}")
         order = range(n_trunc) if (j % 2 == 0) else range(n_trunc - 1, -1, -1)
         for i in order:
             sweep_cfg = sweep_configs[i]
+            log_progress(
+                "runtime benchmark: measured CZ run "
+                f"repeat {j + 1}/{repeats_int}, truncation index {i + 1}/{n_trunc} "
+                f"(nlevels_qubit={int(trunc_values[i])})"
+            )
             result = run_cz_benchmark(
                 sweep_cfg,
                 ramp_time_ns=float(cz_cfg.ramp_time_ns),

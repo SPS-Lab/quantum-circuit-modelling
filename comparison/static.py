@@ -19,6 +19,7 @@ from models import (
     resolve_static_sweep_values,
 )
 from study_config import StudyConfig, build_flux_values
+from runtime_utils import progress_heartbeat
 from toolkit.spectrum import track_energy_levels_stack
 
 
@@ -80,80 +81,88 @@ def _masked_rmse_max(err: np.ndarray, mask: np.ndarray) -> tuple[float, float]:
 def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     flux_values = build_flux_values(config.static_benchmark.flux_sweep)
 
-    circuit = build_circuit_model_stack(
-        flux_values=flux_values,
-        system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
-        circuit_config=config.static_benchmark.circuit_model,
-        sweep_target=config.static_benchmark.flux_control.sweep_target,
-    )
+    with progress_heartbeat("static benchmark: build_circuit_model_stack"):
+        circuit = build_circuit_model_stack(
+            flux_values=flux_values,
+            system_params=config.system,
+            coupler_frequency=config.static_benchmark.coupler_frequency,
+            circuit_config=config.static_benchmark.circuit_model,
+            sweep_target=config.static_benchmark.flux_control.sweep_target,
+        )
 
     dressed_mode = config.static_benchmark.dressed_subspace.selection_mode
     n_cand = config.static_benchmark.dressed_subspace.n_candidate_states
 
-    H_circuit_eff = build_dressed_effective_computational_stack(
-        circuit.hamiltonian_stack,
-        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
-        nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
-        selection_mode=dressed_mode,
-        n_candidate_states=n_cand,
-    )
+    with progress_heartbeat("static benchmark: dress circuit stack"):
+        H_circuit_eff = build_dressed_effective_computational_stack(
+            circuit.hamiltonian_stack,
+            nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
+            nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
+            selection_mode=dressed_mode,
+            n_candidate_states=n_cand,
+        )
 
     duffing_mode = str(config.static_benchmark.duffing_model.calibration_mode).strip().lower()
     duffing_symbolic_coefficient_names: dict[str, np.ndarray] = {}
     duffing_symbolic_coefficients: dict[str, np.ndarray] = {}
     if duffing_mode == "fitted-static":
-        duffing_mode_parameters = fit_duffing_mode_parameters_to_reference(
-            flux_values=flux_values,
-            reference_dressed_stack=H_circuit_eff,
-            system_params=config.system,
-            coupler_frequency=config.static_benchmark.coupler_frequency,
-            duffing_config=config.static_benchmark.duffing_model,
-            sweep_target=config.static_benchmark.flux_control.sweep_target,
-            selection_mode=dressed_mode,
-            n_candidate_states=n_cand,
-        )
-        duffing = build_duffing_model_stack_from_parameters(
-            duffing_mode_parameters,
-            system_params=config.system,
-            duffing_config=config.static_benchmark.duffing_model,
-        )
+        with progress_heartbeat("static benchmark: fit duffing parameters to circuit reference"):
+            duffing_mode_parameters = fit_duffing_mode_parameters_to_reference(
+                flux_values=flux_values,
+                reference_dressed_stack=H_circuit_eff,
+                system_params=config.system,
+                coupler_frequency=config.static_benchmark.coupler_frequency,
+                duffing_config=config.static_benchmark.duffing_model,
+                sweep_target=config.static_benchmark.flux_control.sweep_target,
+                selection_mode=dressed_mode,
+                n_candidate_states=n_cand,
+            )
+        with progress_heartbeat("static benchmark: build_duffing_model_stack_from_parameters"):
+            duffing = build_duffing_model_stack_from_parameters(
+                duffing_mode_parameters,
+                system_params=config.system,
+                duffing_config=config.static_benchmark.duffing_model,
+            )
     elif duffing_mode == "symbolic-fitted-static":
-        duffing_symbolic_fit = fit_symbolic_duffing_mode_parameters_to_reference(
-            flux_values=flux_values,
-            reference_dressed_stack=H_circuit_eff,
-            system_params=config.system,
-            coupler_frequency=config.static_benchmark.coupler_frequency,
-            duffing_config=config.static_benchmark.duffing_model,
-            sweep_target=config.static_benchmark.flux_control.sweep_target,
-            selection_mode=dressed_mode,
-            n_candidate_states=n_cand,
-        )
+        with progress_heartbeat("static benchmark: symbolic Duffing fit to circuit reference"):
+            duffing_symbolic_fit = fit_symbolic_duffing_mode_parameters_to_reference(
+                flux_values=flux_values,
+                reference_dressed_stack=H_circuit_eff,
+                system_params=config.system,
+                coupler_frequency=config.static_benchmark.coupler_frequency,
+                duffing_config=config.static_benchmark.duffing_model,
+                sweep_target=config.static_benchmark.flux_control.sweep_target,
+                selection_mode=dressed_mode,
+                n_candidate_states=n_cand,
+            )
         duffing_mode_parameters = duffing_symbolic_fit.fitted_parameters
         duffing_symbolic_coefficient_names = duffing_symbolic_fit.coefficient_names
         duffing_symbolic_coefficients = duffing_symbolic_fit.coefficients
-        duffing = build_duffing_model_stack_from_parameters(
-            duffing_mode_parameters,
-            system_params=config.system,
-            duffing_config=config.static_benchmark.duffing_model,
-        )
+        with progress_heartbeat("static benchmark: build_duffing_model_stack_from_parameters"):
+            duffing = build_duffing_model_stack_from_parameters(
+                duffing_mode_parameters,
+                system_params=config.system,
+                duffing_config=config.static_benchmark.duffing_model,
+            )
     else:
-        duffing = build_duffing_model_stack(
-            flux_values=flux_values,
-            system_params=config.system,
-            coupler_frequency=config.static_benchmark.coupler_frequency,
-            duffing_config=config.static_benchmark.duffing_model,
-            sweep_target=config.static_benchmark.flux_control.sweep_target,
-        )
+        with progress_heartbeat("static benchmark: build_duffing_model_stack"):
+            duffing = build_duffing_model_stack(
+                flux_values=flux_values,
+                system_params=config.system,
+                coupler_frequency=config.static_benchmark.coupler_frequency,
+                duffing_config=config.static_benchmark.duffing_model,
+                sweep_target=config.static_benchmark.flux_control.sweep_target,
+            )
         duffing_mode_parameters = duffing.mode_parameters
 
-    H_duffing_eff = build_dressed_effective_computational_stack(
-        duffing.hamiltonian_stack,
-        nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
-        nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
-        selection_mode=dressed_mode,
-        n_candidate_states=n_cand,
-    )
+    with progress_heartbeat("static benchmark: dress Duffing stack"):
+        H_duffing_eff = build_dressed_effective_computational_stack(
+            duffing.hamiltonian_stack,
+            nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
+            nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
+            selection_mode=dressed_mode,
+            n_candidate_states=n_cand,
+        )
 
     source = config.static_benchmark.effective_model.derivation_source
     if source == "duffing":
@@ -170,12 +179,13 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         sweep_target=config.static_benchmark.flux_control.sweep_target,
     )
 
-    derivation = derive_effective_model_from_dressed_stack(
-        flux_values=flux_values,
-        dressed_stack=source_stack,
-        fit_basis=config.static_benchmark.effective_model.fit_basis,
-        coupler_frequency_values=wc,
-    )
+    with progress_heartbeat("static benchmark: derive effective model"):
+        derivation = derive_effective_model_from_dressed_stack(
+            flux_values=flux_values,
+            dressed_stack=source_stack,
+            fit_basis=config.static_benchmark.effective_model.fit_basis,
+            coupler_frequency_values=wc,
+        )
 
     effective_parameters = derivation.parameter_fit.fitted_parameters
     effective_fit_coefficient_names = {

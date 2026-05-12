@@ -18,6 +18,7 @@ from models import (
     is_reference_calibrated_duffing_mode,
     resolve_static_sweep_values,
 )
+from runtime_utils import format_elapsed_compact, log_progress, progress_heartbeat
 from study_config import StudyConfig
 
 TWO_PI = 2.0 * np.pi
@@ -218,6 +219,8 @@ def _simulate_piecewise_constant_scipy(
     computational_indices: np.ndarray,
     *,
     monitor_indices: np.ndarray | None = None,
+    progress_label: str | None = None,
+    progress_interval_s: float = 30.0,
 ) -> _DynamicsObservables:
     H = np.asarray(H_stack, dtype=complex)
     t = np.asarray(times_ns, dtype=float).ravel()
@@ -242,6 +245,9 @@ def _simulate_piecewise_constant_scipy(
     if mon_idx is not None and mon_idx.size > 0:
         mon[0] = float(np.sum(np.abs(states[mon_idx, 3]) ** 2))
 
+    interval = max(float(progress_interval_s), 1.0)
+    started = time.perf_counter()
+    last_progress = started
     for k in range(n_time - 1):
         dt = float(t[k + 1] - t[k])
         if dt <= 0.0:
@@ -251,6 +257,16 @@ def _simulate_piecewise_constant_scipy(
         comp_amp[k + 1] = states[comp_idx, :]
         if mon_idx is not None and mon_idx.size > 0:
             mon[k + 1] = float(np.sum(np.abs(states[mon_idx, 3]) ** 2))
+        now = time.perf_counter()
+        if progress_label is not None and (now - last_progress) >= interval:
+            completed = k + 1
+            total = max(n_time - 1, 1)
+            percent = 100.0 * float(completed) / float(total)
+            elapsed = format_elapsed_compact(now - started)
+            log_progress(
+                f"{progress_label} progress: step {completed}/{total} ({percent:.1f}%) after {elapsed}"
+            )
+            last_progress = now
 
     obs = _extract_observables_from_amplitudes(comp_amp)
     return _DynamicsObservables(
@@ -332,7 +348,8 @@ def run_cz_benchmark(
     """
     if precomputed_static_result is None:
         static_started = time.perf_counter()
-        static_result = run_static_benchmark(config)
+        with progress_heartbeat("cz benchmark: run_static_benchmark"):
+            static_result = run_static_benchmark(config)
         static_runtime_s = float(time.perf_counter() - static_started)
     else:
         static_result = precomputed_static_result
@@ -410,6 +427,7 @@ def run_cz_benchmark(
         scored: list[tuple[float, float]] = []
         for candidate in candidates:
             h = float(np.clip(candidate, 0.0, scan_max_hold_ns))
+            log_progress(f"cz benchmark: coarse hold scan candidate {h:.3f} ns")
             _, phase_error, max_leak = _evaluate_circuit_candidate(
                 config=config,
                 sweep_target=sweep_target,
@@ -439,6 +457,7 @@ def run_cz_benchmark(
         )
         refined: list[tuple[float, float]] = []
         for h in refine_candidates:
+            log_progress(f"cz benchmark: refined hold scan candidate {h:.3f} ns")
             _, phase_error, max_leak = _evaluate_circuit_candidate(
                 config=config,
                 sweep_target=sweep_target,
@@ -467,53 +486,56 @@ def run_cz_benchmark(
     )
 
     effective_build_started = time.perf_counter()
-    effective_parameters_t = _interpolate_parameter_mapping(
-        static_result.flux_values,
-        static_result.effective_parameters,
-        pulse_flux,
-        keys=("w0", "w1", "J", "zeta"),
-    )
-    H_effective = build_effective_hamiltonian_stack(effective_parameters_t)
+    with progress_heartbeat("cz benchmark: build effective Hamiltonian"):
+        effective_parameters_t = _interpolate_parameter_mapping(
+            static_result.flux_values,
+            static_result.effective_parameters,
+            pulse_flux,
+            keys=("w0", "w1", "J", "zeta"),
+        )
+        H_effective = build_effective_hamiltonian_stack(effective_parameters_t)
     effective_build_runtime_s = float(time.perf_counter() - effective_build_started)
 
     duffing_build_started = time.perf_counter()
-    if is_reference_calibrated_duffing_mode(config.static_benchmark.duffing_model.calibration_mode):
-        _, _, wc_t = resolve_static_sweep_values(
-            pulse_flux,
-            system_params=config.system,
-            coupler_frequency_config=config.static_benchmark.coupler_frequency,
-            sweep_target=sweep_target,
-        )
-        duffing_mode_parameters_t = _interpolate_parameter_mapping(
-            static_result.flux_values,
-            static_result.duffing_mode_parameters,
-            pulse_flux,
-            keys=("w0", "w1", "alpha0", "alpha1", "g0c", "g1c"),
-        )
-        duffing_mode_parameters_t["wc"] = np.asarray(wc_t, dtype=float)
-        duffing_stack = build_duffing_model_stack_from_parameters(
-            duffing_mode_parameters_t,
-            system_params=config.system,
-            duffing_config=config.static_benchmark.duffing_model,
-        ).hamiltonian_stack
-    else:
-        duffing_stack = build_duffing_model_stack(
-            flux_values=pulse_flux,
-            system_params=config.system,
-            coupler_frequency=config.static_benchmark.coupler_frequency,
-            duffing_config=config.static_benchmark.duffing_model,
-            sweep_target=sweep_target,
-        ).hamiltonian_stack
+    with progress_heartbeat("cz benchmark: build Duffing Hamiltonian"):
+        if is_reference_calibrated_duffing_mode(config.static_benchmark.duffing_model.calibration_mode):
+            _, _, wc_t = resolve_static_sweep_values(
+                pulse_flux,
+                system_params=config.system,
+                coupler_frequency_config=config.static_benchmark.coupler_frequency,
+                sweep_target=sweep_target,
+            )
+            duffing_mode_parameters_t = _interpolate_parameter_mapping(
+                static_result.flux_values,
+                static_result.duffing_mode_parameters,
+                pulse_flux,
+                keys=("w0", "w1", "alpha0", "alpha1", "g0c", "g1c"),
+            )
+            duffing_mode_parameters_t["wc"] = np.asarray(wc_t, dtype=float)
+            duffing_stack = build_duffing_model_stack_from_parameters(
+                duffing_mode_parameters_t,
+                system_params=config.system,
+                duffing_config=config.static_benchmark.duffing_model,
+            ).hamiltonian_stack
+        else:
+            duffing_stack = build_duffing_model_stack(
+                flux_values=pulse_flux,
+                system_params=config.system,
+                coupler_frequency=config.static_benchmark.coupler_frequency,
+                duffing_config=config.static_benchmark.duffing_model,
+                sweep_target=sweep_target,
+            ).hamiltonian_stack
     duffing_build_runtime_s = float(time.perf_counter() - duffing_build_started)
 
     circuit_build_started = time.perf_counter()
-    circuit_stack = build_circuit_model_stack(
-        flux_values=pulse_flux,
-        system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
-        circuit_config=config.static_benchmark.circuit_model,
-        sweep_target=sweep_target,
-    ).hamiltonian_stack
+    with progress_heartbeat("cz benchmark: build circuit Hamiltonian"):
+        circuit_stack = build_circuit_model_stack(
+            flux_values=pulse_flux,
+            system_params=config.system,
+            coupler_frequency=config.static_benchmark.coupler_frequency,
+            circuit_config=config.static_benchmark.circuit_model,
+            sweep_target=sweep_target,
+        ).hamiltonian_stack
     circuit_build_runtime_s = float(time.perf_counter() - circuit_build_started)
 
     effective_prop_started = time.perf_counter()
@@ -522,6 +544,7 @@ def run_cz_benchmark(
         times_ns,
         idx_effective,
         monitor_indices=None,
+        progress_label="cz benchmark: propagate effective model",
     )
     effective_prop_runtime_s = float(time.perf_counter() - effective_prop_started)
     duffing_prop_started = time.perf_counter()
@@ -530,6 +553,7 @@ def run_cz_benchmark(
         times_ns,
         idx_duffing,
         monitor_indices=idx_duffing_intermediate,
+        progress_label="cz benchmark: propagate Duffing model",
     )
     duffing_prop_runtime_s = float(time.perf_counter() - duffing_prop_started)
     circuit_prop_started = time.perf_counter()
@@ -538,6 +562,7 @@ def run_cz_benchmark(
         times_ns,
         idx_circuit,
         monitor_indices=idx_circuit_intermediate,
+        progress_label="cz benchmark: propagate circuit model",
     )
     circuit_prop_runtime_s = float(time.perf_counter() - circuit_prop_started)
 

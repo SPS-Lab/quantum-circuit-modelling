@@ -8,7 +8,7 @@ from pathlib import Path
 import time
 
 from benchmark_results_io import save_cli_report_hdf5
-from runtime_utils import format_elapsed_compact
+from runtime_utils import format_elapsed_compact, log_progress
 from study_config import StudyConfig
 
 
@@ -24,7 +24,7 @@ class CliReporter:
 
     def line(self, text: str = "") -> None:
         line_text = str(text)
-        print(line_text)
+        log_progress(line_text)
         self.lines.append(line_text)
 
     def add_runtime_line(self, *, label: str = "Total runtime") -> None:

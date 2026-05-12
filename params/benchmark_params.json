@@ -54,8 +54,8 @@
         },
         "circuit_model": {
           "hilbert_truncation": {
-            "q0_truncated_dim": 5,
-            "q1_truncated_dim": 5,
+            "q0_truncated_dim": 10,
+            "q1_truncated_dim": 10,
             "c_truncated_dim": 6
           },
           "interaction_validity_check": true
