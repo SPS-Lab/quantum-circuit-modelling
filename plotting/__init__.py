@@ -6,7 +6,7 @@ from plotting.runtime import plot_runtime_benchmark
 from plotting.rx import plot_rx_diagnostics_benchmark, plot_rx_populations_benchmark
 from plotting.static import plot_static_benchmark
 from plotting.style import DEFAULT_PLOT_FONT_SIZE
-from plotting.truncation import plot_truncation_benchmark
+from plotting.truncation import plot_circuit_truncation_benchmark, plot_duffing_truncation_benchmark
 
 __all__ = [
     "DEFAULT_PLOT_FONT_SIZE",
@@ -16,5 +16,6 @@ __all__ = [
     "plot_rx_populations_benchmark",
     "plot_rx_diagnostics_benchmark",
     "plot_leakage_flow_benchmark",
-    "plot_truncation_benchmark",
+    "plot_circuit_truncation_benchmark",
+    "plot_duffing_truncation_benchmark",
 ]

@@ -152,34 +152,51 @@ Replot from saved leakage/flow data only:
 python scripts/run_leakage_flow_benchmark.py --plot-only
 ```
 
-Run the fixed-flux truncation benchmark (`J`, `zeta` vs Duffing `ncut`):
+Run the fixed-flux circuit truncation benchmark:
 
 ```bash
-python scripts/run_truncation_benchmark.py
+python scripts/run_circuit_truncation_benchmark.py
 ```
 
-This reads truncation settings from:
-- `params/benchmark_params.json` under `truncation_benchmark`
+This reads settings from:
+- `params/benchmark_params.json` under `circuit_truncation_benchmark`
+
+This benchmark:
+- fixes one flux point,
+- sweeps circuit charge-basis `ncut`,
+- sweeps circuit dressed-space truncated dimensions `{qubit, coupler}`,
+- compares each sweep point to one strict circuit reference point,
+- reports scalar static RMSE together with `energy_rmse`, `|dJ|`, and `|dzeta|`,
+- and writes results to an `.h5` file next to the configured figure.
+
+Replot from saved circuit truncation data only:
+
+```bash
+python scripts/run_circuit_truncation_benchmark.py --plot-only
+```
+
+Run the fixed-flux Duffing truncation benchmark:
+
+```bash
+python scripts/run_duffing_truncation_benchmark.py
+```
+
+This reads settings from:
+- `params/benchmark_params.json` under `duffing_truncation_benchmark`
 
 This benchmark:
 - fixes one flux point,
 - sweeps Duffing transmon calibration `ncut`,
-- uses `truncation_benchmark.duffing_truncated_dim` for transmon spectral extraction,
-  with per-point safety clipping to `min(duffing_truncated_dim, 2*ncut+1)`,
-- uses `truncation_benchmark.lowest_excited_levels_to_plot` to control how many
-  lowest excited levels are shown in the level and level-difference subplots,
-- plots Duffing `J`/`\zeta` against a circuit reference shown as horizontal lines,
-- and shows the lowest relative energy levels vs `ncut` (Duffing curves with circuit horizontal references).
-  (computed once at large circuit `ncut`).
-- and prints `Duffing - circuit` numerically at the maximum Duffing `ncut`
-  for excited levels `E5`-`E8`, including relative difference as percent
-  of circuit energy.
-- writes truncation results to an `.h5` file next to the configured truncation figure.
+- clips the extraction basis per point to `min(duffing_truncated_dim, 2*ncut+1)`,
+- sweeps Duffing Hilbert-space truncated dimensions `{qubit, coupler}`,
+- compares each sweep point to one strict circuit reference point,
+- reports scalar static RMSE together with `energy_rmse`, `|dJ|`, and `|dzeta|`,
+- and writes results to an `.h5` file next to the configured figure.
 
-Replot from saved truncation data only:
+Replot from saved Duffing truncation data only:
 
 ```bash
-python scripts/run_truncation_benchmark.py --plot-only
+python scripts/run_duffing_truncation_benchmark.py --plot-only
 ```
 
 Run the CZ runtime benchmark (qubit truncation vs time for Duffing and circuit):

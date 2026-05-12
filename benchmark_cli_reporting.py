@@ -84,16 +84,13 @@ def build_common_truncation_lines(config: StudyConfig) -> list[str]:
     return lines
 
 
-def build_truncation_benchmark_extra_lines(config: StudyConfig) -> list[str]:
-    """Extra truncation-sweep settings specific to truncation benchmark."""
-    tb = config.truncation_benchmark
+def build_circuit_truncation_benchmark_extra_lines(config: StudyConfig) -> list[str]:
+    """Extra settings specific to circuit truncation benchmark."""
+    tb = config.circuit_truncation_benchmark
     circuit_ncut_values = ", ".join(str(int(v)) for v in tb.circuit_ncut_values)
-    duffing_ncut_values = ", ".join(str(int(v)) for v in tb.duffing_ncut_values)
     circuit_trunc_values = ", ".join(f"{int(q)}/{int(c)}" for q, c in tb.circuit_truncation_values)
-    duffing_hilbert_values = ", ".join(f"{int(q)}/{int(c)}" for q, c in tb.duffing_hilbert_truncation_values)
-    mode = str(tb.duffing_calibration_mode)
     lines = [
-        "Truncation benchmark sweep settings:",
+        "Circuit truncation benchmark sweep settings:",
         f"  fixed_flux={float(tb.fixed_flux):.6f}",
         f"  circuit_ncut_values=[{circuit_ncut_values}]",
         f"  circuit_truncation_values=[{circuit_trunc_values}]",
@@ -102,10 +99,29 @@ def build_truncation_benchmark_extra_lines(config: StudyConfig) -> list[str]:
             "  circuit_reference_truncation="
             f"{int(tb.circuit_reference_qubit_truncated_dim)}/{int(tb.circuit_reference_coupler_truncated_dim)}"
         ),
+        f"  lowest_excited_levels_to_plot={int(tb.lowest_excited_levels_to_plot)}",
+    ]
+    return lines
+
+
+def build_duffing_truncation_benchmark_extra_lines(config: StudyConfig) -> list[str]:
+    """Extra settings specific to Duffing truncation benchmark."""
+    tb = config.duffing_truncation_benchmark
+    duffing_ncut_values = ", ".join(str(int(v)) for v in tb.duffing_ncut_values)
+    duffing_hilbert_values = ", ".join(f"{int(q)}/{int(c)}" for q, c in tb.duffing_hilbert_truncation_values)
+    mode = str(tb.duffing_calibration_mode)
+    lines = [
+        "Duffing truncation benchmark sweep settings:",
+        f"  fixed_flux={float(tb.fixed_flux):.6f}",
         f"  duffing_ncut_values=[{duffing_ncut_values}]",
         f"  duffing_truncated_dim={int(tb.duffing_truncated_dim)}",
         f"  duffing_hilbert_truncation_values=[{duffing_hilbert_values}]",
         f"  duffing_calibration_mode={mode}",
+        f"  circuit_reference_ncut={int(tb.circuit_reference_ncut)}",
+        (
+            "  circuit_reference_truncation="
+            f"{int(tb.circuit_reference_qubit_truncated_dim)}/{int(tb.circuit_reference_coupler_truncated_dim)}"
+        ),
         f"  lowest_excited_levels_to_plot={int(tb.lowest_excited_levels_to_plot)}",
     ]
     return lines
