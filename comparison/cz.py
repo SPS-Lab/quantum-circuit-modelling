@@ -376,6 +376,8 @@ def run_cz_benchmark(
     scan_dt_ns: float = 2.0,
     scan_max_hold_ns: float = 300.0,
     scan_leakage_penalty: float = 0.25,
+    precomputed_static_result=None,
+    precomputed_static_runtime_s: float | None = None,
 ) -> CzBenchmarkResult:
     """Run a CZ-relevant dynamics benchmark under a shared flux pulse schedule.
 
@@ -384,9 +386,17 @@ def run_cz_benchmark(
     Effective + Duffing models:
       piecewise propagation via numpy/scipy.
     """
-    static_started = time.perf_counter()
-    static_result = run_static_benchmark(config)
-    static_runtime_s = float(time.perf_counter() - static_started)
+    if precomputed_static_result is None:
+        static_started = time.perf_counter()
+        static_result = run_static_benchmark(config)
+        static_runtime_s = float(time.perf_counter() - static_started)
+    else:
+        static_result = precomputed_static_result
+        static_runtime_s = (
+            float(precomputed_static_runtime_s)
+            if precomputed_static_runtime_s is not None
+            else 0.0
+        )
     sweep_target = str(config.static_benchmark.flux_control.sweep_target)
     idle_flux = _idle_flux_for_target(config, sweep_target)
     target_flux = _pick_target_flux_from_static(static_result, idle_flux=idle_flux)

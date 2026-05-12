@@ -48,12 +48,18 @@ def _write_small_system_params(tmp_path: Path) -> Path:
 
 
 
-def _write_small_study_params(tmp_path: Path) -> Path:
+def _write_small_study_params(
+    tmp_path: Path,
+    *,
+    duffing_calibration_mode: str = "per-flux",
+    flux_num_points: int = 9,
+    duffing_ncut_values: list[int] | None = None,
+) -> Path:
     payload = json.loads((_ROOT / "params" / "benchmark_params.json").read_text(encoding="utf-8"))
     payload = _flatten_run_all_benchmark_params(payload)
     _add_required_study_sections(payload)
     sb = payload["static_benchmark"]
-    sb["flux_sweep"]["num_points"] = 9
+    sb["flux_sweep"]["num_points"] = int(flux_num_points)
     sb["dressed_subspace"]["n_candidate_states"] = 12
     sb["duffing_model"]["transmon_spectral_extraction"]["ncut"] = 20
     sb["duffing_model"]["transmon_spectral_extraction"]["truncated_dim"] = 10
@@ -66,11 +72,11 @@ def _write_small_study_params(tmp_path: Path) -> Path:
 
     tb = payload["truncation_benchmark"]
     tb["fixed_flux"] = 0.4
-    tb["duffing_ncut_values"] = [3, 4, 6, 8]
+    tb["duffing_ncut_values"] = [3, 4, 6, 8] if duffing_ncut_values is None else list(duffing_ncut_values)
     tb["duffing_truncated_dim"] = 12
     tb["lowest_excited_levels_to_plot"] = 2
     tb["circuit_reference_ncut"] = 35
-    tb["duffing_calibration_mode"] = "per-flux"
+    tb["duffing_calibration_mode"] = str(duffing_calibration_mode)
     tb["outputs"]["figure"] = "results/test_truncation_benchmark.pdf"
     dst = tmp_path / "study_small.json"
     dst.write_text(json.dumps(payload), encoding="utf-8")
@@ -162,3 +168,29 @@ def test_truncation_plot_writes_pdf(tmp_path: Path) -> None:
         lowest_excited_levels_to_plot=cfg.truncation_benchmark.lowest_excited_levels_to_plot,
     )
     assert outfile.exists()
+
+
+def test_truncation_benchmark_runs_with_symbolic_fitted_static(tmp_path: Path) -> None:
+    cfg = load_study_config(
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(
+            tmp_path,
+            duffing_calibration_mode="symbolic-fitted-static",
+            flux_num_points=5,
+            duffing_ncut_values=[3],
+        ),
+    )
+
+    out = run_truncation_benchmark(
+        cfg,
+        duffing_ncut_values=list(cfg.truncation_benchmark.duffing_ncut_values),
+        fixed_flux=cfg.truncation_benchmark.fixed_flux,
+        duffing_truncated_dim=cfg.truncation_benchmark.duffing_truncated_dim,
+        circuit_reference_ncut=cfg.truncation_benchmark.circuit_reference_ncut,
+        duffing_calibration_mode=cfg.truncation_benchmark.duffing_calibration_mode,
+    )
+
+    assert out.duffing_calibration_mode == "symbolic-fitted-static"
+    assert out.duffing_ncut_values.shape == (1,)
+    assert np.all(np.isfinite(out.duffing_j))
+    assert np.all(np.isfinite(out.duffing_zeta))

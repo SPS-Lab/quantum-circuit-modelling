@@ -10,9 +10,13 @@ from models import (
     build_circuit_model_stack,
     build_dressed_effective_computational_stack,
     build_duffing_model_stack,
+    build_duffing_model_stack_from_parameters,
     extract_model1_parameters_from_4x4_stack,
+    fit_duffing_mode_parameters_to_reference,
+    fit_symbolic_duffing_mode_parameters_to_reference,
+    is_reference_calibrated_duffing_mode,
 )
-from study_config import StudyConfig
+from study_config import StudyConfig, build_flux_values
 
 
 @dataclass(frozen=True)
@@ -42,6 +46,49 @@ def _default_flux(config: StudyConfig) -> float:
     return 0.5 * (float(sweep.start) + float(sweep.stop))
 
 
+def _interpolate_mode_parameters(
+    flux_reference: np.ndarray,
+    mode_parameters: dict[str, np.ndarray],
+    *,
+    flux: float,
+) -> dict[str, np.ndarray]:
+    flux_ref = np.asarray(flux_reference, dtype=float).ravel()
+    x = float(flux)
+    return {
+        key: np.array([np.interp(x, flux_ref, np.asarray(values, dtype=float).ravel())], dtype=float)
+        for key, values in mode_parameters.items()
+    }
+
+
+def _build_reference_dressed_stack(
+    *,
+    config: StudyConfig,
+    circuit_reference_ncut: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    flux_values = build_flux_values(config.static_benchmark.flux_sweep)
+    ncut_ref = int(circuit_reference_ncut)
+    system_ref = replace(
+        config.system,
+        q0=replace(config.system.q0, ncut=ncut_ref),
+        q1=replace(config.system.q1, ncut=ncut_ref),
+    )
+    H_cir = build_circuit_model_stack(
+        flux_values=flux_values,
+        system_params=system_ref,
+        coupler_frequency=config.static_benchmark.coupler_frequency,
+        circuit_config=config.static_benchmark.circuit_model,
+        sweep_target=config.static_benchmark.flux_control.sweep_target,
+    ).hamiltonian_stack
+    H_cir_eff = build_dressed_effective_computational_stack(
+        H_cir,
+        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
+        nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
+        n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+        selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+    )
+    return np.asarray(flux_values, dtype=float), np.asarray(H_cir_eff, dtype=complex)
+
+
 def _extract_duffing_metrics(
     *,
     config: StudyConfig,
@@ -49,6 +96,8 @@ def _extract_duffing_metrics(
     duffing_ncut: int,
     duffing_truncated_dim: int,
     duffing_calibration_mode: str,
+    reference_flux_values: np.ndarray | None = None,
+    reference_dressed_stack: np.ndarray | None = None,
 ) -> tuple[float, float, np.ndarray, int]:
     dcfg = config.static_benchmark.duffing_model
     ncut = int(duffing_ncut)
@@ -67,13 +116,46 @@ def _extract_duffing_metrics(
         ),
         calibration_mode=str(duffing_calibration_mode),
     )
-    H_duf = build_duffing_model_stack(
-        flux_values=np.array([float(flux)], dtype=float),
-        system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
-        duffing_config=dcfg_for_ncut,
-        sweep_target=config.static_benchmark.flux_control.sweep_target,
-    ).hamiltonian_stack
+    if is_reference_calibrated_duffing_mode(duffing_calibration_mode):
+        if reference_flux_values is None or reference_dressed_stack is None:
+            raise ValueError(
+                "Reference-driven Duffing truncation modes require a reference dressed stack"
+            )
+        if str(duffing_calibration_mode).strip().lower() == "fitted-static":
+            mode_parameters = fit_duffing_mode_parameters_to_reference(
+                reference_flux_values,
+                reference_dressed_stack=reference_dressed_stack,
+                system_params=config.system,
+                coupler_frequency=config.static_benchmark.coupler_frequency,
+                duffing_config=dcfg_for_ncut,
+                sweep_target=config.static_benchmark.flux_control.sweep_target,
+                n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+                selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+            )
+        else:
+            mode_parameters = fit_symbolic_duffing_mode_parameters_to_reference(
+                reference_flux_values,
+                reference_dressed_stack=reference_dressed_stack,
+                system_params=config.system,
+                coupler_frequency=config.static_benchmark.coupler_frequency,
+                duffing_config=dcfg_for_ncut,
+                sweep_target=config.static_benchmark.flux_control.sweep_target,
+                n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+                selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+            ).fitted_parameters
+        H_duf = build_duffing_model_stack_from_parameters(
+            _interpolate_mode_parameters(reference_flux_values, mode_parameters, flux=float(flux)),
+            system_params=config.system,
+            duffing_config=dcfg_for_ncut,
+        ).hamiltonian_stack
+    else:
+        H_duf = build_duffing_model_stack(
+            flux_values=np.array([float(flux)], dtype=float),
+            system_params=config.system,
+            coupler_frequency=config.static_benchmark.coupler_frequency,
+            duffing_config=dcfg_for_ncut,
+            sweep_target=config.static_benchmark.flux_control.sweep_target,
+        ).hamiltonian_stack
 
     H_duf_eff = build_dressed_effective_computational_stack(
         H_duf,
@@ -176,6 +258,13 @@ def run_truncation_benchmark(
     zeta_vals = np.empty(ncuts.shape[0], dtype=float)
     trunc_dims_used = np.empty(ncuts.shape[0], dtype=int)
     rel_levels_duffing: list[np.ndarray] = []
+    reference_flux_values: np.ndarray | None = None
+    reference_dressed_stack: np.ndarray | None = None
+    if is_reference_calibrated_duffing_mode(duffing_calibration_mode):
+        reference_flux_values, reference_dressed_stack = _build_reference_dressed_stack(
+            config=config,
+            circuit_reference_ncut=int(circuit_reference_ncut),
+        )
     for k, ncut in enumerate(ncuts):
         j_vals[k], zeta_vals[k], rel_e, trunc_dims_used[k] = _extract_duffing_metrics(
             config=config,
@@ -183,6 +272,8 @@ def run_truncation_benchmark(
             duffing_ncut=int(ncut),
             duffing_truncated_dim=trunc_dim_cfg,
             duffing_calibration_mode=duffing_calibration_mode,
+            reference_flux_values=reference_flux_values,
+            reference_dressed_stack=reference_dressed_stack,
         )
         rel_levels_duffing.append(np.asarray(rel_e, dtype=float))
 

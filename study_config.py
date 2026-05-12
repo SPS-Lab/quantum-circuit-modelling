@@ -532,10 +532,17 @@ def _parse_truncation_benchmark(study_payload: dict[str, Any]) -> TruncationBenc
         raise ValueError("study.truncation_benchmark.lowest_excited_levels_to_plot must be >= 1")
 
     mode = _require_str(tb, "duffing_calibration_mode", "study.truncation_benchmark").strip().lower()
-    if mode not in ("fixed", "analytic-per-flux", "per-flux"):
+    if mode not in (
+        "fixed",
+        "analytic-per-flux",
+        "per-flux",
+        "fitted-static",
+        "symbolic-fitted-static",
+    ):
         raise ValueError(
             "study.truncation_benchmark.duffing_calibration_mode must be "
-            "'fixed', 'analytic-per-flux', or 'per-flux'"
+            "'fixed', 'analytic-per-flux', 'per-flux', 'fitted-static', "
+            "or 'symbolic-fitted-static'"
         )
     outputs = _require_dict(tb, "outputs", "study.truncation_benchmark")
 

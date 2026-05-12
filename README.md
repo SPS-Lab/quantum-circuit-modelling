@@ -199,6 +199,12 @@ This benchmark:
 Runtime-benchmark settings are read from:
 - `params/benchmark_params.json` under `runtime_benchmark`
 
+For cleaner runtime results:
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python scripts/run_runtime_benchmark.py
+```
+
 Replot from saved runtime benchmark data only:
 
 ```bash

@@ -2,8 +2,8 @@
   "parameter_notes": {
     "static_benchmark.duffing_model.transmon_spectral_extraction.ncut": "Used when static_benchmark.duffing_model.calibration_mode is 'fixed', 'per-flux', 'fitted-static', or 'symbolic-fitted-static'. Ignored for 'analytic-per-flux'.",
     "static_benchmark.duffing_model.transmon_spectral_extraction.truncated_dim": "Used when static_benchmark.duffing_model.calibration_mode is 'fixed', 'per-flux', 'fitted-static', or 'symbolic-fitted-static'. Ignored for 'analytic-per-flux'.",
-    "truncation_benchmark.duffing_ncut_values": "Used only when truncation_benchmark.duffing_calibration_mode is 'fixed' or 'per-flux'. Not used for 'analytic-per-flux'.",
-    "truncation_benchmark.duffing_truncated_dim": "Used only when truncation_benchmark.duffing_calibration_mode is 'fixed' or 'per-flux'. Not used for 'analytic-per-flux'.",
+    "truncation_benchmark.duffing_ncut_values": "Used for all truncation Duffing calibration modes; controls the transmon charge-basis cutoff sweep. For reference-driven modes ('fitted-static' and 'symbolic-fitted-static'), a separate reference fit is run for each swept ncut.",
+    "truncation_benchmark.duffing_truncated_dim": "Used for all truncation Duffing calibration modes except 'analytic-per-flux'; clipped per point to min(duffing_truncated_dim, 2*ncut+1).",
     "cz_benchmark.scan_dt_ns": "Used only when cz_benchmark.enable_hold_time_scan is true.",
     "cz_benchmark.scan_max_hold_ns": "Used only when cz_benchmark.enable_hold_time_scan is true.",
     "cz_benchmark.scan_leakage_penalty": "Used only when cz_benchmark.enable_hold_time_scan is true.",
@@ -89,7 +89,7 @@
         "duffing_truncated_dim": 40,
         "lowest_excited_levels_to_plot": 12,
         "circuit_reference_ncut": 120,
-        "duffing_calibration_mode": "per-flux",
+        "duffing_calibration_mode": "symbolic-fitted-static",
         "outputs": {
           "figure": "results/model_comparison_truncation_static_metrics.pdf"
         }
@@ -97,10 +97,10 @@
     },
     "runtime_only": {
       "runtime_benchmark": {
-        "ncut_values": [5, 10, 20, 40, 60],
+        "ncut_values": [5, 10, 20],
         "duffing_truncated_dim": 40,
-        "duffing_calibration_mode": "per-flux",
-        "repeats": 3,
+        "duffing_calibration_mode": "symbolic-fitted-static",
+        "repeats": 2,
         "hold_time_ns": 237.9595316591736,
         "outputs": {
           "figure": "results/model_comparison_cz_runtime_vs_ncut.pdf"

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import time
 
 import numpy as np
 
 from comparison.cz import run_cz_benchmark
+from comparison.static import run_static_benchmark
 from study_config import StudyConfig
 
 
@@ -147,6 +149,9 @@ def run_runtime_benchmark(
 
     cz_cfg = config.cz_benchmark
     fixed_hold_time_ns = _resolve_fixed_hold_time_ns(config, hold_time_ns=hold_time_ns)
+    sweep_configs: list[StudyConfig] = []
+    static_results: list[object] = []
+    static_runtimes_s = np.empty(n_ncut, dtype=float)
     for i, ncut in enumerate(ncuts):
         sweep_cfg, eff_trunc_dim = _config_with_ncut(
             config,
@@ -155,7 +160,31 @@ def run_runtime_benchmark(
             duffing_calibration_mode=str(duffing_calibration_mode),
         )
         duffing_trunc_dims_used[i] = eff_trunc_dim
-        for j in range(repeats_int):
+        sweep_configs.append(sweep_cfg)
+        static_started = time.perf_counter()
+        static_results.append(run_static_benchmark(sweep_cfg))
+        static_runtimes_s[i] = float(time.perf_counter() - static_started)
+
+    if sweep_configs:
+        # Prime lazy imports and BLAS/Qutip solver setup outside the measured sweep
+        # so the first ncut value does not inherit all cold-start overhead.
+        run_cz_benchmark(
+            sweep_configs[0],
+            ramp_time_ns=float(cz_cfg.ramp_time_ns),
+            hold_time_ns=float(fixed_hold_time_ns),
+            dt_ns=float(cz_cfg.dt_ns),
+            enable_hold_time_scan=False,
+            scan_dt_ns=float(cz_cfg.scan_dt_ns),
+            scan_max_hold_ns=float(cz_cfg.scan_max_hold_ns),
+            scan_leakage_penalty=float(cz_cfg.scan_leakage_penalty),
+            precomputed_static_result=static_results[0],
+            precomputed_static_runtime_s=float(static_runtimes_s[0]),
+        )
+
+    for j in range(repeats_int):
+        order = range(n_ncut) if (j % 2 == 0) else range(n_ncut - 1, -1, -1)
+        for i in order:
+            sweep_cfg = sweep_configs[i]
             result = run_cz_benchmark(
                 sweep_cfg,
                 ramp_time_ns=float(cz_cfg.ramp_time_ns),
@@ -165,6 +194,8 @@ def run_runtime_benchmark(
                 scan_dt_ns=float(cz_cfg.scan_dt_ns),
                 scan_max_hold_ns=float(cz_cfg.scan_max_hold_ns),
                 scan_leakage_penalty=float(cz_cfg.scan_leakage_penalty),
+                precomputed_static_result=static_results[i],
+                precomputed_static_runtime_s=float(static_runtimes_s[i]),
             )
             summary = result.summary
             hold_samples[i, j] = float(summary["hold_time_ns"])
