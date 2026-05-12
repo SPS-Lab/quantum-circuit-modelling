@@ -124,6 +124,12 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
                 duffing_config=config.static_benchmark.duffing_model,
             )
     elif duffing_mode == "symbolic-fitted-static":
+        symbolic_fit_cfg = config.static_benchmark.duffing_model.symbolic_fit
+        if symbolic_fit_cfg is None:
+            raise ValueError(
+                "symbolic-fitted-static requires static_benchmark.duffing_model.symbolic_fit "
+                "settings in the study config"
+            )
         with progress_heartbeat("static benchmark: symbolic Duffing fit to circuit reference"):
             duffing_symbolic_fit = fit_symbolic_duffing_mode_parameters_to_reference(
                 flux_values=flux_values,
@@ -134,6 +140,11 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
                 sweep_target=config.static_benchmark.flux_control.sweep_target,
                 selection_mode=dressed_mode,
                 n_candidate_states=n_cand,
+                max_harmonics=int(symbolic_fit_cfg.max_harmonics),
+                pointwise_max_nfev=int(symbolic_fit_cfg.pointwise_max_nfev),
+                refinement_max_nfev=int(symbolic_fit_cfg.refinement_max_nfev),
+                regularization_weight=float(symbolic_fit_cfg.regularization_weight),
+                progress_label="static benchmark: symbolic Duffing fit to circuit reference",
             )
         duffing_mode_parameters = duffing_symbolic_fit.fitted_parameters
         duffing_symbolic_coefficient_names = duffing_symbolic_fit.coefficient_names

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import time
 from typing import Mapping
 
 import numpy as np
@@ -14,6 +15,7 @@ from models.dressed import (
 from models.josephson import flux_dependent_EJ
 from models.sweep import resolve_static_sweep_values
 from models.three_mode import three_mode_hamiltonian
+from runtime_utils import format_elapsed_compact, log_progress
 from study_config import CouplerFrequencyConfig, DuffingModelConfig, SystemParams
 
 
@@ -450,6 +452,8 @@ def fit_duffing_mode_parameters_to_reference(
     selection_mode: str,
     regularization_weight: float = 0.10,
     max_nfev: int = 80,
+    progress_label: str | None = None,
+    progress_interval_s: float = 30.0,
 ) -> dict[str, np.ndarray]:
     """Fit latent Duffing parameters so static dressed observables track a reference stack."""
     from scipy.optimize import least_squares
@@ -475,7 +479,18 @@ def fit_duffing_mode_parameters_to_reference(
         "g1c": np.array(initial["g1c"], copy=True, dtype=float),
     }
 
+    fit_started = time.perf_counter()
+    interval = max(float(progress_interval_s), 1.0)
+    if progress_label is not None:
+        log_progress(f"{progress_label}: fitting {fitted['w0'].shape[0]} flux points")
+
     for k in range(fitted["w0"].shape[0]):
+        point_started = time.perf_counter()
+        point_last_progress = point_started
+        residual_calls = 0
+        point_label = None if progress_label is None else f"{progress_label}: point {k + 1}/{fitted['w0'].shape[0]}"
+        if point_label is not None:
+            log_progress(point_label)
         x0_raw = np.array(
             [
                 float(initial["w0"][k]),
@@ -520,6 +535,8 @@ def fit_duffing_mode_parameters_to_reference(
         )
 
         def residual(x: np.ndarray) -> np.ndarray:
+            nonlocal residual_calls, point_last_progress
+            residual_calls += 1
             candidate = build_duffing_model_stack_from_parameters(
                 {
                     "w0": np.array([float(x[0])], dtype=float),
@@ -550,6 +567,11 @@ def fit_duffing_mode_parameters_to_reference(
             )
             obs_res = (obs - target) / obs_scale
             reg_res = float(regularization_weight) * (x - x0) / latent_scale
+            now = time.perf_counter()
+            if point_label is not None and (now - point_last_progress) >= interval:
+                elapsed = format_elapsed_compact(now - point_started)
+                log_progress(f"{point_label} still optimizing after {elapsed} (residual evals={residual_calls})")
+                point_last_progress = now
             return np.concatenate([obs_res, reg_res])
 
         result = least_squares(
@@ -563,6 +585,16 @@ def fit_duffing_mode_parameters_to_reference(
         fitted["w1"][k] = float(x_best[1])
         fitted["alpha0"][k] = float(x_best[2])
         fitted["alpha1"][k] = float(x_best[3])
+        if point_label is not None:
+            point_elapsed = format_elapsed_compact(time.perf_counter() - point_started)
+            status = "converged" if result.success else "stopped"
+            log_progress(
+                f"{point_label} {status} in {point_elapsed} (nfev={int(getattr(result, 'nfev', residual_calls))})"
+            )
+
+    if progress_label is not None:
+        total_elapsed = format_elapsed_compact(time.perf_counter() - fit_started)
+        log_progress(f"{progress_label}: finished pointwise fit in {total_elapsed}")
 
     return fitted
 
@@ -577,10 +609,12 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
     sweep_target: str,
     n_candidate_states: int,
     selection_mode: str,
-    max_harmonics: int = 5,
-    pointwise_max_nfev: int = 80,
-    refinement_max_nfev: int = 30,
-    regularization_weight: float = 0.02,
+    max_harmonics: int,
+    pointwise_max_nfev: int,
+    refinement_max_nfev: int,
+    regularization_weight: float,
+    progress_label: str | None = None,
+    progress_interval_s: float = 30.0,
 ) -> DuffingSymbolicParameterFitResult:
     """Fit a global symbolic Duffing surrogate over flux against reference observables."""
     from scipy.optimize import least_squares
@@ -603,6 +637,10 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         n_candidate_states=n_candidate_states,
         selection_mode=selection_mode,
         max_nfev=pointwise_max_nfev,
+        progress_label=(
+            None if progress_label is None else f"{progress_label}: pointwise seed fit"
+        ),
+        progress_interval_s=progress_interval_s,
     )
     pointwise_targets = {
         "w0": np.asarray(pointwise["w0"], dtype=float).ravel(),
@@ -617,6 +655,10 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
     n_c = int(duffing_config.hilbert_truncation.nlevels_coupler)
     # Calibrate the swept-side qubit and coupling more flexibly than the parked side.
     n_harmonics = _select_symbolic_harmonic_count(flux_arr, max_harmonics=max_harmonics)
+    if progress_label is not None:
+        log_progress(
+            f"{progress_label}: global symbolic refinement with {n_harmonics} harmonics over {flux_arr.size} flux points"
+        )
     parameter_order, design_map, coefficient_names = _reference_calibration_designs(
         flux_arr,
         sweep_target=sweep_target,
@@ -644,7 +686,13 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         "g1c": np.maximum(np.abs(np.asarray(pointwise_targets["g1c"], dtype=float).ravel()), 1e-3),
     }
 
+    refinement_started = time.perf_counter()
+    refinement_last_progress = refinement_started
+    refinement_calls = 0
+
     def residual(packed: np.ndarray) -> np.ndarray:
+        nonlocal refinement_calls, refinement_last_progress
+        refinement_calls += 1
         coeff_map = _unpack_parameter_coefficients(
             packed,
             coefficient_sizes=coefficient_sizes,
@@ -687,6 +735,11 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
                 (np.asarray(symbolic_parameters["g1c"], dtype=float).ravel() - np.asarray(pointwise_targets["g1c"], dtype=float).ravel()) / latent_scale["g1c"],
             ]
         )
+        now = time.perf_counter()
+        if progress_label is not None and (now - refinement_last_progress) >= max(float(progress_interval_s), 1.0):
+            elapsed = format_elapsed_compact(now - refinement_started)
+            log_progress(f"{progress_label}: global refinement still running after {elapsed} (residual evals={refinement_calls})")
+            refinement_last_progress = now
         return np.concatenate([obs_res, reg_res])
 
     result = least_squares(
@@ -709,6 +762,13 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         name: np.asarray(values, dtype=float)
         for name, values in coeff_best.items()
     }
+    if progress_label is not None:
+        refinement_elapsed = format_elapsed_compact(time.perf_counter() - refinement_started)
+        status = "converged" if result.success else "stopped"
+        log_progress(
+            f"{progress_label}: global symbolic refinement {status} in {refinement_elapsed} "
+            f"(nfev={int(getattr(result, 'nfev', refinement_calls))})"
+        )
     return DuffingSymbolicParameterFitResult(
         coefficient_names={
             name: np.array(coefficient_names[name], copy=True, dtype=str)

@@ -112,6 +112,11 @@ def test_load_study_config(tmp_path: Path) -> None:
         "fitted-static",
         "symbolic-fitted-static",
     }
+    assert cfg.static_benchmark.duffing_model.symbolic_fit is not None
+    assert cfg.static_benchmark.duffing_model.symbolic_fit.max_harmonics >= 1
+    assert cfg.static_benchmark.duffing_model.symbolic_fit.pointwise_max_nfev >= 1
+    assert cfg.static_benchmark.duffing_model.symbolic_fit.refinement_max_nfev >= 1
+    assert cfg.static_benchmark.duffing_model.symbolic_fit.regularization_weight >= 0.0
     assert len(cfg.truncation_benchmark.duffing_ncut_values) > 0
     assert cfg.truncation_benchmark.duffing_truncated_dim >= 3
     assert cfg.truncation_benchmark.lowest_excited_levels_to_plot >= 1

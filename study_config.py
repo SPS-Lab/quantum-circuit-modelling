@@ -97,11 +97,20 @@ class DuffingHilbertTruncationConfig:
 
 
 @dataclass(frozen=True)
+class SymbolicDuffingFitConfig:
+    max_harmonics: int
+    pointwise_max_nfev: int
+    refinement_max_nfev: int
+    regularization_weight: float
+
+
+@dataclass(frozen=True)
 class DuffingModelConfig:
     transmon_spectral_extraction: TransmonSpectralExtractionConfig
     hilbert_truncation: DuffingHilbertTruncationConfig
     coupler_anharmonicity: float
     calibration_mode: DuffingCalibrationMode
+    symbolic_fit: SymbolicDuffingFitConfig | None
 
 
 @dataclass(frozen=True)
@@ -399,6 +408,7 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
     duffing = _require_dict(sb, "duffing_model", "study.static_benchmark")
     d_spec = _require_dict(duffing, "transmon_spectral_extraction", "study.static_benchmark.duffing_model")
     d_hilbert = _require_dict(duffing, "hilbert_truncation", "study.static_benchmark.duffing_model")
+    symbolic_fit_payload = duffing.get("symbolic_fit")
     circuit = _require_dict(sb, "circuit_model", "study.static_benchmark")
     c_hilbert = _require_dict(circuit, "hilbert_truncation", "study.static_benchmark.circuit_model")
     effective = _require_dict(sb, "effective_model", "study.static_benchmark")
@@ -447,6 +457,56 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
             "q0_truncated_dim == q1_truncated_dim for computational-subspace indexing"
         )
 
+    symbolic_fit: SymbolicDuffingFitConfig | None = None
+    if symbolic_fit_payload is not None:
+        if not isinstance(symbolic_fit_payload, dict):
+            raise TypeError("study.static_benchmark.duffing_model.symbolic_fit must be an object")
+        max_harmonics = _require_int(
+            symbolic_fit_payload,
+            "max_harmonics",
+            "study.static_benchmark.duffing_model.symbolic_fit",
+        )
+        pointwise_max_nfev = _require_int(
+            symbolic_fit_payload,
+            "pointwise_max_nfev",
+            "study.static_benchmark.duffing_model.symbolic_fit",
+        )
+        refinement_max_nfev = _require_int(
+            symbolic_fit_payload,
+            "refinement_max_nfev",
+            "study.static_benchmark.duffing_model.symbolic_fit",
+        )
+        regularization_weight = _require_float(
+            symbolic_fit_payload,
+            "regularization_weight",
+            "study.static_benchmark.duffing_model.symbolic_fit",
+        )
+        if max_harmonics < 1:
+            raise ValueError("study.static_benchmark.duffing_model.symbolic_fit.max_harmonics must be >= 1")
+        if pointwise_max_nfev < 1:
+            raise ValueError(
+                "study.static_benchmark.duffing_model.symbolic_fit.pointwise_max_nfev must be >= 1"
+            )
+        if refinement_max_nfev < 1:
+            raise ValueError(
+                "study.static_benchmark.duffing_model.symbolic_fit.refinement_max_nfev must be >= 1"
+            )
+        if regularization_weight < 0.0:
+            raise ValueError(
+                "study.static_benchmark.duffing_model.symbolic_fit.regularization_weight must be >= 0"
+            )
+        symbolic_fit = SymbolicDuffingFitConfig(
+            max_harmonics=max_harmonics,
+            pointwise_max_nfev=pointwise_max_nfev,
+            refinement_max_nfev=refinement_max_nfev,
+            regularization_weight=regularization_weight,
+        )
+    if calibration_mode == "symbolic-fitted-static" and symbolic_fit is None:
+        raise KeyError(
+            "Missing required key study.static_benchmark.duffing_model.symbolic_fit "
+            "for calibration_mode='symbolic-fitted-static'"
+        )
+
     return StaticBenchmarkConfig(
         flux_sweep=FluxSweepConfig(
             start=_require_float(flux, "start", "study.static_benchmark.flux_sweep"),
@@ -487,6 +547,7 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
                 "study.static_benchmark.duffing_model",
             ),
             calibration_mode=calibration_mode,
+            symbolic_fit=symbolic_fit,
         ),
         circuit_model=CircuitModelConfig(
             hilbert_truncation=CircuitHilbertTruncationConfig(

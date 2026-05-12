@@ -133,6 +133,12 @@ def _extract_duffing_metrics(
                 selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
             )
         else:
+            symbolic_fit_cfg = dcfg_for_ncut.symbolic_fit
+            if symbolic_fit_cfg is None:
+                raise ValueError(
+                    "symbolic-fitted-static requires static_benchmark.duffing_model.symbolic_fit "
+                    "settings in the study config"
+                )
             mode_parameters = fit_symbolic_duffing_mode_parameters_to_reference(
                 reference_flux_values,
                 reference_dressed_stack=reference_dressed_stack,
@@ -142,6 +148,10 @@ def _extract_duffing_metrics(
                 sweep_target=config.static_benchmark.flux_control.sweep_target,
                 n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
                 selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+                max_harmonics=int(symbolic_fit_cfg.max_harmonics),
+                pointwise_max_nfev=int(symbolic_fit_cfg.pointwise_max_nfev),
+                refinement_max_nfev=int(symbolic_fit_cfg.refinement_max_nfev),
+                regularization_weight=float(symbolic_fit_cfg.regularization_weight),
             ).fitted_parameters
         H_duf = build_duffing_model_stack_from_parameters(
             _interpolate_mode_parameters(reference_flux_values, mode_parameters, flux=float(flux)),
