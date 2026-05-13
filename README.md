@@ -211,7 +211,7 @@ This benchmark:
 - sweeps circuit charge-basis `ncut`,
 - sweeps circuit dressed-space truncated dimensions `{qubit, coupler}`,
 - compares each sweep point to one strict circuit reference point,
-- reports scalar static RMSE together with `energy_rmse`, `|dJ|`, and `|dzeta|`,
+- reports `energy_rmse` together with `|dJ|` and `|dzeta|`,
 - and writes results to an `.h5` file next to the configured figure.
 
 Replot from saved circuit truncation data only:
@@ -235,7 +235,7 @@ This benchmark:
 - clips the extraction basis per point to `min(duffing_truncated_dim, 2*ncut+1)`,
 - sweeps Duffing Hilbert-space truncated dimensions `{qubit, coupler}`,
 - compares each sweep point to one strict circuit reference point,
-- reports scalar static RMSE together with `energy_rmse`, `|dJ|`, and `|dzeta|`,
+- reports `energy_rmse` together with `|dJ|` and `|dzeta|`,
 - and writes results to an `.h5` file next to the configured figure.
 
 Replot from saved Duffing truncation data only:

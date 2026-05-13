@@ -32,17 +32,14 @@ class CircuitTruncationBenchmarkResult:
     reference_circuit_zeta_values: np.ndarray
     circuit_ncut_values: np.ndarray
     circuit_ncut_effective_qubit_truncated_dim_values: np.ndarray
-    circuit_ncut_total_rmse: np.ndarray
     circuit_ncut_energy_rmse: np.ndarray
     circuit_ncut_j_abs_error: np.ndarray
     circuit_ncut_zeta_abs_error: np.ndarray
     circuit_qubit_truncated_dim_values: np.ndarray
-    circuit_qubit_truncation_total_rmse: np.ndarray
     circuit_qubit_truncation_energy_rmse: np.ndarray
     circuit_qubit_truncation_j_abs_error: np.ndarray
     circuit_qubit_truncation_zeta_abs_error: np.ndarray
     circuit_coupler_truncated_dim_values: np.ndarray
-    circuit_coupler_truncation_total_rmse: np.ndarray
     circuit_coupler_truncation_energy_rmse: np.ndarray
     circuit_coupler_truncation_j_abs_error: np.ndarray
     circuit_coupler_truncation_zeta_abs_error: np.ndarray
@@ -63,17 +60,14 @@ class DuffingTruncationBenchmarkResult:
     reference_circuit_zeta_values: np.ndarray
     duffing_ncut_values: np.ndarray
     duffing_ncut_effective_truncated_dim_values: np.ndarray
-    duffing_ncut_total_rmse: np.ndarray
     duffing_ncut_energy_rmse: np.ndarray
     duffing_ncut_j_abs_error: np.ndarray
     duffing_ncut_zeta_abs_error: np.ndarray
     duffing_hilbert_qubit_dim_values: np.ndarray
-    duffing_hilbert_qubit_total_rmse: np.ndarray
     duffing_hilbert_qubit_energy_rmse: np.ndarray
     duffing_hilbert_qubit_j_abs_error: np.ndarray
     duffing_hilbert_qubit_zeta_abs_error: np.ndarray
     duffing_hilbert_coupler_dim_values: np.ndarray
-    duffing_hilbert_coupler_total_rmse: np.ndarray
     duffing_hilbert_coupler_energy_rmse: np.ndarray
     duffing_hilbert_coupler_j_abs_error: np.ndarray
     duffing_hilbert_coupler_zeta_abs_error: np.ndarray
@@ -402,7 +396,7 @@ def _static_error_metrics(
     reference_zeta: np.ndarray,
     reference_rel_e: np.ndarray,
     lowest_excited_levels_to_compare: int,
-) -> tuple[float, float, float, float]:
+) -> tuple[float, float, float]:
     candidate_rel_e_arr = np.asarray(candidate_rel_e, dtype=float)
     reference_rel_e_arr = np.asarray(reference_rel_e, dtype=float)
     n_excited = int(
@@ -425,26 +419,21 @@ def _static_error_metrics(
     zeta_abs_diff = np.abs(np.asarray(candidate_zeta, dtype=float) - np.asarray(reference_zeta, dtype=float))
     j_abs_error = float(np.mean(j_abs_diff))
     zeta_abs_error = float(np.mean(zeta_abs_diff))
-    total_rmse = _rmse(
-        np.concatenate([np.asarray(energy_diff, dtype=float).ravel(), j_abs_diff.ravel(), zeta_abs_diff.ravel()])
-    )
-    return total_rmse, energy_rmse, j_abs_error, zeta_abs_error
+    return energy_rmse, j_abs_error, zeta_abs_error
 
 
 def _summary_for_sweep(
     *,
     prefix: str,
     values: np.ndarray,
-    total_rmse: np.ndarray,
     energy_rmse: np.ndarray,
     j_abs_error: np.ndarray,
     zeta_abs_error: np.ndarray,
 ) -> dict[str, float]:
-    idx = int(np.argmin(total_rmse))
+    idx = int(np.argmin(energy_rmse))
     return {
         f"{prefix}_points": float(values.shape[0]),
         f"{prefix}_best_value_index": float(idx),
-        f"{prefix}_best_total_rmse": float(total_rmse[idx]),
         f"{prefix}_best_energy_rmse": float(energy_rmse[idx]),
         f"{prefix}_best_j_abs_error": float(j_abs_error[idx]),
         f"{prefix}_best_zeta_abs_error": float(zeta_abs_error[idx]),
@@ -467,7 +456,6 @@ def run_circuit_truncation_benchmark(config: StudyConfig) -> CircuitTruncationBe
     )
     circuit_ncut_values = np.asarray(cfg.circuit_ncut_values, dtype=int)
     circuit_ncut_effective_qdim = np.empty(circuit_ncut_values.shape[0], dtype=int)
-    circuit_ncut_total_rmse = np.empty(circuit_ncut_values.shape[0], dtype=float)
     circuit_ncut_energy_rmse = np.empty(circuit_ncut_values.shape[0], dtype=float)
     circuit_ncut_j_abs_error = np.empty(circuit_ncut_values.shape[0], dtype=float)
     circuit_ncut_zeta_abs_error = np.empty(circuit_ncut_values.shape[0], dtype=float)
@@ -483,7 +471,6 @@ def run_circuit_truncation_benchmark(config: StudyConfig) -> CircuitTruncationBe
         )
         circuit_ncut_effective_qdim[i] = int(qdim_eff)
         (
-            circuit_ncut_total_rmse[i],
             circuit_ncut_energy_rmse[i],
             circuit_ncut_j_abs_error[i],
             circuit_ncut_zeta_abs_error[i],
@@ -497,7 +484,6 @@ def run_circuit_truncation_benchmark(config: StudyConfig) -> CircuitTruncationBe
             lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
         )
     circuit_qubit_dims = np.asarray(cfg.circuit_qubit_truncated_dim_values, dtype=int)
-    circuit_qubit_total_rmse = np.empty(circuit_qubit_dims.shape[0], dtype=float)
     circuit_qubit_energy_rmse = np.empty(circuit_qubit_dims.shape[0], dtype=float)
     circuit_qubit_j_abs_error = np.empty(circuit_qubit_dims.shape[0], dtype=float)
     circuit_qubit_zeta_abs_error = np.empty(circuit_qubit_dims.shape[0], dtype=float)
@@ -515,7 +501,6 @@ def run_circuit_truncation_benchmark(config: StudyConfig) -> CircuitTruncationBe
             coupler_truncated_dim=int(cfg.circuit_reference_coupler_truncated_dim),
         )
         (
-            circuit_qubit_total_rmse[i],
             circuit_qubit_energy_rmse[i],
             circuit_qubit_j_abs_error[i],
             circuit_qubit_zeta_abs_error[i],
@@ -529,7 +514,6 @@ def run_circuit_truncation_benchmark(config: StudyConfig) -> CircuitTruncationBe
             lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
         )
     circuit_coupler_dims = np.asarray(cfg.circuit_coupler_truncated_dim_values, dtype=int)
-    circuit_coupler_total_rmse = np.empty(circuit_coupler_dims.shape[0], dtype=float)
     circuit_coupler_energy_rmse = np.empty(circuit_coupler_dims.shape[0], dtype=float)
     circuit_coupler_j_abs_error = np.empty(circuit_coupler_dims.shape[0], dtype=float)
     circuit_coupler_zeta_abs_error = np.empty(circuit_coupler_dims.shape[0], dtype=float)
@@ -549,7 +533,6 @@ def run_circuit_truncation_benchmark(config: StudyConfig) -> CircuitTruncationBe
             coupler_truncated_dim=int(cdim),
         )
         (
-            circuit_coupler_total_rmse[i],
             circuit_coupler_energy_rmse[i],
             circuit_coupler_j_abs_error[i],
             circuit_coupler_zeta_abs_error[i],
@@ -579,7 +562,6 @@ def run_circuit_truncation_benchmark(config: StudyConfig) -> CircuitTruncationBe
         _summary_for_sweep(
             prefix="circuit_ncut",
             values=circuit_ncut_values.astype(float),
-            total_rmse=circuit_ncut_total_rmse,
             energy_rmse=circuit_ncut_energy_rmse,
             j_abs_error=circuit_ncut_j_abs_error,
             zeta_abs_error=circuit_ncut_zeta_abs_error,
@@ -589,7 +571,6 @@ def run_circuit_truncation_benchmark(config: StudyConfig) -> CircuitTruncationBe
         _summary_for_sweep(
             prefix="circuit_qubit_truncation",
             values=circuit_qubit_dims.astype(float),
-            total_rmse=circuit_qubit_total_rmse,
             energy_rmse=circuit_qubit_energy_rmse,
             j_abs_error=circuit_qubit_j_abs_error,
             zeta_abs_error=circuit_qubit_zeta_abs_error,
@@ -599,7 +580,6 @@ def run_circuit_truncation_benchmark(config: StudyConfig) -> CircuitTruncationBe
         _summary_for_sweep(
             prefix="circuit_coupler_truncation",
             values=circuit_coupler_dims.astype(float),
-            total_rmse=circuit_coupler_total_rmse,
             energy_rmse=circuit_coupler_energy_rmse,
             j_abs_error=circuit_coupler_j_abs_error,
             zeta_abs_error=circuit_coupler_zeta_abs_error,
@@ -616,17 +596,14 @@ def run_circuit_truncation_benchmark(config: StudyConfig) -> CircuitTruncationBe
         reference_circuit_zeta_values=np.asarray(ref_zeta_values, dtype=float),
         circuit_ncut_values=np.asarray(circuit_ncut_values, dtype=int),
         circuit_ncut_effective_qubit_truncated_dim_values=np.asarray(circuit_ncut_effective_qdim, dtype=int),
-        circuit_ncut_total_rmse=np.asarray(circuit_ncut_total_rmse, dtype=float),
         circuit_ncut_energy_rmse=np.asarray(circuit_ncut_energy_rmse, dtype=float),
         circuit_ncut_j_abs_error=np.asarray(circuit_ncut_j_abs_error, dtype=float),
         circuit_ncut_zeta_abs_error=np.asarray(circuit_ncut_zeta_abs_error, dtype=float),
         circuit_qubit_truncated_dim_values=np.asarray(circuit_qubit_dims, dtype=int),
-        circuit_qubit_truncation_total_rmse=np.asarray(circuit_qubit_total_rmse, dtype=float),
         circuit_qubit_truncation_energy_rmse=np.asarray(circuit_qubit_energy_rmse, dtype=float),
         circuit_qubit_truncation_j_abs_error=np.asarray(circuit_qubit_j_abs_error, dtype=float),
         circuit_qubit_truncation_zeta_abs_error=np.asarray(circuit_qubit_zeta_abs_error, dtype=float),
         circuit_coupler_truncated_dim_values=np.asarray(circuit_coupler_dims, dtype=int),
-        circuit_coupler_truncation_total_rmse=np.asarray(circuit_coupler_total_rmse, dtype=float),
         circuit_coupler_truncation_energy_rmse=np.asarray(circuit_coupler_energy_rmse, dtype=float),
         circuit_coupler_truncation_j_abs_error=np.asarray(circuit_coupler_j_abs_error, dtype=float),
         circuit_coupler_truncation_zeta_abs_error=np.asarray(circuit_coupler_zeta_abs_error, dtype=float),
@@ -657,7 +634,6 @@ def run_duffing_truncation_benchmark(config: StudyConfig) -> DuffingTruncationBe
         )
     duffing_ncut_values = np.asarray(cfg.duffing_ncut_values, dtype=int)
     duffing_ncut_effective_trunc_dim = np.empty(duffing_ncut_values.shape[0], dtype=int)
-    duffing_ncut_total_rmse = np.empty(duffing_ncut_values.shape[0], dtype=float)
     duffing_ncut_energy_rmse = np.empty(duffing_ncut_values.shape[0], dtype=float)
     duffing_ncut_j_abs_error = np.empty(duffing_ncut_values.shape[0], dtype=float)
     duffing_ncut_zeta_abs_error = np.empty(duffing_ncut_values.shape[0], dtype=float)
@@ -679,7 +655,6 @@ def run_duffing_truncation_benchmark(config: StudyConfig) -> DuffingTruncationBe
         )
         duffing_ncut_effective_trunc_dim[i] = int(trunc_dim_eff)
         (
-            duffing_ncut_total_rmse[i],
             duffing_ncut_energy_rmse[i],
             duffing_ncut_j_abs_error[i],
             duffing_ncut_zeta_abs_error[i],
@@ -693,7 +668,6 @@ def run_duffing_truncation_benchmark(config: StudyConfig) -> DuffingTruncationBe
             lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
         )
     duffing_hilbert_qubit_dims = np.asarray(cfg.duffing_hilbert_qubit_dim_values, dtype=int)
-    duffing_hilbert_qubit_total_rmse = np.empty(duffing_hilbert_qubit_dims.shape[0], dtype=float)
     duffing_hilbert_qubit_energy_rmse = np.empty(duffing_hilbert_qubit_dims.shape[0], dtype=float)
     duffing_hilbert_qubit_j_abs_error = np.empty(duffing_hilbert_qubit_dims.shape[0], dtype=float)
     duffing_hilbert_qubit_zeta_abs_error = np.empty(duffing_hilbert_qubit_dims.shape[0], dtype=float)
@@ -719,7 +693,6 @@ def run_duffing_truncation_benchmark(config: StudyConfig) -> DuffingTruncationBe
             reference_dressed_stack=reference_dressed_stack,
         )
         (
-            duffing_hilbert_qubit_total_rmse[i],
             duffing_hilbert_qubit_energy_rmse[i],
             duffing_hilbert_qubit_j_abs_error[i],
             duffing_hilbert_qubit_zeta_abs_error[i],
@@ -733,7 +706,6 @@ def run_duffing_truncation_benchmark(config: StudyConfig) -> DuffingTruncationBe
             lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
         )
     duffing_hilbert_coupler_dims = np.asarray(cfg.duffing_hilbert_coupler_dim_values, dtype=int)
-    duffing_hilbert_coupler_total_rmse = np.empty(duffing_hilbert_coupler_dims.shape[0], dtype=float)
     duffing_hilbert_coupler_energy_rmse = np.empty(duffing_hilbert_coupler_dims.shape[0], dtype=float)
     duffing_hilbert_coupler_j_abs_error = np.empty(duffing_hilbert_coupler_dims.shape[0], dtype=float)
     duffing_hilbert_coupler_zeta_abs_error = np.empty(duffing_hilbert_coupler_dims.shape[0], dtype=float)
@@ -758,7 +730,6 @@ def run_duffing_truncation_benchmark(config: StudyConfig) -> DuffingTruncationBe
             reference_dressed_stack=reference_dressed_stack,
         )
         (
-            duffing_hilbert_coupler_total_rmse[i],
             duffing_hilbert_coupler_energy_rmse[i],
             duffing_hilbert_coupler_j_abs_error[i],
             duffing_hilbert_coupler_zeta_abs_error[i],
@@ -787,7 +758,6 @@ def run_duffing_truncation_benchmark(config: StudyConfig) -> DuffingTruncationBe
         _summary_for_sweep(
             prefix="duffing_ncut",
             values=duffing_ncut_values.astype(float),
-            total_rmse=duffing_ncut_total_rmse,
             energy_rmse=duffing_ncut_energy_rmse,
             j_abs_error=duffing_ncut_j_abs_error,
             zeta_abs_error=duffing_ncut_zeta_abs_error,
@@ -797,7 +767,6 @@ def run_duffing_truncation_benchmark(config: StudyConfig) -> DuffingTruncationBe
         _summary_for_sweep(
             prefix="duffing_hilbert_qubit",
             values=duffing_hilbert_qubit_dims.astype(float),
-            total_rmse=duffing_hilbert_qubit_total_rmse,
             energy_rmse=duffing_hilbert_qubit_energy_rmse,
             j_abs_error=duffing_hilbert_qubit_j_abs_error,
             zeta_abs_error=duffing_hilbert_qubit_zeta_abs_error,
@@ -807,7 +776,6 @@ def run_duffing_truncation_benchmark(config: StudyConfig) -> DuffingTruncationBe
         _summary_for_sweep(
             prefix="duffing_hilbert_coupler",
             values=duffing_hilbert_coupler_dims.astype(float),
-            total_rmse=duffing_hilbert_coupler_total_rmse,
             energy_rmse=duffing_hilbert_coupler_energy_rmse,
             j_abs_error=duffing_hilbert_coupler_j_abs_error,
             zeta_abs_error=duffing_hilbert_coupler_zeta_abs_error,
@@ -826,17 +794,14 @@ def run_duffing_truncation_benchmark(config: StudyConfig) -> DuffingTruncationBe
         reference_circuit_zeta_values=np.asarray(ref_zeta_values, dtype=float),
         duffing_ncut_values=np.asarray(duffing_ncut_values, dtype=int),
         duffing_ncut_effective_truncated_dim_values=np.asarray(duffing_ncut_effective_trunc_dim, dtype=int),
-        duffing_ncut_total_rmse=np.asarray(duffing_ncut_total_rmse, dtype=float),
         duffing_ncut_energy_rmse=np.asarray(duffing_ncut_energy_rmse, dtype=float),
         duffing_ncut_j_abs_error=np.asarray(duffing_ncut_j_abs_error, dtype=float),
         duffing_ncut_zeta_abs_error=np.asarray(duffing_ncut_zeta_abs_error, dtype=float),
         duffing_hilbert_qubit_dim_values=np.asarray(duffing_hilbert_qubit_dims, dtype=int),
-        duffing_hilbert_qubit_total_rmse=np.asarray(duffing_hilbert_qubit_total_rmse, dtype=float),
         duffing_hilbert_qubit_energy_rmse=np.asarray(duffing_hilbert_qubit_energy_rmse, dtype=float),
         duffing_hilbert_qubit_j_abs_error=np.asarray(duffing_hilbert_qubit_j_abs_error, dtype=float),
         duffing_hilbert_qubit_zeta_abs_error=np.asarray(duffing_hilbert_qubit_zeta_abs_error, dtype=float),
         duffing_hilbert_coupler_dim_values=np.asarray(duffing_hilbert_coupler_dims, dtype=int),
-        duffing_hilbert_coupler_total_rmse=np.asarray(duffing_hilbert_coupler_total_rmse, dtype=float),
         duffing_hilbert_coupler_energy_rmse=np.asarray(duffing_hilbert_coupler_energy_rmse, dtype=float),
         duffing_hilbert_coupler_j_abs_error=np.asarray(duffing_hilbert_coupler_j_abs_error, dtype=float),
         duffing_hilbert_coupler_zeta_abs_error=np.asarray(duffing_hilbert_coupler_zeta_abs_error, dtype=float),

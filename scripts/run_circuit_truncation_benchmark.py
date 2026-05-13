@@ -83,47 +83,44 @@ def main() -> None:
     for key, value in result.summary.items():
         reporter.line(f"  {key}: {value:.6e}")
     reporter.line("Circuit ncut sweep (RMSE in GHz):")
-    for ncut, qdim_eff, total_rmse, energy_rmse, j_err, zeta_err in zip(
+    for ncut, qdim_eff, energy_rmse, j_err, zeta_err in zip(
         result.circuit_ncut_values,
         result.circuit_ncut_effective_qubit_truncated_dim_values,
-        result.circuit_ncut_total_rmse,
         result.circuit_ncut_energy_rmse,
         result.circuit_ncut_j_abs_error,
         result.circuit_ncut_zeta_abs_error,
     ):
         reporter.line(
-            f"  ncut={int(ncut):4d}, qdim_eff={int(qdim_eff):3d}: total_rmse={float(total_rmse):.6e}, "
+            f"  ncut={int(ncut):4d}, qdim_eff={int(qdim_eff):3d}: "
             f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
         )
     reporter.line(
         "Circuit qubit truncated-dim sweep "
         f"(c fixed at {int(result.reference_circuit_coupler_truncated_dim)}; RMSE in GHz):"
     )
-    for qdim, total_rmse, energy_rmse, j_err, zeta_err in zip(
+    for qdim, energy_rmse, j_err, zeta_err in zip(
         result.circuit_qubit_truncated_dim_values,
-        result.circuit_qubit_truncation_total_rmse,
         result.circuit_qubit_truncation_energy_rmse,
         result.circuit_qubit_truncation_j_abs_error,
         result.circuit_qubit_truncation_zeta_abs_error,
     ):
         reporter.line(
-            f"  q={int(qdim):2d}: total_rmse={float(total_rmse):.6e}, "
-            f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+            f"  q={int(qdim):2d}: energy_rmse={float(energy_rmse):.6e}, "
+            f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
         )
     reporter.line(
         "Circuit coupler truncated-dim sweep "
         f"(q fixed at {int(result.reference_circuit_qubit_truncated_dim)}; RMSE in GHz):"
     )
-    for cdim, total_rmse, energy_rmse, j_err, zeta_err in zip(
+    for cdim, energy_rmse, j_err, zeta_err in zip(
         result.circuit_coupler_truncated_dim_values,
-        result.circuit_coupler_truncation_total_rmse,
         result.circuit_coupler_truncation_energy_rmse,
         result.circuit_coupler_truncation_j_abs_error,
         result.circuit_coupler_truncation_zeta_abs_error,
     ):
         reporter.line(
-            f"  c={int(cdim):2d}: total_rmse={float(total_rmse):.6e}, "
-            f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+            f"  c={int(cdim):2d}: energy_rmse={float(energy_rmse):.6e}, "
+            f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
         )
     if args.plot_only:
         reporter.line(f"Loaded results: {results_path}")

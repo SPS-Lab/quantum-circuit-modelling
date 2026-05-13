@@ -83,41 +83,38 @@ def main() -> None:
     for key, value in result.summary.items():
         reporter.line(f"  {key}: {value:.6e}")
     reporter.line("Duffing extraction ncut sweep (RMSE in GHz):")
-    for ncut, trunc_dim, total_rmse, energy_rmse, j_err, zeta_err in zip(
+    for ncut, trunc_dim, energy_rmse, j_err, zeta_err in zip(
         result.duffing_ncut_values,
         result.duffing_ncut_effective_truncated_dim_values,
-        result.duffing_ncut_total_rmse,
         result.duffing_ncut_energy_rmse,
         result.duffing_ncut_j_abs_error,
         result.duffing_ncut_zeta_abs_error,
     ):
         reporter.line(
-            f"  ncut={int(ncut):4d}, trunc_dim={int(trunc_dim):3d}: total_rmse={float(total_rmse):.6e}, "
+            f"  ncut={int(ncut):4d}, trunc_dim={int(trunc_dim):3d}: "
             f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
         )
     reporter.line("Duffing qubit Hilbert-dim sweep (coupler fixed; RMSE in GHz):")
-    for qdim, total_rmse, energy_rmse, j_err, zeta_err in zip(
+    for qdim, energy_rmse, j_err, zeta_err in zip(
         result.duffing_hilbert_qubit_dim_values,
-        result.duffing_hilbert_qubit_total_rmse,
         result.duffing_hilbert_qubit_energy_rmse,
         result.duffing_hilbert_qubit_j_abs_error,
         result.duffing_hilbert_qubit_zeta_abs_error,
     ):
         reporter.line(
-            f"  q={int(qdim):2d}: total_rmse={float(total_rmse):.6e}, "
-            f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+            f"  q={int(qdim):2d}: energy_rmse={float(energy_rmse):.6e}, "
+            f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
         )
     reporter.line("Duffing coupler Hilbert-dim sweep (qubit fixed; RMSE in GHz):")
-    for cdim, total_rmse, energy_rmse, j_err, zeta_err in zip(
+    for cdim, energy_rmse, j_err, zeta_err in zip(
         result.duffing_hilbert_coupler_dim_values,
-        result.duffing_hilbert_coupler_total_rmse,
         result.duffing_hilbert_coupler_energy_rmse,
         result.duffing_hilbert_coupler_j_abs_error,
         result.duffing_hilbert_coupler_zeta_abs_error,
     ):
         reporter.line(
-            f"  c={int(cdim):2d}: total_rmse={float(total_rmse):.6e}, "
-            f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+            f"  c={int(cdim):2d}: energy_rmse={float(energy_rmse):.6e}, "
+            f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
         )
     if args.plot_only:
         reporter.line(f"Loaded results: {results_path}")

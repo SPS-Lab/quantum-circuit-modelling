@@ -105,7 +105,7 @@
     "truncation_only": {
       "circuit_truncation_benchmark": {
         "flux_values": [0.000001, 0.12, 0.24, 0.36, 0.48],
-        "circuit_ncut_values": [10, 20, 30, 45, 60, 100],
+        "circuit_ncut_values": [10, 11, 12, 13, 14, 45],
         "circuit_qubit_truncated_dim_values": [7, 8, 9, 10, 11],
         "circuit_coupler_truncated_dim_values": [4, 5, 6, 7],
         "lowest_excited_levels_to_plot": 12,

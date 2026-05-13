@@ -19,7 +19,6 @@ def _plot_metric_sweeps(
     ax,
     *,
     x: np.ndarray,
-    total_rmse: np.ndarray,
     energy_rmse: np.ndarray,
     j_abs_error: np.ndarray,
     zeta_abs_error: np.ndarray,
@@ -27,7 +26,6 @@ def _plot_metric_sweeps(
     title: str,
     xticklabels: list[str] | None = None,
 ) -> None:
-    ax.plot(x, total_rmse, marker="o", linewidth=1.8, label="total_rmse")
     ax.plot(x, energy_rmse, marker="s", linewidth=1.6, label="energy_rmse")
     ax.plot(x, j_abs_error, marker="^", linewidth=1.6, label="|dJ|")
     ax.plot(x, zeta_abs_error, marker="d", linewidth=1.6, label="|dzeta|")
@@ -52,7 +50,6 @@ def plot_circuit_truncation_benchmark(
         _plot_metric_sweeps(
             ax_ncut,
             x=np.asarray(result.circuit_ncut_values, dtype=float),
-            total_rmse=np.asarray(result.circuit_ncut_total_rmse, dtype=float),
             energy_rmse=np.asarray(result.circuit_ncut_energy_rmse, dtype=float),
             j_abs_error=np.asarray(result.circuit_ncut_j_abs_error, dtype=float),
             zeta_abs_error=np.asarray(result.circuit_ncut_zeta_abs_error, dtype=float),
@@ -62,7 +59,6 @@ def plot_circuit_truncation_benchmark(
         _plot_metric_sweeps(
             ax_q,
             x=np.asarray(result.circuit_qubit_truncated_dim_values, dtype=float),
-            total_rmse=np.asarray(result.circuit_qubit_truncation_total_rmse, dtype=float),
             energy_rmse=np.asarray(result.circuit_qubit_truncation_energy_rmse, dtype=float),
             j_abs_error=np.asarray(result.circuit_qubit_truncation_j_abs_error, dtype=float),
             zeta_abs_error=np.asarray(result.circuit_qubit_truncation_zeta_abs_error, dtype=float),
@@ -72,7 +68,6 @@ def plot_circuit_truncation_benchmark(
         _plot_metric_sweeps(
             ax_c,
             x=np.asarray(result.circuit_coupler_truncated_dim_values, dtype=float),
-            total_rmse=np.asarray(result.circuit_coupler_truncation_total_rmse, dtype=float),
             energy_rmse=np.asarray(result.circuit_coupler_truncation_energy_rmse, dtype=float),
             j_abs_error=np.asarray(result.circuit_coupler_truncation_j_abs_error, dtype=float),
             zeta_abs_error=np.asarray(result.circuit_coupler_truncation_zeta_abs_error, dtype=float),
@@ -97,7 +92,6 @@ def plot_duffing_truncation_benchmark(
         _plot_metric_sweeps(
             ax_ncut,
             x=np.asarray(result.duffing_ncut_values, dtype=float),
-            total_rmse=np.asarray(result.duffing_ncut_total_rmse, dtype=float),
             energy_rmse=np.asarray(result.duffing_ncut_energy_rmse, dtype=float),
             j_abs_error=np.asarray(result.duffing_ncut_j_abs_error, dtype=float),
             zeta_abs_error=np.asarray(result.duffing_ncut_zeta_abs_error, dtype=float),
@@ -107,7 +101,6 @@ def plot_duffing_truncation_benchmark(
         _plot_metric_sweeps(
             ax_q,
             x=np.asarray(result.duffing_hilbert_qubit_dim_values, dtype=float),
-            total_rmse=np.asarray(result.duffing_hilbert_qubit_total_rmse, dtype=float),
             energy_rmse=np.asarray(result.duffing_hilbert_qubit_energy_rmse, dtype=float),
             j_abs_error=np.asarray(result.duffing_hilbert_qubit_j_abs_error, dtype=float),
             zeta_abs_error=np.asarray(result.duffing_hilbert_qubit_zeta_abs_error, dtype=float),
@@ -117,7 +110,6 @@ def plot_duffing_truncation_benchmark(
         _plot_metric_sweeps(
             ax_c,
             x=np.asarray(result.duffing_hilbert_coupler_dim_values, dtype=float),
-            total_rmse=np.asarray(result.duffing_hilbert_coupler_total_rmse, dtype=float),
             energy_rmse=np.asarray(result.duffing_hilbert_coupler_energy_rmse, dtype=float),
             j_abs_error=np.asarray(result.duffing_hilbert_coupler_j_abs_error, dtype=float),
             zeta_abs_error=np.asarray(result.duffing_hilbert_coupler_zeta_abs_error, dtype=float),
