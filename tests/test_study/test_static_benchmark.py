@@ -33,7 +33,11 @@ from static_fitted_artifacts import (
     save_static_fitted_models_artifact,
 )
 from study_config import _flatten_run_all_benchmark_params, load_study_config
-from models.effective import fit_single_harmonic_parameters
+from models.effective import (
+    evaluate_effective_parameter_fit,
+    fit_magnitude_exchange_parameters,
+    fit_single_harmonic_parameters,
+)
 
 
 
@@ -274,6 +278,43 @@ def test_effective_fit_reconstructs_static_grid(tmp_path: Path) -> None:
 
     for key in ("w0", "w1", "J", "zeta"):
         assert np.allclose(reconstructed[key], out.effective_parameters[key])
+
+
+def test_magnitude_exchange_fit_reconstructs_asymmetric_exchange_targets() -> None:
+    flux_values = np.linspace(-0.2, 0.2, 17)
+    theta = 2.0 * np.pi * flux_values
+    wc = 6.25 + 0.12 * np.cos(theta) - 0.03 * np.cos(2.0 * theta)
+    w0 = 4.95 + 0.22 * np.cos(theta) - 0.06 * np.cos(2.0 * theta) + 0.01 * np.cos(3.0 * theta)
+    w1 = 5.35 - 0.18 * np.cos(theta) + 0.04 * np.cos(2.0 * theta) - 0.015 * np.cos(3.0 * theta)
+
+    gamma = float(np.geomspace(1e-3, 5.0, 600)[240])
+    delta1 = w0 - wc
+    delta2 = w1 - wc
+    r1 = 1.0 / np.sqrt(delta1 * delta1 + gamma * gamma)
+    r2 = 1.0 / np.sqrt(delta2 * delta2 + gamma * gamma)
+    j_target = 0.018 + 0.009 * r1 - 0.013 * r2 + 0.022 * r1 * r2 + 0.006 * r1 * r1 - 0.004 * r2 * r2
+    zeta_target = -0.001 + 0.002 * r1 + 0.003 * r2 - 0.0025 * r1 * r2 + 0.0015 * r1 * r1 + 0.0008 * r2 * r2
+
+    fit = fit_magnitude_exchange_parameters(
+        flux_values,
+        extracted_parameters={
+            "w0": w0,
+            "w1": w1,
+            "J": j_target,
+            "zeta": zeta_target,
+        },
+        coupler_frequency_values=wc,
+    )
+    reconstructed = evaluate_effective_parameter_fit(
+        flux_values,
+        fit_basis="magnitude-exchange-like",
+        coefficient_names=fit.coefficient_names,
+        coefficients=fit.coefficients,
+        coupler_frequency_values=wc,
+    )
+
+    for key, expected in (("w0", w0), ("w1", w1), ("J", j_target), ("zeta", zeta_target)):
+        assert np.allclose(reconstructed[key], expected, atol=1e-10, rtol=1e-10)
 
 
 def test_symbolic_duffing_fit_reconstructs_static_grid(tmp_path: Path) -> None:

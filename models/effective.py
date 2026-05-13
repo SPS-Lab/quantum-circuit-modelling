@@ -138,17 +138,29 @@ def _fit_magnitude_exchange_single_parameter(
     delta1 = np.asarray(w0, dtype=float).ravel() - np.asarray(wc, dtype=float).ravel()
     delta2 = np.asarray(w1, dtype=float).ravel() - np.asarray(wc, dtype=float).ravel()
     y_arr = np.asarray(y, dtype=float).ravel()
+    coeff_names = ("gamma", "c0", "c_r1", "c_r2", "c_prod", "c_r1_sq", "c_r2_sq")
 
     gamma_grid = np.geomspace(1e-3, 5.0, 600)
     best_gamma = float("nan")
-    best_coeffs = np.empty(4, dtype=float)
+    best_coeffs = np.empty(len(coeff_names), dtype=float)
     best_fit = np.empty_like(y_arr)
     best_rmse = float("inf")
 
     for gamma in gamma_grid:
         r1 = 1.0 / np.sqrt(delta1 * delta1 + gamma * gamma)
         r2 = 1.0 / np.sqrt(delta2 * delta2 + gamma * gamma)
-        design = np.column_stack([np.ones_like(delta1), r1 + r2, r1 * r2])
+        # Keep the detuning-mediated structure but allow asymmetric and nonlinear
+        # exchange responses across the swept and parked qubit branches.
+        design = np.column_stack(
+            [
+                np.ones_like(delta1),
+                r1,
+                r2,
+                r1 * r2,
+                r1 * r1,
+                r2 * r2,
+            ]
+        )
         linear_coeffs, *_ = np.linalg.lstsq(design, y_arr, rcond=None)
         fitted = design @ linear_coeffs
         rmse = float(np.sqrt(np.mean((fitted - y_arr) ** 2)))
@@ -156,12 +168,12 @@ def _fit_magnitude_exchange_single_parameter(
             best_rmse = rmse
             best_gamma = float(gamma)
             best_coeffs = np.asarray(
-                [best_gamma, linear_coeffs[0], linear_coeffs[1], linear_coeffs[2]],
+                [best_gamma, *linear_coeffs.tolist()],
                 dtype=float,
             )
             best_fit = np.asarray(fitted, dtype=float)
 
-    return ("gamma", "c0", "c_sum", "c_prod"), best_coeffs, best_fit
+    return coeff_names, best_coeffs, best_fit
 
 
 def fit_magnitude_exchange_parameters(
@@ -248,14 +260,17 @@ def evaluate_effective_parameter_fit(
         delta2 = out["w1"] - wc
         for name in ("J", "zeta"):
             beta = np.asarray(coefficients[name], dtype=float).ravel()
-            if beta.size != 4:
+            if beta.size != 7:
                 raise ValueError(
-                    f"Expected 4 magnitude-exchange coefficients for {name!r}, got {beta.size}"
+                    f"Expected 7 magnitude-exchange coefficients for {name!r}, got {beta.size}"
                 )
-            gamma, c0, c_sum, c_prod = [float(value) for value in beta]
+            gamma, c0, c_r1, c_r2, c_prod, c_r1_sq, c_r2_sq = [float(value) for value in beta]
             r1 = 1.0 / np.sqrt(delta1 * delta1 + gamma * gamma)
             r2 = 1.0 / np.sqrt(delta2 * delta2 + gamma * gamma)
-            out[name] = np.asarray(c0 + c_sum * (r1 + r2) + c_prod * (r1 * r2), dtype=float)
+            out[name] = np.asarray(
+                c0 + c_r1 * r1 + c_r2 * r2 + c_prod * (r1 * r2) + c_r1_sq * (r1 * r1) + c_r2_sq * (r2 * r2),
+                dtype=float,
+            )
         return out
 
     raise ValueError(f"Unsupported fit_basis {fit_basis!r}")
