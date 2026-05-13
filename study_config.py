@@ -621,8 +621,8 @@ def _parse_circuit_truncation_benchmark(study_payload: dict[str, Any]) -> Circui
 
     flux_values_raw = _require_list(tb, "flux_values", "study.circuit_truncation_benchmark")
     flux_values = tuple(float(v) for v in flux_values_raw)
-    if len(flux_values) != 5:
-        raise ValueError("study.circuit_truncation_benchmark.flux_values must contain exactly 5 values")
+    if len(flux_values) == 0:
+        raise ValueError("study.circuit_truncation_benchmark.flux_values must be non-empty")
     circuit_ncuts_raw = _require_list(tb, "circuit_ncut_values", "study.circuit_truncation_benchmark")
     circuit_ncuts = tuple(int(v) for v in circuit_ncuts_raw)
     if len(circuit_ncuts) == 0:
@@ -684,8 +684,8 @@ def _parse_duffing_truncation_benchmark(study_payload: dict[str, Any]) -> Duffin
 
     flux_values_raw = _require_list(tb, "flux_values", "study.duffing_truncation_benchmark")
     flux_values = tuple(float(v) for v in flux_values_raw)
-    if len(flux_values) != 5:
-        raise ValueError("study.duffing_truncation_benchmark.flux_values must contain exactly 5 values")
+    if len(flux_values) == 0:
+        raise ValueError("study.duffing_truncation_benchmark.flux_values must be non-empty")
     ncuts_raw = _require_list(tb, "duffing_ncut_values", "study.duffing_truncation_benchmark")
     ncuts = tuple(int(v) for v in ncuts_raw)
     if len(ncuts) == 0:
