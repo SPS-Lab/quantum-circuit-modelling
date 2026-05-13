@@ -179,6 +179,8 @@ def main() -> None:
     if fitted_source_path is not None:
         reporter.line(f"Reused fitted static artifact: {fitted_source_path}")
     reporter.line(f"Wrote figure: {figure_path}")
+    if run_paths.git_head_path.exists():
+        reporter.line(f"Wrote git head summary: {run_paths.git_head_path}")
     if run_paths.metadata_path.exists():
         reporter.line(f"Wrote run metadata: {run_paths.metadata_path}")
     if run_paths.git_snapshot_path.exists():

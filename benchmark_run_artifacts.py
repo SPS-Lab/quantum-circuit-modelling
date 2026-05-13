@@ -27,6 +27,7 @@ class BenchmarkRunPaths:
     results_path: Path
     figure_paths: dict[str, Path]
     metadata_path: Path
+    git_head_path: Path
     git_snapshot_path: Path
     input_snapshot_paths: dict[str, Path]
 
@@ -55,12 +56,16 @@ def prepare_benchmark_run(
             output_root=resolved_output_root,
         )
     else:
+        git_info = _get_git_info(repo_root)
         run_dir = _create_run_dir(
             output_root=resolved_output_root,
             benchmark_name=benchmark_name,
             experiment_name=experiment_name,
+            git_info=git_info,
         )
         results_path = run_dir / f"{_sanitize(benchmark_name)}_results.h5"
+    if results_path_arg is not None or plot_only:
+        git_info = _get_git_info(repo_root)
 
     run_dir = results_path.parent
     resolved_figures = {
@@ -68,6 +73,7 @@ def prepare_benchmark_run(
         for name, default_path in figure_paths.items()
     }
     metadata_path = run_dir / "benchmark_run.json"
+    git_head_path = run_dir / "git_head.txt"
     git_snapshot_path = run_dir / "git_scope_snapshot.txt"
     snapshot_paths = {
         name: run_dir / f"{_sanitize(name)}.snapshot{Path(path).suffix or '.txt'}"
@@ -80,6 +86,7 @@ def prepare_benchmark_run(
         results_path=results_path,
         figure_paths=resolved_figures,
         metadata_path=metadata_path,
+        git_head_path=git_head_path,
         git_snapshot_path=git_snapshot_path,
         input_snapshot_paths=snapshot_paths,
     )
@@ -90,6 +97,7 @@ def prepare_benchmark_run(
             experiment_name=experiment_name,
             argv=argv or sys.argv,
             input_files=input_files or {},
+            git_info=git_info,
         )
     return paths
 
@@ -126,11 +134,19 @@ def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
     return path if path.is_absolute() else (repo_root / path)
 
 
-def _create_run_dir(*, output_root: Path, benchmark_name: str, experiment_name: str | None) -> Path:
+def _create_run_dir(
+    *,
+    output_root: Path,
+    benchmark_name: str,
+    experiment_name: str | None,
+    git_info: dict[str, Any],
+) -> Path:
     created_at = datetime.now(timezone.utc)
     stamp = created_at.strftime("%Y%m%d_%H%M%S")
     label = _sanitize(experiment_name or benchmark_name)
-    run_dir = output_root / f"{stamp}_{label}"
+    commit_short = _sanitize(str(git_info.get("commit_short", "") or "nogit"))
+    dirty_suffix = "_dirty" if bool(git_info.get("dirty")) else ""
+    run_dir = output_root / f"{stamp}_{label}_{commit_short}{dirty_suffix}"
     run_dir.mkdir(parents=True, exist_ok=False)
     return run_dir
 
@@ -142,9 +158,10 @@ def _materialize_run_metadata(
     experiment_name: str | None,
     argv: list[str],
     input_files: dict[str, Path],
+    git_info: dict[str, Any],
 ) -> None:
     paths.run_dir.mkdir(parents=True, exist_ok=True)
-    git_info = _get_git_info(repo_root)
+    _write_git_head_summary(outfile=paths.git_head_path, git_info=git_info)
     git_snapshot = _write_git_snapshot(repo_root=repo_root, outfile=paths.git_snapshot_path)
     inputs_payload: dict[str, Any] = {}
     for name, source_path in input_files.items():
@@ -173,6 +190,9 @@ def _materialize_run_metadata(
         "user": os.environ.get("USER", ""),
         "invocation": shlex.join([str(token) for token in argv]),
         "git": git_info,
+        "git_head": {
+            "path": _display_path(paths.git_head_path, repo_root),
+        },
         "git_scope_snapshot": git_snapshot,
         "inputs": inputs_payload,
         "artifacts": {
@@ -222,6 +242,17 @@ def _write_git_snapshot(*, repo_root: Path, outfile: Path) -> dict[str, Any]:
         "sha256": hashlib.sha256(payload.encode("utf-8")).hexdigest(),
         "dirty": bool(staged.strip() or unstaged.strip() or untracked_files),
     }
+
+
+def _write_git_head_summary(*, outfile: Path, git_info: dict[str, Any]) -> None:
+    lines = [
+        f"commit: {str(git_info.get('commit', ''))}",
+        f"commit_short: {str(git_info.get('commit_short', ''))}",
+        f"branch: {str(git_info.get('branch', ''))}",
+        f"dirty: {bool(git_info.get('dirty'))}",
+        "",
+    ]
+    outfile.write_text("\n".join(lines), encoding="utf-8")
 
 
 def _run_git(repo_root: Path, *args: str) -> str:

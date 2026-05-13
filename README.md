@@ -33,11 +33,12 @@ State labels in this repo follow `|q1,c,q0>` (so `q0` is the right/LSB qubit whe
 
 All benchmark scripts now default to creating a timestamped run directory under:
 
-- `results/experiments/<timestamp>_<benchmark-or-experiment-name>/`
+- `results/experiments/<timestamp>_<benchmark-or-experiment-name>_<commit-short>[_dirty]/`
 
 Each run directory stores the benchmark `.h5` file, generated figure(s), a
-`benchmark_run.json` metadata snapshot, a `git_scope_snapshot.txt`, and copies
-of the input parameter JSON files used for the run.
+`benchmark_run.json` metadata snapshot, a glanceable `git_head.txt`, a
+`git_scope_snapshot.txt`, and copies of the input parameter JSON files used for
+the run.
 
 Useful CLI patterns:
 
