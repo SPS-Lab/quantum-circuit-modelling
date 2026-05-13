@@ -1,143 +1,131 @@
-"""Plotting for fixed-flux truncation benchmark. All in GHz units."""
-
+"""Plotting for circuit and Duffing static truncation-convergence benchmarks."""
 from __future__ import annotations
 
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.lines import Line2D
 
-from comparison.truncation import TruncationBenchmarkResult
+from comparison.truncation import CircuitTruncationBenchmarkResult, DuffingTruncationBenchmarkResult
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
-    BENCHMARK_TIGHT_LAYOUT_RECT,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
     DEFAULT_PLOT_FONT_SIZE,
-    MODEL_LEGEND_BBOX_TO_ANCHOR,
-    TRUNCATION_LEVEL_LEGEND_BBOX_TO_ANCHOR,
-    TRUNCATION_LEVEL_LEGEND_FONT_SCALE,
-    TRUNCATION_LEVEL_LEGEND_MAX_ITEMS,
-    TRUNCATION_LEVEL_LEGEND_NCOL,
-    TRUNCATION_LEVEL_LEGEND_SHOW_ON_DIFF,
-    TRUNCATION_LEVEL_LEGEND_TITLE_FONT_SCALE,
     benchmark_plot_style,
-    energy_level_alpha,
-    model_color,
-    model_legend_handles,
-    model_plot_kwargs,
 )
 
 
-def _compact_level_legend(
-    handles: list[Line2D],
-    labels: list[str],
+def _plot_metric_sweeps(
+    ax,
     *,
-    max_items: int,
-) -> tuple[list[Line2D], list[str]]:
-    """Keep level legends compact by collapsing middle entries to an ellipsis."""
-    if len(handles) <= max_items:
-        return handles, labels
+    x: np.ndarray,
+    total_rmse: np.ndarray,
+    energy_rmse: np.ndarray,
+    j_abs_error: np.ndarray,
+    zeta_abs_error: np.ndarray,
+    xlabel: str,
+    title: str,
+    xticklabels: list[str] | None = None,
+) -> None:
+    ax.plot(x, total_rmse, marker="o", linewidth=1.8, label="total_rmse")
+    ax.plot(x, energy_rmse, marker="s", linewidth=1.6, label="energy_rmse")
+    ax.plot(x, j_abs_error, marker="^", linewidth=1.6, label="|dJ|")
+    ax.plot(x, zeta_abs_error, marker="d", linewidth=1.6, label="|dzeta|")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("Error (GHz)")
+    ax.set_title(title)
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize="small")
+    if xticklabels is not None:
+        ax.set_xticks(x)
+        ax.set_xticklabels(xticklabels, rotation=25, ha="right")
 
-    max_items = max(3, int(max_items))
-    n_head = max(1, (max_items - 1) // 2)
-    n_tail = max(1, max_items - n_head - 1)
-    head_h = handles[:n_head]
-    head_l = labels[:n_head]
-    tail_h = handles[-n_tail:]
-    tail_l = labels[-n_tail:]
-    ellipsis = Line2D([], [], linestyle="none")
-    return head_h + [ellipsis] + tail_h, head_l + [r"$\cdots$"] + tail_l
 
-
-def plot_truncation_benchmark(
-    result: TruncationBenchmarkResult,
+def plot_circuit_truncation_benchmark(
+    result: CircuitTruncationBenchmarkResult,
     outfile: Path,
     *,
-    lowest_excited_levels_to_plot: int,
     font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
-    x = np.asarray(result.duffing_ncut_values, dtype=float)
     with benchmark_plot_style(font_size):
-        fig = plt.figure(figsize=(11.0, 8.0))
-        gs = fig.add_gridspec(2, 2, height_ratios=(1.0, 1.15))
-        ax_j = fig.add_subplot(gs[0, 0])
-        ax_zeta = fig.add_subplot(gs[0, 1], sharex=ax_j)
-        ax_levels = fig.add_subplot(gs[1, 0], sharex=ax_j)
-        ax_diff = fig.add_subplot(gs[1, 1], sharex=ax_j)
-
-        ax_j.plot(x, result.duffing_j, linewidth=1.8, **model_plot_kwargs("duffing"))
-        ax_j.plot(x, np.full_like(x, result.circuit_j, dtype=float), linewidth=1.4, **model_plot_kwargs("circuit"))
-        ax_j.set_ylabel(r"Exchange $J$")
-        ax_j.grid(True, alpha=0.3)
-
-        ax_zeta.plot(x, result.duffing_zeta, linewidth=1.8, **model_plot_kwargs("duffing"))
-        ax_zeta.plot(x, np.full_like(x, result.circuit_zeta, dtype=float), linewidth=1.4, **model_plot_kwargs("circuit"))
-        ax_zeta.set_ylabel(r"Residual ZZ $\zeta$")
-        ax_zeta.grid(True, alpha=0.3)
-
-        ax_j.set_xlabel("Duffing transmon ncut")
-        ax_zeta.set_xlabel("Duffing transmon ncut")
-
-        rel_duf = np.asarray(result.duffing_lowest_relative_energies, dtype=float)
-        rel_cir = np.asarray(result.circuit_lowest_relative_energies, dtype=float).ravel()
-        n_levels = int(min(rel_duf.shape[1], rel_cir.shape[0]))
-        n_excited_to_show = int(min(max(1, int(lowest_excited_levels_to_plot)), max(0, n_levels - 1)))
-        if n_levels > 1:
-            level_handles: list[Line2D] = []
-            level_labels: list[str] = []
-            for i in range(1, 1 + n_excited_to_show):
-                level_alpha = energy_level_alpha(i - 1)
-                label = rf"$E_{{{i}}}$"
-                ax_levels.plot(x, rel_duf[:, i], color=model_color("duffing"), linewidth=1.6, alpha=model_plot_kwargs("duffing")["alpha"] * level_alpha)
-                ax_levels.plot(x, np.full_like(x, rel_cir[i], dtype=float), color=model_color("circuit"), linewidth=1.2, alpha=model_plot_kwargs("circuit")["alpha"] * level_alpha)
-                ax_diff.plot(x, rel_duf[:, i] - rel_cir[i], color="0.2", linewidth=1.6, alpha=level_alpha)
-                level_handles.append(Line2D([0], [0], color="0.15", linewidth=1.6, alpha=level_alpha))
-                level_labels.append(label)
-
-            compact_handles, compact_labels = _compact_level_legend(
-                level_handles,
-                level_labels,
-                max_items=TRUNCATION_LEVEL_LEGEND_MAX_ITEMS,
-            )
-            legend_cols = min(int(TRUNCATION_LEVEL_LEGEND_NCOL), len(compact_handles))
-            legend_kwargs = dict(
-                handles=compact_handles,
-                labels=compact_labels,
-                loc="upper center",
-                bbox_to_anchor=TRUNCATION_LEVEL_LEGEND_BBOX_TO_ANCHOR,
-                ncol=legend_cols,
-                title="Levels (alpha)",
-                framealpha=0.9,
-                borderpad=0.25,
-                labelspacing=0.25,
-                handlelength=1.4,
-                columnspacing=0.9,
-                fontsize=font_size * TRUNCATION_LEVEL_LEGEND_FONT_SCALE,
-                title_fontsize=font_size * TRUNCATION_LEVEL_LEGEND_TITLE_FONT_SCALE,
-            )
-            ax_levels.legend(**legend_kwargs)
-
-            ax_diff.axhline(0.0, color="0.35", linewidth=1.0)
-            if TRUNCATION_LEVEL_LEGEND_SHOW_ON_DIFF:
-                ax_diff.legend(**legend_kwargs)
-        else:
-            ax_levels.text(0.5, 0.5, "Not enough levels to display", transform=ax_levels.transAxes, ha="center", va="center")
-            ax_diff.text(0.5, 0.5, "Not enough levels to display", transform=ax_diff.transAxes, ha="center", va="center")
-        ax_levels.set_ylabel("Energy rel. ground")
-        ax_levels.set_xlabel("Duffing transmon ncut")
-        ax_levels.grid(True, alpha=0.3)
-        ax_diff.set_ylabel("Energy diff. (duffing - circuit)")
-        ax_diff.set_xlabel("Duffing transmon ncut")
-        ax_diff.grid(True, alpha=0.3)
-
-        fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
+        fig, (ax_ncut, ax_q, ax_c) = plt.subplots(3, 1, figsize=(7.2, 12.8))
+        _plot_metric_sweeps(
+            ax_ncut,
+            x=np.asarray(result.circuit_ncut_values, dtype=float),
+            total_rmse=np.asarray(result.circuit_ncut_total_rmse, dtype=float),
+            energy_rmse=np.asarray(result.circuit_ncut_energy_rmse, dtype=float),
+            j_abs_error=np.asarray(result.circuit_ncut_j_abs_error, dtype=float),
+            zeta_abs_error=np.asarray(result.circuit_ncut_zeta_abs_error, dtype=float),
+            xlabel="ncut",
+            title="ncut",
         )
+        _plot_metric_sweeps(
+            ax_q,
+            x=np.asarray(result.circuit_qubit_truncated_dim_values, dtype=float),
+            total_rmse=np.asarray(result.circuit_qubit_truncation_total_rmse, dtype=float),
+            energy_rmse=np.asarray(result.circuit_qubit_truncation_energy_rmse, dtype=float),
+            j_abs_error=np.asarray(result.circuit_qubit_truncation_j_abs_error, dtype=float),
+            zeta_abs_error=np.asarray(result.circuit_qubit_truncation_zeta_abs_error, dtype=float),
+            xlabel="qubit truncated dim",
+            title="Q-Dim",
+        )
+        _plot_metric_sweeps(
+            ax_c,
+            x=np.asarray(result.circuit_coupler_truncated_dim_values, dtype=float),
+            total_rmse=np.asarray(result.circuit_coupler_truncation_total_rmse, dtype=float),
+            energy_rmse=np.asarray(result.circuit_coupler_truncation_energy_rmse, dtype=float),
+            j_abs_error=np.asarray(result.circuit_coupler_truncation_j_abs_error, dtype=float),
+            zeta_abs_error=np.asarray(result.circuit_coupler_truncation_zeta_abs_error, dtype=float),
+            xlabel="coupler truncated dim",
+            title="C-Dim",
+        )
+        fig.suptitle("Circuit static truncation convergence")
+        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.94), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
+        outfile.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(outfile, format="pdf")
+        plt.close(fig)
 
+
+def plot_duffing_truncation_benchmark(
+    result: DuffingTruncationBenchmarkResult,
+    outfile: Path,
+    *,
+    font_size: float = DEFAULT_PLOT_FONT_SIZE,
+) -> None:
+    with benchmark_plot_style(font_size):
+        fig, (ax_ncut, ax_q, ax_c) = plt.subplots(3, 1, figsize=(7.2, 12.8))
+        _plot_metric_sweeps(
+            ax_ncut,
+            x=np.asarray(result.duffing_ncut_values, dtype=float),
+            total_rmse=np.asarray(result.duffing_ncut_total_rmse, dtype=float),
+            energy_rmse=np.asarray(result.duffing_ncut_energy_rmse, dtype=float),
+            j_abs_error=np.asarray(result.duffing_ncut_j_abs_error, dtype=float),
+            zeta_abs_error=np.asarray(result.duffing_ncut_zeta_abs_error, dtype=float),
+            xlabel="extraction ncut",
+            title="ncut",
+        )
+        _plot_metric_sweeps(
+            ax_q,
+            x=np.asarray(result.duffing_hilbert_qubit_dim_values, dtype=float),
+            total_rmse=np.asarray(result.duffing_hilbert_qubit_total_rmse, dtype=float),
+            energy_rmse=np.asarray(result.duffing_hilbert_qubit_energy_rmse, dtype=float),
+            j_abs_error=np.asarray(result.duffing_hilbert_qubit_j_abs_error, dtype=float),
+            zeta_abs_error=np.asarray(result.duffing_hilbert_qubit_zeta_abs_error, dtype=float),
+            xlabel="qubit Hilbert dim",
+            title="Q-Dim",
+        )
+        _plot_metric_sweeps(
+            ax_c,
+            x=np.asarray(result.duffing_hilbert_coupler_dim_values, dtype=float),
+            total_rmse=np.asarray(result.duffing_hilbert_coupler_total_rmse, dtype=float),
+            energy_rmse=np.asarray(result.duffing_hilbert_coupler_energy_rmse, dtype=float),
+            j_abs_error=np.asarray(result.duffing_hilbert_coupler_j_abs_error, dtype=float),
+            zeta_abs_error=np.asarray(result.duffing_hilbert_coupler_zeta_abs_error, dtype=float),
+            xlabel="coupler Hilbert dim",
+            title="C-Dim",
+        )
+        fig.suptitle("Duffing static truncation convergence")
+        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.94), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
         outfile.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(outfile, format="pdf")
         plt.close(fig)

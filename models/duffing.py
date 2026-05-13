@@ -109,8 +109,8 @@ def _build_mode_parameter_arrays(
         sweep_target=sweep_target,
     )
 
-    ncut = int(duffing_config.transmon_spectral_extraction.ncut)
-    trunc_dim = int(duffing_config.transmon_spectral_extraction.truncated_dim)
+    ncut = int(duffing_config.transmon_spectral_extraction.ncut) #Used to create scqubit transmon again since effective4x4 from circuit is not enough to see alpha etc.
+    trunc_dim = int(duffing_config.transmon_spectral_extraction.truncated_dim) #Also passed to scqubits.Transmon
     calibration_mode = str(duffing_config.calibration_mode).strip().lower()
 
     EJ0_arr = np.asarray(

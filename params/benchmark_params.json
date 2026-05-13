@@ -6,8 +6,19 @@
     "static_benchmark.duffing_model.symbolic_fit.pointwise_max_nfev": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; maximum least-squares function evaluations per flux point in the seed fit.",
     "static_benchmark.duffing_model.symbolic_fit.refinement_max_nfev": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; maximum least-squares function evaluations for the global symbolic refinement.",
     "static_benchmark.duffing_model.symbolic_fit.regularization_weight": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; penalizes deviation from the pointwise seed fit during global refinement.",
-    "truncation_benchmark.duffing_ncut_values": "Used for all truncation Duffing calibration modes; controls the transmon charge-basis cutoff sweep. For reference-driven modes ('fitted-static' and 'symbolic-fitted-static'), a separate reference fit is run for each swept ncut.",
-    "truncation_benchmark.duffing_truncated_dim": "Used for all truncation Duffing calibration modes except 'analytic-per-flux'; clipped per point to min(duffing_truncated_dim, 2*ncut+1).",
+    "circuit_truncation_benchmark.flux_values": "Exactly 5 flux points over which circuit truncation RMSE is aggregated.",
+    "circuit_truncation_benchmark.circuit_ncut_values": "Circuit-model charge-basis cutoffs swept for static convergence over the configured flux set.",
+    "circuit_truncation_benchmark.circuit_qubit_truncated_dim_values": "Circuit-model qubit truncated dimensions swept with the coupler truncated dimension fixed at the circuit reference value.",
+    "circuit_truncation_benchmark.circuit_coupler_truncated_dim_values": "Circuit-model coupler truncated dimensions swept with the qubit truncated dimension fixed at the circuit reference value.",
+    "circuit_truncation_benchmark.circuit_reference_qubit_truncated_dim": "Circuit-model qubit truncated dimension used in the strict static reference point.",
+    "circuit_truncation_benchmark.circuit_reference_coupler_truncated_dim": "Circuit-model coupler truncated dimension used in the strict static reference point.",
+    "duffing_truncation_benchmark.flux_values": "Exactly 5 flux points over which Duffing truncation RMSE is aggregated.",
+    "duffing_truncation_benchmark.duffing_ncut_values": "Used for all truncation Duffing calibration modes; controls the transmon charge-basis cutoff sweep. For reference-driven modes ('fitted-static' and 'symbolic-fitted-static'), a separate reference fit is run for each swept ncut.",
+    "duffing_truncation_benchmark.duffing_truncated_dim": "Used for all truncation Duffing calibration modes except 'analytic-per-flux'; clipped per point to min(duffing_truncated_dim, 2*ncut+1).",
+    "duffing_truncation_benchmark.duffing_hilbert_qubit_dim_values": "Duffing-model qubit Hilbert dimensions swept with the coupler Hilbert dimension fixed at static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler.",
+    "duffing_truncation_benchmark.duffing_hilbert_coupler_dim_values": "Duffing-model coupler Hilbert dimensions swept with the qubit Hilbert dimension fixed at static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit.",
+    "duffing_truncation_benchmark.circuit_reference_qubit_truncated_dim": "Circuit-model qubit truncated dimension used in the strict static reference point.",
+    "duffing_truncation_benchmark.circuit_reference_coupler_truncated_dim": "Circuit-model coupler truncated dimension used in the strict static reference point.",
     "cz_benchmark.scan_dt_ns": "Used only when cz_benchmark.enable_hold_time_scan is true.",
     "cz_benchmark.scan_max_hold_ns": "Used only when cz_benchmark.enable_hold_time_scan is true.",
     "cz_benchmark.scan_leakage_penalty": "Used only when cz_benchmark.enable_hold_time_scan is true.",
@@ -92,15 +103,32 @@
       }
     },
     "truncation_only": {
-      "truncation_benchmark": {
-        "fixed_flux": 0.000001,
-        "duffing_ncut_values": [2, 3, 4, 5, 6, 7, 8, 15, 20],
-        "duffing_truncated_dim": 40,
+      "circuit_truncation_benchmark": {
+        "flux_values": [0.000001, 0.12, 0.24, 0.36, 0.48],
+        "circuit_ncut_values": [10, 20, 30, 45, 60, 100],
+        "circuit_qubit_truncated_dim_values": [7, 8, 9, 10, 11],
+        "circuit_coupler_truncated_dim_values": [4, 5, 6, 7],
         "lowest_excited_levels_to_plot": 12,
         "circuit_reference_ncut": 120,
-        "duffing_calibration_mode": "analytic-per-flux",
+        "circuit_reference_qubit_truncated_dim": 12,
+        "circuit_reference_coupler_truncated_dim": 8,
         "outputs": {
-          "figure": "results/model_comparison_truncation_static_metrics.pdf"
+          "figure": "results/model_comparison_circuit_truncation_static_metrics.pdf"
+        }
+      },
+      "duffing_truncation_benchmark": {
+        "flux_values": [0.000001, 0.12, 0.24, 0.36, 0.48],
+        "duffing_ncut_values": [2, 3, 4, 5, 6, 7, 8, 15, 20],
+        "duffing_truncated_dim": 40,
+        "duffing_hilbert_qubit_dim_values": [2, 3, 4, 6, 8, 10],
+        "duffing_hilbert_coupler_dim_values": [2, 3, 4, 6],
+        "lowest_excited_levels_to_plot": 12,
+        "circuit_reference_ncut": 45,
+        "circuit_reference_qubit_truncated_dim": 12,
+        "circuit_reference_coupler_truncated_dim": 8,
+        "duffing_calibration_mode": "symbolic-fitted-static",
+        "outputs": {
+          "figure": "results/model_comparison_duffing_truncation_static_metrics.pdf"
         }
       }
     },

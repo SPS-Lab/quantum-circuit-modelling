@@ -117,11 +117,22 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.static_benchmark.duffing_model.symbolic_fit.pointwise_max_nfev >= 1
     assert cfg.static_benchmark.duffing_model.symbolic_fit.refinement_max_nfev >= 1
     assert cfg.static_benchmark.duffing_model.symbolic_fit.regularization_weight >= 0.0
-    assert len(cfg.truncation_benchmark.duffing_ncut_values) > 0
-    assert cfg.truncation_benchmark.duffing_truncated_dim >= 3
-    assert cfg.truncation_benchmark.lowest_excited_levels_to_plot >= 1
-    assert cfg.truncation_benchmark.circuit_reference_ncut > 0
-    assert cfg.truncation_benchmark.duffing_calibration_mode in {
+    assert len(cfg.circuit_truncation_benchmark.circuit_ncut_values) > 0
+    assert len(cfg.circuit_truncation_benchmark.circuit_qubit_truncated_dim_values) > 0
+    assert len(cfg.circuit_truncation_benchmark.circuit_coupler_truncated_dim_values) > 0
+    assert cfg.circuit_truncation_benchmark.lowest_excited_levels_to_plot >= 1
+    assert cfg.circuit_truncation_benchmark.circuit_reference_ncut > 0
+    assert cfg.circuit_truncation_benchmark.circuit_reference_qubit_truncated_dim > 0
+    assert cfg.circuit_truncation_benchmark.circuit_reference_coupler_truncated_dim > 0
+    assert len(cfg.duffing_truncation_benchmark.duffing_ncut_values) > 0
+    assert cfg.duffing_truncation_benchmark.duffing_truncated_dim >= 3
+    assert len(cfg.duffing_truncation_benchmark.duffing_hilbert_qubit_dim_values) > 0
+    assert len(cfg.duffing_truncation_benchmark.duffing_hilbert_coupler_dim_values) > 0
+    assert cfg.duffing_truncation_benchmark.lowest_excited_levels_to_plot >= 1
+    assert cfg.duffing_truncation_benchmark.circuit_reference_ncut > 0
+    assert cfg.duffing_truncation_benchmark.circuit_reference_qubit_truncated_dim > 0
+    assert cfg.duffing_truncation_benchmark.circuit_reference_coupler_truncated_dim > 0
+    assert cfg.duffing_truncation_benchmark.duffing_calibration_mode in {
         "fixed",
         "analytic-per-flux",
         "per-flux",
