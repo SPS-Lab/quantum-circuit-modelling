@@ -184,8 +184,8 @@ def fit_magnitude_exchange_parameters(
         coeff[name] = beta
         fitted[name] = y_fit
 
-    w0_ref = np.asarray(extracted_parameters["w0"], dtype=float).ravel()
-    w1_ref = np.asarray(extracted_parameters["w1"], dtype=float).ravel()
+    w0_ref = np.asarray(fitted["w0"], dtype=float).ravel()
+    w1_ref = np.asarray(fitted["w1"], dtype=float).ravel()
     wc_ref = np.asarray(coupler_frequency_values, dtype=float).ravel()
     if wc_ref.shape != w0_ref.shape:
         raise ValueError(
