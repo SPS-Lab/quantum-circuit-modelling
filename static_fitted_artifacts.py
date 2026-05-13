@@ -153,6 +153,7 @@ def build_static_fitted_latex_table(
             label="Effective parameter",
             coefficient_names=artifact.effective_fit_coefficient_names,
             coefficients=artifact.effective_fit_coefficients,
+            parameter_order=("w0", "w1", "J", "zeta"),
             provenance_lines=_build_provenance_comment_lines(
                 git_info=git_info,
                 experiment_folder_name=experiment_folder_name,
@@ -167,6 +168,7 @@ def build_static_fitted_latex_table(
                 label="Duffing parameter",
                 coefficient_names=artifact.duffing_symbolic_coefficient_names,
                 coefficients=artifact.duffing_symbolic_coefficients,
+                parameter_order=("w0", "w1", "alpha0", "alpha1", "g0c", "g1c"),
                 provenance_lines=_build_provenance_comment_lines(
                     git_info=git_info,
                     experiment_folder_name=experiment_folder_name,
@@ -210,6 +212,7 @@ def _build_table_block(
     label: str,
     coefficient_names: dict[str, np.ndarray],
     coefficients: dict[str, np.ndarray],
+    parameter_order: tuple[str, ...] | None = None,
     provenance_lines: list[str] | None = None,
 ) -> list[str]:
     lines = [
@@ -220,7 +223,8 @@ def _build_table_block(
         f"{label} & Coefficient & Value (GHz) " + r"\\",
         r"\hline",
     ]
-    for parameter_name in sorted(coefficients):
+    ordered_parameter_names = _ordered_parameter_names(coefficients, parameter_order=parameter_order)
+    for parameter_name in ordered_parameter_names:
         names = [str(value) for value in np.asarray(coefficient_names[parameter_name], dtype=str).ravel()]
         values = [float(value) for value in np.asarray(coefficients[parameter_name], dtype=float).ravel()]
         if len(names) != len(values):
@@ -232,6 +236,18 @@ def _build_table_block(
         lines.append(r"\hline")
     lines.append(r"\end{tabular}")
     return lines
+
+
+def _ordered_parameter_names(
+    coefficients: dict[str, np.ndarray],
+    *,
+    parameter_order: tuple[str, ...] | None,
+) -> list[str]:
+    if parameter_order is None:
+        return sorted(coefficients)
+    ordered = [name for name in parameter_order if name in coefficients]
+    remaining = sorted(name for name in coefficients if name not in ordered)
+    return ordered + remaining
 
 
 def _mapping_to_lists(mapping: dict[str, np.ndarray]) -> dict[str, list[Any]]:
