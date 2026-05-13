@@ -1,5 +1,4 @@
 """Plotting for circuit and Duffing static truncation-convergence benchmarks."""
-#Circuit static truncation convergence over 5 flux points, compared over {int(result.lowest_excited_levels_compared)} excited levels
 from __future__ import annotations
 
 from pathlib import Path
@@ -49,7 +48,7 @@ def plot_circuit_truncation_benchmark(
     font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     with benchmark_plot_style(font_size):
-        fig, (ax_ncut, ax_trunc) = plt.subplots(1, 2, figsize=(11.8, 4.8))
+        fig, (ax_ncut, ax_q, ax_c) = plt.subplots(1, 3, figsize=(16.8, 4.8))
         _plot_metric_sweeps(
             ax_ncut,
             x=np.asarray(result.circuit_ncut_values, dtype=float),
@@ -60,21 +59,25 @@ def plot_circuit_truncation_benchmark(
             xlabel="Circuit ncut",
             title="Circuit ncut",
         )
-        trunc_x = np.arange(result.circuit_truncation_qubit_values.size, dtype=float)
-        trunc_labels = [
-            f"{int(q)}/{int(c)}"
-            for q, c in zip(result.circuit_truncation_qubit_values, result.circuit_truncation_coupler_values)
-        ]
         _plot_metric_sweeps(
-            ax_trunc,
-            x=trunc_x,
-            total_rmse=np.asarray(result.circuit_truncation_total_rmse, dtype=float),
-            energy_rmse=np.asarray(result.circuit_truncation_energy_rmse, dtype=float),
-            j_abs_error=np.asarray(result.circuit_truncation_j_abs_error, dtype=float),
-            zeta_abs_error=np.asarray(result.circuit_truncation_zeta_abs_error, dtype=float),
-            xlabel="Circuit q/c truncated dims",
-            title="Circuit Truncated-Dim",
-            xticklabels=trunc_labels,
+            ax_q,
+            x=np.asarray(result.circuit_qubit_truncated_dim_values, dtype=float),
+            total_rmse=np.asarray(result.circuit_qubit_truncation_total_rmse, dtype=float),
+            energy_rmse=np.asarray(result.circuit_qubit_truncation_energy_rmse, dtype=float),
+            j_abs_error=np.asarray(result.circuit_qubit_truncation_j_abs_error, dtype=float),
+            zeta_abs_error=np.asarray(result.circuit_qubit_truncation_zeta_abs_error, dtype=float),
+            xlabel="Circuit qubit truncated dim",
+            title="Circuit Q-Dim",
+        )
+        _plot_metric_sweeps(
+            ax_c,
+            x=np.asarray(result.circuit_coupler_truncated_dim_values, dtype=float),
+            total_rmse=np.asarray(result.circuit_coupler_truncation_total_rmse, dtype=float),
+            energy_rmse=np.asarray(result.circuit_coupler_truncation_energy_rmse, dtype=float),
+            j_abs_error=np.asarray(result.circuit_coupler_truncation_j_abs_error, dtype=float),
+            zeta_abs_error=np.asarray(result.circuit_coupler_truncation_zeta_abs_error, dtype=float),
+            xlabel="Circuit coupler truncated dim",
+            title="Circuit C-Dim",
         )
         fig.suptitle(
             "Circuit static truncation convergence"
@@ -92,7 +95,7 @@ def plot_duffing_truncation_benchmark(
     font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     with benchmark_plot_style(font_size):
-        fig, (ax_ncut, ax_trunc) = plt.subplots(1, 2, figsize=(11.8, 4.8))
+        fig, (ax_ncut, ax_q, ax_c) = plt.subplots(1, 3, figsize=(16.8, 4.8))
         _plot_metric_sweeps(
             ax_ncut,
             x=np.asarray(result.duffing_ncut_values, dtype=float),
@@ -103,21 +106,25 @@ def plot_duffing_truncation_benchmark(
             xlabel="Duffing extraction ncut",
             title="Duffing ncut",
         )
-        trunc_x = np.arange(result.duffing_hilbert_qubit_values.size, dtype=float)
-        trunc_labels = [
-            f"{int(q)}/{int(c)}"
-            for q, c in zip(result.duffing_hilbert_qubit_values, result.duffing_hilbert_coupler_values)
-        ]
         _plot_metric_sweeps(
-            ax_trunc,
-            x=trunc_x,
-            total_rmse=np.asarray(result.duffing_hilbert_total_rmse, dtype=float),
-            energy_rmse=np.asarray(result.duffing_hilbert_energy_rmse, dtype=float),
-            j_abs_error=np.asarray(result.duffing_hilbert_j_abs_error, dtype=float),
-            zeta_abs_error=np.asarray(result.duffing_hilbert_zeta_abs_error, dtype=float),
-            xlabel="Duffing q/c Hilbert dims",
-            title="Duffing Truncated-Dim",
-            xticklabels=trunc_labels,
+            ax_q,
+            x=np.asarray(result.duffing_hilbert_qubit_dim_values, dtype=float),
+            total_rmse=np.asarray(result.duffing_hilbert_qubit_total_rmse, dtype=float),
+            energy_rmse=np.asarray(result.duffing_hilbert_qubit_energy_rmse, dtype=float),
+            j_abs_error=np.asarray(result.duffing_hilbert_qubit_j_abs_error, dtype=float),
+            zeta_abs_error=np.asarray(result.duffing_hilbert_qubit_zeta_abs_error, dtype=float),
+            xlabel="Duffing qubit Hilbert dim",
+            title="Duffing Q-Dim",
+        )
+        _plot_metric_sweeps(
+            ax_c,
+            x=np.asarray(result.duffing_hilbert_coupler_dim_values, dtype=float),
+            total_rmse=np.asarray(result.duffing_hilbert_coupler_total_rmse, dtype=float),
+            energy_rmse=np.asarray(result.duffing_hilbert_coupler_energy_rmse, dtype=float),
+            j_abs_error=np.asarray(result.duffing_hilbert_coupler_j_abs_error, dtype=float),
+            zeta_abs_error=np.asarray(result.duffing_hilbert_coupler_zeta_abs_error, dtype=float),
+            xlabel="Duffing coupler Hilbert dim",
+            title="Duffing C-Dim",
         )
         fig.suptitle(
             "Duffing static truncation convergence"

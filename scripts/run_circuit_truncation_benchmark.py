@@ -86,17 +86,34 @@ def main() -> None:
             f"  ncut={int(ncut):4d}, qdim_eff={int(qdim_eff):3d}: total_rmse={float(total_rmse):.6e}, "
             f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
         )
-    reporter.line("Circuit truncated-dim sweep (q/c -> RMSE in GHz):")
-    for qdim, cdim, total_rmse, energy_rmse, j_err, zeta_err in zip(
-        result.circuit_truncation_qubit_values,
-        result.circuit_truncation_coupler_values,
-        result.circuit_truncation_total_rmse,
-        result.circuit_truncation_energy_rmse,
-        result.circuit_truncation_j_abs_error,
-        result.circuit_truncation_zeta_abs_error,
+    reporter.line(
+        "Circuit qubit truncated-dim sweep "
+        f"(c fixed at {int(result.reference_circuit_coupler_truncated_dim)}; RMSE in GHz):"
+    )
+    for qdim, total_rmse, energy_rmse, j_err, zeta_err in zip(
+        result.circuit_qubit_truncated_dim_values,
+        result.circuit_qubit_truncation_total_rmse,
+        result.circuit_qubit_truncation_energy_rmse,
+        result.circuit_qubit_truncation_j_abs_error,
+        result.circuit_qubit_truncation_zeta_abs_error,
     ):
         reporter.line(
-            f"  {int(qdim):2d}/{int(cdim):2d}: total_rmse={float(total_rmse):.6e}, "
+            f"  q={int(qdim):2d}: total_rmse={float(total_rmse):.6e}, "
+            f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+        )
+    reporter.line(
+        "Circuit coupler truncated-dim sweep "
+        f"(q fixed at {int(result.reference_circuit_qubit_truncated_dim)}; RMSE in GHz):"
+    )
+    for cdim, total_rmse, energy_rmse, j_err, zeta_err in zip(
+        result.circuit_coupler_truncated_dim_values,
+        result.circuit_coupler_truncation_total_rmse,
+        result.circuit_coupler_truncation_energy_rmse,
+        result.circuit_coupler_truncation_j_abs_error,
+        result.circuit_coupler_truncation_zeta_abs_error,
+    ):
+        reporter.line(
+            f"  c={int(cdim):2d}: total_rmse={float(total_rmse):.6e}, "
             f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
         )
     reporter.add_runtime_line()
