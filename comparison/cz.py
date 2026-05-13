@@ -8,6 +8,10 @@ import time
 import numpy as np
 from scipy.linalg import expm
 
+from comparison.fitted_reconstruction import (
+    duffing_mode_parameters_for_flux,
+    effective_parameters_for_flux,
+)
 from comparison.static import run_static_benchmark
 from models import (
     build_circuit_model_stack,
@@ -16,7 +20,6 @@ from models import (
     build_effective_hamiltonian_stack,
     computational_state_indices,
     is_reference_calibrated_duffing_mode,
-    resolve_static_sweep_values,
 )
 from runtime_utils import format_elapsed_compact, log_progress, progress_heartbeat
 from study_config import StudyConfig
@@ -168,22 +171,6 @@ def _ramp_hold_ramp_flux_pulse(
         flux[k] = float(idle_flux) + delta * env
 
     return times, flux
-
-
-def _interpolate_parameter_mapping(
-    flux_reference: np.ndarray,
-    parameters_reference: dict[str, np.ndarray],
-    pulse_flux: np.ndarray,
-    *,
-    keys: tuple[str, ...],
-) -> dict[str, np.ndarray]:
-    x_ref = np.asarray(flux_reference, dtype=float).ravel()
-    x = np.asarray(pulse_flux, dtype=float).ravel()
-    out: dict[str, np.ndarray] = {}
-    for key in keys:
-        y_ref = np.asarray(parameters_reference[key], dtype=float).ravel()
-        out[key] = np.interp(x, x_ref, y_ref)
-    return out
 
 
 def _extract_observables_from_amplitudes(comp_amp: np.ndarray) -> _DynamicsObservables:
@@ -487,11 +474,10 @@ def run_cz_benchmark(
 
     effective_build_started = time.perf_counter()
     with progress_heartbeat("cz benchmark: build effective Hamiltonian"):
-        effective_parameters_t = _interpolate_parameter_mapping(
-            static_result.flux_values,
-            static_result.effective_parameters,
+        effective_parameters_t = effective_parameters_for_flux(
+            static_result,
+            config,
             pulse_flux,
-            keys=("w0", "w1", "J", "zeta"),
         )
         H_effective = build_effective_hamiltonian_stack(effective_parameters_t)
     effective_build_runtime_s = float(time.perf_counter() - effective_build_started)
@@ -499,19 +485,11 @@ def run_cz_benchmark(
     duffing_build_started = time.perf_counter()
     with progress_heartbeat("cz benchmark: build Duffing Hamiltonian"):
         if is_reference_calibrated_duffing_mode(config.static_benchmark.duffing_model.calibration_mode):
-            _, _, wc_t = resolve_static_sweep_values(
+            duffing_mode_parameters_t = duffing_mode_parameters_for_flux(
+                static_result,
+                config,
                 pulse_flux,
-                system_params=config.system,
-                coupler_frequency_config=config.static_benchmark.coupler_frequency,
-                sweep_target=sweep_target,
             )
-            duffing_mode_parameters_t = _interpolate_parameter_mapping(
-                static_result.flux_values,
-                static_result.duffing_mode_parameters,
-                pulse_flux,
-                keys=("w0", "w1", "alpha0", "alpha1", "g0c", "g1c"),
-            )
-            duffing_mode_parameters_t["wc"] = np.asarray(wc_t, dtype=float)
             duffing_stack = build_duffing_model_stack_from_parameters(
                 duffing_mode_parameters_t,
                 system_params=config.system,

@@ -199,13 +199,14 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         )
 
     effective_parameters = derivation.parameter_fit.fitted_parameters
+    effective_fit_order = ("w0", "w1", "J", "zeta")
     effective_fit_coefficient_names = {
         name: np.asarray(derivation.parameter_fit.coefficient_names[name], dtype=str)
-        for name in ("J", "zeta")
+        for name in effective_fit_order
     }
     effective_fit_coefficients = {
         name: np.asarray(derivation.parameter_fit.coefficients[name], dtype=float)
-        for name in ("J", "zeta")
+        for name in effective_fit_order
     }
     H_effective = build_effective_hamiltonian_stack(effective_parameters)
 

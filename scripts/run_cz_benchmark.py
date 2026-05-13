@@ -11,13 +11,17 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from benchmark_results_io import (
-    default_results_path_for_figure,
     load_result_hdf5,
     save_result_hdf5,
 )
+from benchmark_run_artifacts import prepare_benchmark_run
 from benchmark_cli_reporting import CliReporter, build_common_truncation_lines
 from comparison.cz import CzBenchmarkResult, run_cz_benchmark
 from plotting.cz import plot_cz_benchmark
+from static_fitted_artifacts import (
+    load_static_fitted_models_artifact,
+    resolve_static_fitted_artifact_path,
+)
 from study_config import load_study_config
 
 
@@ -28,18 +32,38 @@ def _parse_args() -> argparse.Namespace:
         "--results",
         type=Path,
         default=None,
-        help="Path to HDF5 results file (default: figure path with .h5 suffix).",
+        help=(
+            "Path to HDF5 results file. When omitted, a new timestamped experiment "
+            "directory is created; with --plot-only, the newest CZ run is used."
+        ),
     )
     parser.add_argument(
         "--plot-only",
         action="store_true",
         help="Skip benchmark computation and plot from an existing HDF5 results file.",
     )
+    parser.add_argument(
+        "--from-fitted",
+        type=Path,
+        default=None,
+        help=(
+            "Optional static fitted-parameter artifact (.json, .h5, or run directory) "
+            "to reuse instead of recomputing the static benchmark."
+        ),
+    )
+    parser.add_argument(
+        "--experiment-name",
+        type=str,
+        default=None,
+        help="Optional experiment name used in the timestamped run-directory name.",
+    )
+    parser.add_argument(
+        "--output-root",
+        type=Path,
+        default=None,
+        help="Optional root directory for timestamped experiment runs.",
+    )
     return parser.parse_args()
-
-
-def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
-    return path if path.is_absolute() else (repo_root / path)
 
 
 def main() -> None:
@@ -56,11 +80,29 @@ def main() -> None:
     hold_time_ns = None if cz_cfg.hold_time_ns is None else float(cz_cfg.hold_time_ns)
     enable_hold_time_scan = bool(cz_cfg.enable_hold_time_scan)
 
-    figure_path = repo_root / cz_cfg.outputs.figure
-    results_path = (
-        _resolve_repo_relative(repo_root, args.results)
-        if args.results is not None
-        else default_results_path_for_figure(figure_path)
+    run_paths = prepare_benchmark_run(
+        repo_root=repo_root,
+        benchmark_name="cz",
+        figure_paths={"figure": repo_root / cz_cfg.outputs.figure},
+        results_path_arg=args.results,
+        plot_only=bool(args.plot_only),
+        experiment_name=args.experiment_name,
+        output_root=args.output_root,
+        argv=sys.argv,
+        input_files={
+            "system_params": repo_root / "params" / "system_params.json",
+            "benchmark_params": repo_root / "params" / "benchmark_params.json",
+        },
+    )
+    figure_path = run_paths.figure_paths["figure"]
+    results_path = run_paths.results_path
+    fitted_source_path = (
+        None
+        if args.plot_only or args.from_fitted is None
+        else resolve_static_fitted_artifact_path(args.from_fitted)
+    )
+    precomputed_static_result = (
+        None if fitted_source_path is None else load_static_fitted_models_artifact(fitted_source_path)
     )
 
     if args.plot_only:
@@ -79,6 +121,7 @@ def main() -> None:
             scan_dt_ns=float(cz_cfg.scan_dt_ns),
             scan_max_hold_ns=float(cz_cfg.scan_max_hold_ns),
             scan_leakage_penalty=float(cz_cfg.scan_leakage_penalty),
+            precomputed_static_result=precomputed_static_result,
         )
         save_result_hdf5(result, results_path, benchmark_name="cz")
 
@@ -133,7 +176,15 @@ def main() -> None:
         reporter.line(f"Loaded results: {results_path}")
     else:
         reporter.line(f"Wrote results: {results_path}")
+    if fitted_source_path is not None:
+        reporter.line(f"Reused fitted static artifact: {fitted_source_path}")
     reporter.line(f"Wrote figure: {figure_path}")
+    if run_paths.git_head_path.exists():
+        reporter.line(f"Wrote git head summary: {run_paths.git_head_path}")
+    if run_paths.metadata_path.exists():
+        reporter.line(f"Wrote run metadata: {run_paths.metadata_path}")
+    if run_paths.git_snapshot_path.exists():
+        reporter.line(f"Wrote git snapshot: {run_paths.git_snapshot_path}")
     reporter.add_runtime_line()
     reporter.persist(results_path)
 

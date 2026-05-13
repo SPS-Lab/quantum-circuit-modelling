@@ -29,15 +29,40 @@ Legacy `model0/1/2/3` packages have been merged into the modules above.
 
 State labels in this repo follow `|q1,c,q0>` (so `q0` is the right/LSB qubit when bit significance matters).
 
+## Benchmark Run Artifacts
+
+All benchmark scripts now default to creating a timestamped run directory under:
+
+- `results/experiments/<timestamp>_<benchmark-or-experiment-name>_<commit-short>[_dirty]/`
+
+Each run directory stores the benchmark `.h5` file, generated figure(s), a
+`benchmark_run.json` metadata snapshot, a glanceable `git_head.txt`, a
+`git_scope_snapshot.txt`, and copies of the input parameter JSON files used for
+the run.
+
+Useful CLI patterns:
+
+```bash
+python scripts/run_static_benchmark.py
+python scripts/run_static_benchmark.py --experiment-name appendix_static_fit
+python scripts/run_static_benchmark.py --plot-only
+```
+
+`--plot-only` now uses the newest matching run by default when `--results` is
+not provided. You can still point any benchmark script at an explicit `.h5`
+file with `--results path/to/<benchmark>_results.h5`.
+
 Run the static benchmark:
 
 ```bash
 python scripts/run_static_benchmark.py
 ```
 
-This writes:
-- figure: `static_benchmark.outputs.figure`
-- results: same path with `.h5` suffix
+This writes into the run directory:
+- the static figure
+- `static_results.h5`
+- `static_fitted_parameters.json`
+- `static_fitted_parameters_table.tex`
 
 To replot without rerunning the benchmark:
 
@@ -59,6 +84,11 @@ The Duffing model supports calibration modes via
 - `symbolic-fitted-static`: fit one global cosine-only symbolic surrogate for `w0`, `w1`, `alpha0`, `alpha1` over flux, refined against circuit dressed observables
 
 The checked-in benchmark config currently uses `symbolic-fitted-static`.
+
+The explicit static fitted-parameter artifact is meant for reusing the lower
+models without rerunning the static fit. The generated LaTeX table is a plain
+appendix-friendly tabular block for manual pasting into e.g.
+`untracked/paper/main.tex`.
 
 Run the CZ dynamics benchmark:
 
@@ -93,6 +123,15 @@ Replot from saved CZ data only:
 ```bash
 python scripts/run_cz_benchmark.py --plot-only
 ```
+
+Reuse fitted static parameters from a previous static run:
+
+```bash
+python scripts/run_cz_benchmark.py --from-fitted results/experiments/<static-run>/
+```
+
+`--from-fitted` accepts a static run directory, `static_fitted_parameters.json`,
+or `static_results.h5`.
 
 Run the driven single-qubit RX benchmark:
 
@@ -150,6 +189,12 @@ Replot from saved leakage/flow data only:
 
 ```bash
 python scripts/run_leakage_flow_benchmark.py --plot-only
+```
+
+Reuse fitted static parameters from a previous static run:
+
+```bash
+python scripts/run_leakage_flow_benchmark.py --from-fitted results/experiments/<static-run>/
 ```
 
 Run the circuit truncation benchmark:

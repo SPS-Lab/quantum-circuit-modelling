@@ -147,7 +147,8 @@
       "cz_benchmark": {
         "ramp_time_ns": 2.0,
         "dt_ns": 0.5,
-        "enable_hold_time_scan": true,
+        "enable_hold_time_scan": false,
+        "hold_time_ns": 215.267631700769,
         "scan_dt_ns": 10.0,
         "scan_max_hold_ns": 300.0,
         "scan_leakage_penalty": 0.25,

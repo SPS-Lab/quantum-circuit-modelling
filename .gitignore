@@ -210,6 +210,12 @@ __marimo__/
 # Generated data and plots
 *.h5
 *.pdf
+results/experiments/
+static_fitted_parameters.json
+static_fitted_parameters_table.tex
+benchmark_run.json
+git_scope_snapshot.txt
+*.snapshot.json
 
 # Untracked files
 untracked/
