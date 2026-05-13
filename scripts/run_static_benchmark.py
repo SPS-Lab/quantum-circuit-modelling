@@ -132,20 +132,14 @@ def main() -> None:
     for key, value in result.summary.items():
         reporter.line(f"  {key}: {value:.6e}")
     reporter.line("Effective-model fit coefficients (GHz):")
-    reporter.line(
-        _format_fit_line(
-            "J",
-            result.effective_fit_coefficient_names["J"],
-            result.effective_fit_coefficients["J"],
+    for name in ("w0", "w1", "J", "zeta"):
+        reporter.line(
+            _format_fit_line(
+                name,
+                result.effective_fit_coefficient_names[name],
+                result.effective_fit_coefficients[name],
+            )
         )
-    )
-    reporter.line(
-        _format_fit_line(
-            "zeta",
-            result.effective_fit_coefficient_names["zeta"],
-            result.effective_fit_coefficients["zeta"],
-        )
-    )
     if result.duffing_symbolic_coefficients:
         reporter.line("Duffing symbolic calibration coefficients (GHz):")
         ordered_names = ("w0", "w1", "alpha0", "alpha1", "g0c", "g1c")

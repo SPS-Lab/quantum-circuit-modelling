@@ -225,11 +225,15 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.circuit_relative_energies.shape == (9, 4)
     assert np.isfinite(float(np.mean(out.effective_error_rmse)))
     assert np.isfinite(float(np.mean(out.duffing_error_rmse)))
-    assert set(out.effective_fit_coefficient_names) == {"J", "zeta"}
-    assert set(out.effective_fit_coefficients) == {"J", "zeta"}
+    assert set(out.effective_fit_coefficient_names) == {"w0", "w1", "J", "zeta"}
+    assert set(out.effective_fit_coefficients) == {"w0", "w1", "J", "zeta"}
     assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
+    assert len(out.effective_fit_coefficient_names["w0"]) == out.effective_fit_coefficients["w0"].shape[0]
+    assert len(out.effective_fit_coefficient_names["w1"]) == out.effective_fit_coefficients["w1"].shape[0]
     assert len(out.effective_fit_coefficient_names["J"]) == out.effective_fit_coefficients["J"].shape[0]
     assert len(out.effective_fit_coefficient_names["zeta"]) == out.effective_fit_coefficients["zeta"].shape[0]
+    assert out.effective_fit_coefficients["w0"].shape[0] >= 3
+    assert out.effective_fit_coefficients["w1"].shape[0] >= 3
     assert out.effective_fit_coefficients["J"].shape[0] >= 3
     assert out.effective_fit_coefficients["zeta"].shape[0] >= 3
 
@@ -244,10 +248,9 @@ def test_static_benchmark_fit_coefficients_roundtrip_through_hdf5(tmp_path: Path
     save_result_hdf5(out, results_path, benchmark_name="static")
     loaded = load_result_hdf5(results_path, StaticBenchmarkResult, expected_benchmark_name="static")
 
-    assert np.array_equal(loaded.effective_fit_coefficient_names["J"], out.effective_fit_coefficient_names["J"])
-    assert np.array_equal(loaded.effective_fit_coefficient_names["zeta"], out.effective_fit_coefficient_names["zeta"])
-    assert np.allclose(loaded.effective_fit_coefficients["J"], out.effective_fit_coefficients["J"])
-    assert np.allclose(loaded.effective_fit_coefficients["zeta"], out.effective_fit_coefficients["zeta"])
+    for key in ("w0", "w1", "J", "zeta"):
+        assert np.array_equal(loaded.effective_fit_coefficient_names[key], out.effective_fit_coefficient_names[key])
+        assert np.allclose(loaded.effective_fit_coefficients[key], out.effective_fit_coefficients[key])
     assert loaded.duffing_symbolic_coefficient_names.keys() == out.duffing_symbolic_coefficient_names.keys()
     assert loaded.duffing_symbolic_coefficients.keys() == out.duffing_symbolic_coefficients.keys()
     for key in loaded.duffing_symbolic_coefficient_names:
