@@ -56,7 +56,7 @@ def prepare_benchmark_run(
             output_root=resolved_output_root,
         )
     else:
-        git_info = _get_git_info(repo_root)
+        git_info = get_git_info(repo_root)
         run_dir = _create_run_dir(
             output_root=resolved_output_root,
             benchmark_name=benchmark_name,
@@ -65,7 +65,7 @@ def prepare_benchmark_run(
         )
         results_path = run_dir / f"{_sanitize(benchmark_name)}_results.h5"
     if results_path_arg is not None or plot_only:
-        git_info = _get_git_info(repo_root)
+        git_info = get_git_info(repo_root)
 
     run_dir = results_path.parent
     resolved_figures = {
@@ -205,7 +205,7 @@ def _materialize_run_metadata(
     paths.metadata_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
-def _get_git_info(repo_root: Path) -> dict[str, Any]:
+def get_git_info(repo_root: Path) -> dict[str, Any]:
     return {
         "commit": _run_git(repo_root, "rev-parse", "HEAD"),
         "commit_short": _run_git(repo_root, "rev-parse", "--short", "HEAD"),

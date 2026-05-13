@@ -14,7 +14,7 @@ from benchmark_results_io import (
     load_result_hdf5,
     save_result_hdf5,
 )
-from benchmark_run_artifacts import prepare_benchmark_run
+from benchmark_run_artifacts import get_git_info, prepare_benchmark_run
 from benchmark_cli_reporting import CliReporter, build_common_truncation_lines
 from comparison.static import StaticBenchmarkResult, run_static_benchmark
 from plotting.static import plot_static_benchmark
@@ -115,8 +115,12 @@ def main() -> None:
     fitted_artifact = build_static_fitted_models_artifact(result, config=config)
     fitted_json_path = run_paths.run_dir / "static_fitted_parameters.json"
     fitted_table_path = run_paths.run_dir / "static_fitted_parameters_table.tex"
+    git_info = get_git_info(repo_root)
     save_static_fitted_models_artifact(fitted_artifact, fitted_json_path)
-    fitted_table_path.write_text(build_static_fitted_latex_table(fitted_artifact), encoding="utf-8")
+    fitted_table_path.write_text(
+        build_static_fitted_latex_table(fitted_artifact, git_info=git_info),
+        encoding="utf-8",
+    )
 
     for line in build_common_truncation_lines(config):
         reporter.line(line)

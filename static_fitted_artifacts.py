@@ -137,10 +137,30 @@ def resolve_static_fitted_artifact_path(path: Path) -> Path:
     return candidate
 
 
-def build_static_fitted_latex_table(artifact: StaticFittedModelsArtifact) -> str:
-    lines = [
+def build_static_fitted_latex_table(
+    artifact: StaticFittedModelsArtifact,
+    *,
+    git_info: dict[str, Any] | None = None,
+) -> str:
+    header_lines = [
         "% Auto-generated static fitted-parameter appendix tables.",
         "% Paste the tabular blocks where needed in your LaTeX source.",
+    ]
+    if git_info is not None:
+        commit = str(git_info.get("commit", "")).strip()
+        commit_short = str(git_info.get("commit_short", "")).strip()
+        branch = str(git_info.get("branch", "")).strip()
+        dirty = bool(git_info.get("dirty", False))
+        if commit:
+            header_lines.append(
+                "% Git provenance: "
+                f"commit={commit}"
+                + (f" (short={commit_short})" if commit_short else "")
+                + (f", branch={branch}" if branch else "")
+                + (", dirty=true" if dirty else ", dirty=false")
+            )
+    lines = [
+        *header_lines,
         "",
         _build_table_block(
             title="Effective fitted coefficients",

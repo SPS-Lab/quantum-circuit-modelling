@@ -20,6 +20,7 @@ from models.dressed import extract_model1_parameters_from_4x4_stack
 from plotting.cz import plot_cz_benchmark
 from plotting.leakage_flow import plot_leakage_flow_benchmark
 from plotting.rx import plot_rx_diagnostics_benchmark, plot_rx_populations_benchmark
+from benchmark_run_artifacts import get_git_info
 from static_fitted_artifacts import (
     build_static_fitted_latex_table,
     build_static_fitted_models_artifact,
@@ -282,10 +283,11 @@ def test_static_fitted_models_artifact_roundtrip_and_latex(tmp_path: Path) -> No
     assert np.allclose(loaded_h5.flux_values, artifact.flux_values)
     assert np.allclose(loaded_h5.circuit_parameters["zeta"], artifact.circuit_parameters["zeta"])
 
-    latex = build_static_fitted_latex_table(loaded_json)
+    latex = build_static_fitted_latex_table(loaded_json, git_info=get_git_info(_ROOT))
     assert "Effective parameter & Coefficient & Value (GHz)" in latex
     assert "Duffing parameter & Coefficient & Value (GHz)" in latex
     assert r"\begin{tabular}{lll}" in latex
+    assert "% Git provenance: commit=" in latex
 
 
 def test_static_benchmark_uses_coupler_amplitude_from_config(tmp_path: Path) -> None:
