@@ -283,11 +283,16 @@ def test_static_fitted_models_artifact_roundtrip_and_latex(tmp_path: Path) -> No
     assert np.allclose(loaded_h5.flux_values, artifact.flux_values)
     assert np.allclose(loaded_h5.circuit_parameters["zeta"], artifact.circuit_parameters["zeta"])
 
-    latex = build_static_fitted_latex_table(loaded_json, git_info=get_git_info(_ROOT))
+    latex = build_static_fitted_latex_table(
+        loaded_json,
+        git_info=get_git_info(_ROOT),
+        experiment_folder_name="20260513_123550_static_2b0daa0",
+    )
     assert "Effective parameter & Coefficient & Value (GHz)" in latex
     assert "Duffing parameter & Coefficient & Value (GHz)" in latex
     assert r"\begin{tabular}{lll}" in latex
-    assert "% Git provenance: commit=" in latex
+    assert latex.count("% Git provenance: commit=") == 2
+    assert latex.count("% Experiment folder: 20260513_123550_static_2b0daa0") == 2
 
 
 def test_static_benchmark_uses_coupler_amplitude_from_config(tmp_path: Path) -> None:

@@ -118,7 +118,11 @@ def main() -> None:
     git_info = get_git_info(repo_root)
     save_static_fitted_models_artifact(fitted_artifact, fitted_json_path)
     fitted_table_path.write_text(
-        build_static_fitted_latex_table(fitted_artifact, git_info=git_info),
+        build_static_fitted_latex_table(
+            fitted_artifact,
+            git_info=git_info,
+            experiment_folder_name=run_paths.run_dir.name,
+        ),
         encoding="utf-8",
     )
 

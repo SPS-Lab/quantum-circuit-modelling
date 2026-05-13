@@ -141,47 +141,67 @@ def build_static_fitted_latex_table(
     artifact: StaticFittedModelsArtifact,
     *,
     git_info: dict[str, Any] | None = None,
+    experiment_folder_name: str | None = None,
 ) -> str:
-    header_lines = [
+    lines = [
         "% Auto-generated static fitted-parameter appendix tables.",
         "% Paste the tabular blocks where needed in your LaTeX source.",
     ]
-    if git_info is not None:
-        commit = str(git_info.get("commit", "")).strip()
-        commit_short = str(git_info.get("commit_short", "")).strip()
-        branch = str(git_info.get("branch", "")).strip()
-        dirty = bool(git_info.get("dirty", False))
-        if commit:
-            header_lines.append(
-                "% Git provenance: "
-                f"commit={commit}"
-                + (f" (short={commit_short})" if commit_short else "")
-                + (f", branch={branch}" if branch else "")
-                + (", dirty=true" if dirty else ", dirty=false")
-            )
-    lines = [
-        *header_lines,
-        "",
+    lines.extend(
         _build_table_block(
             title="Effective fitted coefficients",
             label="Effective parameter",
             coefficient_names=artifact.effective_fit_coefficient_names,
             coefficients=artifact.effective_fit_coefficients,
-        ),
-        "",
-    ]
+            provenance_lines=_build_provenance_comment_lines(
+                git_info=git_info,
+                experiment_folder_name=experiment_folder_name,
+            ),
+        )
+    )
+    lines.append("")
     if artifact.duffing_symbolic_coefficients:
-        lines.append(
+        lines.extend(
             _build_table_block(
                 title="Symbolic Duffing fitted coefficients",
                 label="Duffing parameter",
                 coefficient_names=artifact.duffing_symbolic_coefficient_names,
                 coefficients=artifact.duffing_symbolic_coefficients,
+                provenance_lines=_build_provenance_comment_lines(
+                    git_info=git_info,
+                    experiment_folder_name=experiment_folder_name,
+                ),
             )
         )
     else:
         lines.append("% No symbolic Duffing coefficients were available for this run.")
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _build_provenance_comment_lines(
+    *,
+    git_info: dict[str, Any] | None,
+    experiment_folder_name: str | None,
+) -> list[str]:
+    lines: list[str] = []
+    if experiment_folder_name:
+        lines.append(f"% Experiment folder: {experiment_folder_name}")
+    if git_info is None:
+        return lines
+
+    commit = str(git_info.get("commit", "")).strip()
+    commit_short = str(git_info.get("commit_short", "")).strip()
+    branch = str(git_info.get("branch", "")).strip()
+    dirty = bool(git_info.get("dirty", False))
+    if commit:
+        lines.append(
+            "% Git provenance: "
+            f"commit={commit}"
+            + (f" (short={commit_short})" if commit_short else "")
+            + (f", branch={branch}" if branch else "")
+            + (", dirty=true" if dirty else ", dirty=false")
+        )
+    return lines
 
 
 def _build_table_block(
@@ -190,9 +210,11 @@ def _build_table_block(
     label: str,
     coefficient_names: dict[str, np.ndarray],
     coefficients: dict[str, np.ndarray],
-) -> str:
+    provenance_lines: list[str] | None = None,
+) -> list[str]:
     lines = [
         f"% {title}",
+        *(provenance_lines or []),
         r"\begin{tabular}{lll}",
         r"\hline",
         f"{label} & Coefficient & Value (GHz) " + r"\\",
@@ -209,7 +231,7 @@ def _build_table_block(
             )
         lines.append(r"\hline")
     lines.append(r"\end{tabular}")
-    return "\n".join(lines)
+    return lines
 
 
 def _mapping_to_lists(mapping: dict[str, np.ndarray]) -> dict[str, list[Any]]:
