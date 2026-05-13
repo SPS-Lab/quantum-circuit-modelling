@@ -440,6 +440,47 @@ def _reference_calibration_designs(
     return parameter_order, design_map, coefficient_names
 
 
+def evaluate_symbolic_duffing_parameter_fit(
+    flux_values: np.ndarray,
+    *,
+    sweep_target: str,
+    coefficient_names: Mapping[str, np.ndarray],
+    coefficients: Mapping[str, np.ndarray],
+) -> dict[str, np.ndarray]:
+    """Evaluate the symbolic Duffing surrogate at flux points."""
+    flux_arr = np.asarray(flux_values, dtype=float).ravel()
+    inferred_harmonics = 0
+    for name, labels in coefficient_names.items():
+        if name not in coefficients:
+            continue
+        label_arr = [str(label) for label in np.asarray(labels, dtype=str).ravel()]
+        for label in label_arr:
+            if label.startswith("cos"):
+                try:
+                    inferred_harmonics = max(inferred_harmonics, int(label.removeprefix("cos")))
+                except ValueError:
+                    continue
+
+    parameter_order, design_map, _ = _reference_calibration_designs(
+        flux_arr,
+        sweep_target=sweep_target,
+        n_harmonics=inferred_harmonics,
+    )
+    base_parameters = {
+        name: np.zeros(flux_arr.size, dtype=float)
+        for name in (*parameter_order, "wc")
+    }
+    return _evaluate_parameter_coefficients_from_designs(
+        coefficient_map={
+            name: np.asarray(coefficients[name], dtype=float).ravel()
+            for name in parameter_order
+        },
+        design_map=design_map,
+        parameter_order=parameter_order,
+        base_parameters=base_parameters,
+    )
+
+
 def fit_duffing_mode_parameters_to_reference(
     flux_values: np.ndarray,
     *,

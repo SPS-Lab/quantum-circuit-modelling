@@ -210,6 +210,57 @@ def fit_magnitude_exchange_parameters(
     )
 
 
+def evaluate_effective_parameter_fit(
+    flux_values: np.ndarray,
+    *,
+    fit_basis: str,
+    coefficient_names: Mapping[str, tuple[str, ...] | np.ndarray],
+    coefficients: Mapping[str, np.ndarray],
+    coupler_frequency_values: np.ndarray | None = None,
+) -> dict[str, np.ndarray]:
+    """Evaluate fitted effective-model parameters at flux points."""
+    flux_arr = np.asarray(flux_values, dtype=float).ravel()
+    out: dict[str, np.ndarray] = {}
+
+    if fit_basis == "single-harmonic":
+        design = _single_harmonic_design_matrix(flux_arr)
+        for name in ("w0", "w1", "J", "zeta"):
+            beta = np.asarray(coefficients[name], dtype=float).ravel()
+            out[name] = np.asarray(design @ beta, dtype=float)
+        return out
+
+    if fit_basis == "magnitude-exchange-like":
+        design_w = _even_three_harmonic_design_matrix(flux_arr)
+        for name in ("w0", "w1"):
+            beta = np.asarray(coefficients[name], dtype=float).ravel()
+            out[name] = np.asarray(design_w @ beta, dtype=float)
+
+        if coupler_frequency_values is None:
+            raise ValueError(
+                "coupler_frequency_values are required to evaluate fit_basis "
+                "'magnitude-exchange-like'"
+            )
+        wc = np.asarray(coupler_frequency_values, dtype=float).ravel()
+        if wc.shape != out["w0"].shape:
+            raise ValueError("coupler_frequency_values must match the evaluated flux grid shape")
+
+        delta1 = out["w0"] - wc
+        delta2 = out["w1"] - wc
+        for name in ("J", "zeta"):
+            beta = np.asarray(coefficients[name], dtype=float).ravel()
+            if beta.size != 4:
+                raise ValueError(
+                    f"Expected 4 magnitude-exchange coefficients for {name!r}, got {beta.size}"
+                )
+            gamma, c0, c_sum, c_prod = [float(value) for value in beta]
+            r1 = 1.0 / np.sqrt(delta1 * delta1 + gamma * gamma)
+            r2 = 1.0 / np.sqrt(delta2 * delta2 + gamma * gamma)
+            out[name] = np.asarray(c0 + c_sum * (r1 + r2) + c_prod * (r1 * r2), dtype=float)
+        return out
+
+    raise ValueError(f"Unsupported fit_basis {fit_basis!r}")
+
+
 
 def derive_effective_model_from_dressed_stack(
     flux_values: np.ndarray,

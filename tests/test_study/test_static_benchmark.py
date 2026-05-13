@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 from pathlib import Path
 import sys
@@ -12,6 +13,10 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from benchmark_results_io import load_result_hdf5, save_result_hdf5
+from comparison.fitted_reconstruction import (
+    duffing_mode_parameters_for_flux,
+    effective_parameters_for_flux,
+)
 from comparison.cz import run_cz_benchmark
 from comparison.leakage_flow import run_leakage_flow_benchmark
 from comparison.rx import run_rx_benchmark
@@ -259,6 +264,33 @@ def test_static_benchmark_fit_coefficients_roundtrip_through_hdf5(tmp_path: Path
         assert np.allclose(loaded.duffing_symbolic_coefficients[key], out.duffing_symbolic_coefficients[key])
 
 
+def test_effective_fit_reconstructs_static_grid(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+
+    out = run_static_benchmark(cfg)
+    reconstructed = effective_parameters_for_flux(out, cfg, out.flux_values)
+
+    for key in ("w0", "w1", "J", "zeta"):
+        assert np.allclose(reconstructed[key], out.effective_parameters[key])
+
+
+def test_symbolic_duffing_fit_reconstructs_static_grid(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(
+        tmp_path,
+        duffing_calibration_mode="symbolic-fitted-static",
+    )
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+
+    out = run_static_benchmark(cfg)
+    reconstructed = duffing_mode_parameters_for_flux(out, cfg, out.flux_values)
+
+    for key in ("w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"):
+        assert np.allclose(reconstructed[key], out.duffing_mode_parameters[key])
+
+
 def test_static_fitted_models_artifact_roundtrip_and_latex(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(
@@ -403,6 +435,59 @@ def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
         enable_hold_time_scan=False,
     )
     assert out.times_ns.shape == (21,)
+
+
+def test_cz_benchmark_ignores_sampled_static_arrays_when_fit_laws_exist(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(
+        tmp_path,
+        duffing_calibration_mode="symbolic-fitted-static",
+    )
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    static_out = run_static_benchmark(cfg)
+
+    baseline = run_cz_benchmark(
+        cfg,
+        ramp_time_ns=4.0,
+        hold_time_ns=12.0,
+        dt_ns=1.0,
+        enable_hold_time_scan=False,
+        precomputed_static_result=static_out,
+        precomputed_static_runtime_s=0.0,
+    )
+
+    corrupted_effective = {
+        key: np.full_like(np.asarray(values, dtype=float), 123.456)
+        for key, values in static_out.effective_parameters.items()
+    }
+    corrupted_duffing = {
+        key: np.full_like(np.asarray(values, dtype=float), -78.9)
+        for key, values in static_out.duffing_mode_parameters.items()
+    }
+    corrupted_duffing["wc"] = np.full_like(
+        np.asarray(static_out.duffing_mode_parameters["wc"], dtype=float),
+        6.54321,
+    )
+    corrupted_static = replace(
+        static_out,
+        effective_parameters=corrupted_effective,
+        duffing_mode_parameters=corrupted_duffing,
+    )
+
+    rebuilt = run_cz_benchmark(
+        cfg,
+        ramp_time_ns=4.0,
+        hold_time_ns=12.0,
+        dt_ns=1.0,
+        enable_hold_time_scan=False,
+        precomputed_static_result=corrupted_static,
+        precomputed_static_runtime_s=0.0,
+    )
+
+    assert np.allclose(rebuilt.effective_conditional_phase, baseline.effective_conditional_phase)
+    assert np.allclose(rebuilt.duffing_conditional_phase, baseline.duffing_conditional_phase)
+    assert np.allclose(rebuilt.effective_populations_11, baseline.effective_populations_11)
+    assert np.allclose(rebuilt.duffing_populations_11, baseline.duffing_populations_11)
 
 
 def test_rx_benchmark_runs_with_small_config(tmp_path: Path) -> None:
