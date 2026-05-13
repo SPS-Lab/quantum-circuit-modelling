@@ -11,13 +11,18 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from benchmark_results_io import (
-    default_results_path_for_figure,
     load_result_hdf5,
     save_result_hdf5,
 )
+from benchmark_run_artifacts import prepare_benchmark_run
 from benchmark_cli_reporting import CliReporter, build_common_truncation_lines
 from comparison.static import StaticBenchmarkResult, run_static_benchmark
 from plotting.static import plot_static_benchmark
+from static_fitted_artifacts import (
+    build_static_fitted_latex_table,
+    build_static_fitted_models_artifact,
+    save_static_fitted_models_artifact,
+)
 from study_config import load_study_config
 
 
@@ -28,18 +33,29 @@ def _parse_args() -> argparse.Namespace:
         "--results",
         type=Path,
         default=None,
-        help="Path to HDF5 results file (default: figure path with .h5 suffix).",
+        help=(
+            "Path to HDF5 results file. When omitted, a new timestamped experiment "
+            "directory is created; with --plot-only, the newest static run is used."
+        ),
     )
     parser.add_argument(
         "--plot-only",
         action="store_true",
         help="Skip benchmark computation and plot from an existing HDF5 results file.",
     )
+    parser.add_argument(
+        "--experiment-name",
+        type=str,
+        default=None,
+        help="Optional experiment name used in the timestamped run-directory name.",
+    )
+    parser.add_argument(
+        "--output-root",
+        type=Path,
+        default=None,
+        help="Optional root directory for timestamped experiment runs.",
+    )
     return parser.parse_args()
-
-
-def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
-    return path if path.is_absolute() else (repo_root / path)
 
 
 def _format_fit_line(name: str, coeff_names: object, coeffs: object) -> str:
@@ -64,12 +80,22 @@ def main() -> None:
         system_params_path=system_params_path,
         study_params_path=study_params_path
     )
-    figure_path = repo_root / config.static_benchmark.outputs.figure
-    results_path = (
-        _resolve_repo_relative(repo_root, args.results)
-        if args.results is not None
-        else default_results_path_for_figure(figure_path)
+    run_paths = prepare_benchmark_run(
+        repo_root=repo_root,
+        benchmark_name="static",
+        figure_paths={"figure": repo_root / config.static_benchmark.outputs.figure},
+        results_path_arg=args.results,
+        plot_only=bool(args.plot_only),
+        experiment_name=args.experiment_name,
+        output_root=args.output_root,
+        argv=sys.argv,
+        input_files={
+            "system_params": system_params_path,
+            "benchmark_params": study_params_path,
+        },
     )
+    figure_path = run_paths.figure_paths["figure"]
+    results_path = run_paths.results_path
 
     if args.plot_only:
         result = load_result_hdf5(
@@ -86,6 +112,11 @@ def main() -> None:
         f"(effective source={config.static_benchmark.effective_model.derivation_source})"
     )
     plot_static_benchmark(result, figure_path, title)
+    fitted_artifact = build_static_fitted_models_artifact(result, config=config)
+    fitted_json_path = run_paths.run_dir / "static_fitted_parameters.json"
+    fitted_table_path = run_paths.run_dir / "static_fitted_parameters_table.tex"
+    save_static_fitted_models_artifact(fitted_artifact, fitted_json_path)
+    fitted_table_path.write_text(build_static_fitted_latex_table(fitted_artifact), encoding="utf-8")
 
     for line in build_common_truncation_lines(config):
         reporter.line(line)
@@ -124,6 +155,12 @@ def main() -> None:
     else:
         reporter.line(f"Wrote results: {results_path}")
     reporter.line(f"Wrote figure: {figure_path}")
+    reporter.line(f"Wrote fitted-parameter artifact: {fitted_json_path}")
+    reporter.line(f"Wrote LaTeX table: {fitted_table_path}")
+    if run_paths.metadata_path.exists():
+        reporter.line(f"Wrote run metadata: {run_paths.metadata_path}")
+    if run_paths.git_snapshot_path.exists():
+        reporter.line(f"Wrote git snapshot: {run_paths.git_snapshot_path}")
     reporter.add_runtime_line()
     reporter.persist(results_path)
 

@@ -12,10 +12,10 @@ if str(_REPO_ROOT) not in sys.path:
 
 from benchmark_cli_reporting import CliReporter, build_common_truncation_lines
 from benchmark_results_io import (
-    default_results_path_for_figure,
     load_result_hdf5,
     save_result_hdf5,
 )
+from benchmark_run_artifacts import prepare_benchmark_run
 from comparison.runtime import RuntimeBenchmarkResult, run_runtime_benchmark
 from plotting.runtime import plot_runtime_benchmark
 from study_config import load_study_config
@@ -27,18 +27,29 @@ def _parse_args() -> argparse.Namespace:
         "--results",
         type=Path,
         default=None,
-        help="Path to HDF5 results file (default: figure path with .h5 suffix).",
+        help=(
+            "Path to HDF5 results file. When omitted, a new timestamped experiment "
+            "directory is created; with --plot-only, the newest runtime run is used."
+        ),
     )
     parser.add_argument(
         "--plot-only",
         action="store_true",
         help="Skip benchmark computation and plot from an existing HDF5 results file.",
     )
+    parser.add_argument(
+        "--experiment-name",
+        type=str,
+        default=None,
+        help="Optional experiment name used in the timestamped run-directory name.",
+    )
+    parser.add_argument(
+        "--output-root",
+        type=Path,
+        default=None,
+        help="Optional root directory for timestamped experiment runs.",
+    )
     return parser.parse_args()
-
-
-def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
-    return path if path.is_absolute() else (repo_root / path)
 
 
 def main() -> None:
@@ -51,12 +62,22 @@ def main() -> None:
     )
     runtime_cfg = config.runtime_benchmark
 
-    figure_path = repo_root / runtime_cfg.outputs.figure
-    results_path = (
-        _resolve_repo_relative(repo_root, args.results)
-        if args.results is not None
-        else default_results_path_for_figure(figure_path)
+    run_paths = prepare_benchmark_run(
+        repo_root=repo_root,
+        benchmark_name="runtime",
+        figure_paths={"figure": repo_root / runtime_cfg.outputs.figure},
+        results_path_arg=args.results,
+        plot_only=bool(args.plot_only),
+        experiment_name=args.experiment_name,
+        output_root=args.output_root,
+        argv=sys.argv,
+        input_files={
+            "system_params": repo_root / "params" / "system_params.json",
+            "benchmark_params": repo_root / "params" / "benchmark_params.json",
+        },
     )
+    figure_path = run_paths.figure_paths["figure"]
+    results_path = run_paths.results_path
 
     if args.plot_only:
         result = load_result_hdf5(
@@ -107,6 +128,10 @@ def main() -> None:
     else:
         reporter.line(f"Wrote results: {results_path}")
     reporter.line(f"Wrote figure: {figure_path}")
+    if run_paths.metadata_path.exists():
+        reporter.line(f"Wrote run metadata: {run_paths.metadata_path}")
+    if run_paths.git_snapshot_path.exists():
+        reporter.line(f"Wrote git snapshot: {run_paths.git_snapshot_path}")
     reporter.add_runtime_line()
     reporter.persist(results_path)
 

@@ -432,8 +432,13 @@ def run_leakage_flow_benchmark(
     transition_min_integrated_abs: float,
     max_population_rows: int,
     max_transition_rows: int,
+    precomputed_static_result=None,
 ) -> LeakageFlowBenchmarkResult:
-    static_result = run_static_benchmark(config)
+    static_result = (
+        run_static_benchmark(config)
+        if precomputed_static_result is None
+        else precomputed_static_result
+    )
     sweep_target = str(config.static_benchmark.flux_control.sweep_target)
     idle_flux = _idle_flux_for_target(config, sweep_target)
     target_flux = _pick_target_flux_from_static(static_result, idle_flux=idle_flux)

@@ -15,7 +15,8 @@ from benchmark_cli_reporting import (
     build_common_truncation_lines,
     build_duffing_truncation_benchmark_extra_lines,
 )
-from benchmark_results_io import default_results_path_for_figure, load_result_hdf5, save_result_hdf5
+from benchmark_results_io import load_result_hdf5, save_result_hdf5
+from benchmark_run_artifacts import prepare_benchmark_run
 from comparison.truncation import DuffingTruncationBenchmarkResult, run_duffing_truncation_benchmark
 from plotting.truncation import plot_duffing_truncation_benchmark
 from study_config import load_study_config
@@ -25,11 +26,9 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results", type=Path, default=None)
     parser.add_argument("--plot-only", action="store_true")
+    parser.add_argument("--experiment-name", type=str, default=None)
+    parser.add_argument("--output-root", type=Path, default=None)
     return parser.parse_args()
-
-
-def _resolve_repo_relative(repo_root: Path, path: Path) -> Path:
-    return path if path.is_absolute() else (repo_root / path)
 
 
 def main() -> None:
@@ -41,12 +40,22 @@ def main() -> None:
         study_params_path=repo_root / "params" / "benchmark_params.json",
     )
     bench_cfg = config.duffing_truncation_benchmark
-    figure_path = repo_root / bench_cfg.outputs.figure
-    results_path = (
-        _resolve_repo_relative(repo_root, args.results)
-        if args.results is not None
-        else default_results_path_for_figure(figure_path)
+    run_paths = prepare_benchmark_run(
+        repo_root=repo_root,
+        benchmark_name="duffing_truncation",
+        figure_paths={"figure": repo_root / bench_cfg.outputs.figure},
+        results_path_arg=args.results,
+        plot_only=bool(args.plot_only),
+        experiment_name=args.experiment_name,
+        output_root=args.output_root,
+        argv=sys.argv,
+        input_files={
+            "system_params": repo_root / "params" / "system_params.json",
+            "benchmark_params": repo_root / "params" / "benchmark_params.json",
+        },
     )
+    figure_path = run_paths.figure_paths["figure"]
+    results_path = run_paths.results_path
 
     if args.plot_only:
         try:
@@ -110,6 +119,15 @@ def main() -> None:
             f"  c={int(cdim):2d}: total_rmse={float(total_rmse):.6e}, "
             f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
         )
+    if args.plot_only:
+        reporter.line(f"Loaded results: {results_path}")
+    else:
+        reporter.line(f"Wrote results: {results_path}")
+    reporter.line(f"Wrote figure: {figure_path}")
+    if run_paths.metadata_path.exists():
+        reporter.line(f"Wrote run metadata: {run_paths.metadata_path}")
+    if run_paths.git_snapshot_path.exists():
+        reporter.line(f"Wrote git snapshot: {run_paths.git_snapshot_path}")
     reporter.add_runtime_line()
     reporter.persist(results_path)
 

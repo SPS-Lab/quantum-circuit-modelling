@@ -20,6 +20,12 @@ from models.dressed import extract_model1_parameters_from_4x4_stack
 from plotting.cz import plot_cz_benchmark
 from plotting.leakage_flow import plot_leakage_flow_benchmark
 from plotting.rx import plot_rx_diagnostics_benchmark, plot_rx_populations_benchmark
+from static_fitted_artifacts import (
+    build_static_fitted_latex_table,
+    build_static_fitted_models_artifact,
+    load_static_fitted_models_artifact,
+    save_static_fitted_models_artifact,
+)
 from study_config import _flatten_run_all_benchmark_params, load_study_config
 from models.effective import fit_single_harmonic_parameters
 
@@ -248,6 +254,38 @@ def test_static_benchmark_fit_coefficients_roundtrip_through_hdf5(tmp_path: Path
     for key in loaded.duffing_symbolic_coefficients:
         assert np.allclose(loaded.duffing_symbolic_coefficients[key], out.duffing_symbolic_coefficients[key])
 
+
+def test_static_fitted_models_artifact_roundtrip_and_latex(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(
+        tmp_path,
+        duffing_calibration_mode="symbolic-fitted-static",
+    )
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+
+    out = run_static_benchmark(cfg)
+    artifact = build_static_fitted_models_artifact(out, config=cfg)
+
+    json_path = tmp_path / "static_fitted_parameters.json"
+    save_static_fitted_models_artifact(artifact, json_path)
+    loaded_json = load_static_fitted_models_artifact(json_path)
+
+    assert np.allclose(loaded_json.flux_values, artifact.flux_values)
+    assert set(loaded_json.effective_parameters) == {"w0", "w1", "J", "zeta"}
+    assert set(loaded_json.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
+    assert loaded_json.sweep_target == str(cfg.static_benchmark.flux_control.sweep_target)
+    assert loaded_json.duffing_calibration_mode == "symbolic-fitted-static"
+
+    results_path = tmp_path / "static_results.h5"
+    save_result_hdf5(out, results_path, benchmark_name="static")
+    loaded_h5 = load_static_fitted_models_artifact(results_path)
+    assert np.allclose(loaded_h5.flux_values, artifact.flux_values)
+    assert np.allclose(loaded_h5.circuit_parameters["zeta"], artifact.circuit_parameters["zeta"])
+
+    latex = build_static_fitted_latex_table(loaded_json)
+    assert "Effective parameter & Coefficient & Value (GHz)" in latex
+    assert "Duffing parameter & Coefficient & Value (GHz)" in latex
+    assert r"\begin{tabular}{lll}" in latex
 
 
 def test_static_benchmark_uses_coupler_amplitude_from_config(tmp_path: Path) -> None:

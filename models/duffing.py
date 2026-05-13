@@ -620,7 +620,7 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
     from scipy.optimize import least_squares
 
     flux_arr = np.asarray(flux_values, dtype=float).ravel()
-    initial = _build_mode_parameter_arrays(
+    initial = _build_mode_parameter_arrays( #TODO: Is this one always recomputed in fit_duffing_mode_parameters_to_reference? 
         flux_arr,
         system_params=system_params,
         coupler_frequency=coupler_frequency,
