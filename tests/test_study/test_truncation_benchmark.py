@@ -231,3 +231,31 @@ def test_duffing_truncation_benchmark_runs_with_symbolic_fitted_static(tmp_path:
     assert np.all(np.isfinite(out.duffing_ncut_energy_rmse))
     assert np.all(np.isfinite(out.duffing_hilbert_qubit_energy_rmse))
     assert np.all(np.isfinite(out.duffing_hilbert_coupler_energy_rmse))
+
+
+def test_duffing_truncation_benchmark_can_run_only_ncut_sweep(tmp_path: Path) -> None:
+    cfg = load_study_config(
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(tmp_path),
+    )
+
+    out = run_duffing_truncation_benchmark(cfg, selected_sweeps=("ncut",))
+
+    assert out.duffing_ncut_values.shape == (4,)
+    assert out.duffing_ncut_energy_rmse.shape == (4,)
+    assert out.duffing_hilbert_qubit_dim_values.shape == (0,)
+    assert out.duffing_hilbert_qubit_energy_rmse.shape == (0,)
+    assert out.duffing_hilbert_coupler_dim_values.shape == (0,)
+    assert out.duffing_hilbert_coupler_energy_rmse.shape == (0,)
+
+
+def test_duffing_truncation_plot_writes_pdf_for_single_sweep(tmp_path: Path) -> None:
+    cfg = load_study_config(
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(tmp_path),
+    )
+    out = run_duffing_truncation_benchmark(cfg, selected_sweeps=("qubit",))
+
+    outfile = tmp_path / "duffing_truncation_qubit_only.pdf"
+    plot_duffing_truncation_benchmark(out, outfile)
+    assert outfile.exists()

@@ -87,35 +87,58 @@ def plot_duffing_truncation_benchmark(
     *,
     font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
+    subplot_specs: list[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str]] = []
+    if np.asarray(result.duffing_ncut_values).size > 0:
+        subplot_specs.append(
+            (
+                np.asarray(result.duffing_ncut_values, dtype=float),
+                np.asarray(result.duffing_ncut_energy_rmse, dtype=float),
+                np.asarray(result.duffing_ncut_j_abs_error, dtype=float),
+                np.asarray(result.duffing_ncut_zeta_abs_error, dtype=float),
+                "extraction ncut",
+                "ncut",
+            )
+        )
+    if np.asarray(result.duffing_hilbert_qubit_dim_values).size > 0:
+        subplot_specs.append(
+            (
+                np.asarray(result.duffing_hilbert_qubit_dim_values, dtype=float),
+                np.asarray(result.duffing_hilbert_qubit_energy_rmse, dtype=float),
+                np.asarray(result.duffing_hilbert_qubit_j_abs_error, dtype=float),
+                np.asarray(result.duffing_hilbert_qubit_zeta_abs_error, dtype=float),
+                "qubit Hilbert dim",
+                "Q-Dim",
+            )
+        )
+    if np.asarray(result.duffing_hilbert_coupler_dim_values).size > 0:
+        subplot_specs.append(
+            (
+                np.asarray(result.duffing_hilbert_coupler_dim_values, dtype=float),
+                np.asarray(result.duffing_hilbert_coupler_energy_rmse, dtype=float),
+                np.asarray(result.duffing_hilbert_coupler_j_abs_error, dtype=float),
+                np.asarray(result.duffing_hilbert_coupler_zeta_abs_error, dtype=float),
+                "coupler Hilbert dim",
+                "C-Dim",
+            )
+        )
+    if not subplot_specs:
+        raise ValueError("Duffing truncation plot requires at least one populated sweep")
+
     with benchmark_plot_style(font_size):
-        fig, (ax_ncut, ax_q, ax_c) = plt.subplots(3, 1, figsize=(7.2, 12.8))
-        _plot_metric_sweeps(
-            ax_ncut,
-            x=np.asarray(result.duffing_ncut_values, dtype=float),
-            energy_rmse=np.asarray(result.duffing_ncut_energy_rmse, dtype=float),
-            j_abs_error=np.asarray(result.duffing_ncut_j_abs_error, dtype=float),
-            zeta_abs_error=np.asarray(result.duffing_ncut_zeta_abs_error, dtype=float),
-            xlabel="extraction ncut",
-            title="ncut",
-        )
-        _plot_metric_sweeps(
-            ax_q,
-            x=np.asarray(result.duffing_hilbert_qubit_dim_values, dtype=float),
-            energy_rmse=np.asarray(result.duffing_hilbert_qubit_energy_rmse, dtype=float),
-            j_abs_error=np.asarray(result.duffing_hilbert_qubit_j_abs_error, dtype=float),
-            zeta_abs_error=np.asarray(result.duffing_hilbert_qubit_zeta_abs_error, dtype=float),
-            xlabel="qubit Hilbert dim",
-            title="Q-Dim",
-        )
-        _plot_metric_sweeps(
-            ax_c,
-            x=np.asarray(result.duffing_hilbert_coupler_dim_values, dtype=float),
-            energy_rmse=np.asarray(result.duffing_hilbert_coupler_energy_rmse, dtype=float),
-            j_abs_error=np.asarray(result.duffing_hilbert_coupler_j_abs_error, dtype=float),
-            zeta_abs_error=np.asarray(result.duffing_hilbert_coupler_zeta_abs_error, dtype=float),
-            xlabel="coupler Hilbert dim",
-            title="C-Dim",
-        )
+        fig_height = max(4.4, 4.2 * len(subplot_specs))
+        fig, axes = plt.subplots(len(subplot_specs), 1, figsize=(7.2, fig_height))
+        if not isinstance(axes, np.ndarray):
+            axes = np.asarray([axes], dtype=object)
+        for ax, (x, energy_rmse, j_abs_error, zeta_abs_error, xlabel, title) in zip(axes, subplot_specs):
+            _plot_metric_sweeps(
+                ax,
+                x=x,
+                energy_rmse=energy_rmse,
+                j_abs_error=j_abs_error,
+                zeta_abs_error=zeta_abs_error,
+                xlabel=xlabel,
+                title=title,
+            )
         fig.suptitle("Duffing static truncation convergence")
         fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.94), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
         outfile.parent.mkdir(parents=True, exist_ok=True)
