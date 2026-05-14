@@ -244,6 +244,7 @@ def _extract_duffing_metrics(
     duffing_calibration_mode: str,
     reference_flux_values: np.ndarray | None = None,
     reference_dressed_stack: np.ndarray | None = None,
+    precomputed_mode_parameters: dict[str, np.ndarray] | None = None,
 ) -> tuple[float, float, np.ndarray, int]:
     trunc_dim_eff = int(min(int(extraction_truncated_dim), 2 * int(extraction_ncut) + 1))
     if trunc_dim_eff < 3:
@@ -259,7 +260,9 @@ def _extract_duffing_metrics(
     if is_reference_calibrated_duffing_mode(duffing_calibration_mode):
         if reference_flux_values is None or reference_dressed_stack is None:
             raise ValueError("Reference-driven Duffing modes require a reference dressed stack")
-        if str(duffing_calibration_mode).strip().lower() == "fitted-static":
+        if precomputed_mode_parameters is not None:
+            mode_parameters = precomputed_mode_parameters
+        elif str(duffing_calibration_mode).strip().lower() == "fitted-static":
             mode_parameters = fit_duffing_mode_parameters_to_reference(
                 reference_flux_values,
                 reference_dressed_stack=reference_dressed_stack,
@@ -374,6 +377,53 @@ def _extract_duffing_metrics_over_fluxes(
     zeta_values = np.empty(flux_values.shape[0], dtype=float)
     rel_e_values: list[np.ndarray] = []
     trunc_dim_eff_out: int | None = None
+    precomputed_mode_parameters: dict[str, np.ndarray] | None = None
+    if is_reference_calibrated_duffing_mode(duffing_calibration_mode):
+        if reference_flux_values is None or reference_dressed_stack is None:
+            raise ValueError("Reference-driven Duffing modes require a reference dressed stack")
+        trunc_dim_eff = int(min(int(extraction_truncated_dim), 2 * int(extraction_ncut) + 1))
+        if trunc_dim_eff < 3:
+            raise ValueError("Effective Duffing transmon truncated_dim must be >= 3")
+        dcfg = _duffing_config_with_truncation(
+            config,
+            extraction_ncut=int(extraction_ncut),
+            extraction_truncated_dim=trunc_dim_eff,
+            hilbert_qubit_dim=int(hilbert_qubit_dim),
+            hilbert_coupler_dim=int(hilbert_coupler_dim),
+            calibration_mode=str(duffing_calibration_mode),
+        )
+        mode = str(duffing_calibration_mode).strip().lower()
+        if mode == "fitted-static":
+            precomputed_mode_parameters = fit_duffing_mode_parameters_to_reference(
+                reference_flux_values,
+                reference_dressed_stack=reference_dressed_stack,
+                system_params=config.system,
+                coupler_frequency=config.static_benchmark.coupler_frequency,
+                duffing_config=dcfg,
+                sweep_target=config.static_benchmark.flux_control.sweep_target,
+                n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+                selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+            )
+        else:
+            symbolic_fit_cfg = dcfg.symbolic_fit
+            if symbolic_fit_cfg is None:
+                raise ValueError(
+                    "symbolic-fitted-static requires static_benchmark.duffing_model.symbolic_fit settings"
+                )
+            precomputed_mode_parameters = fit_symbolic_duffing_mode_parameters_to_reference(
+                reference_flux_values,
+                reference_dressed_stack=reference_dressed_stack,
+                system_params=config.system,
+                coupler_frequency=config.static_benchmark.coupler_frequency,
+                duffing_config=dcfg,
+                sweep_target=config.static_benchmark.flux_control.sweep_target,
+                n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+                selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+                max_harmonics=int(symbolic_fit_cfg.max_harmonics),
+                pointwise_max_nfev=int(symbolic_fit_cfg.pointwise_max_nfev),
+                refinement_max_nfev=int(symbolic_fit_cfg.refinement_max_nfev),
+                regularization_weight=float(symbolic_fit_cfg.regularization_weight),
+            ).fitted_parameters
     for i, flux in enumerate(np.asarray(flux_values, dtype=float)):
         cand_j, cand_zeta, cand_rel_e, trunc_dim_eff = _extract_duffing_metrics(
             config=config,
@@ -385,6 +435,7 @@ def _extract_duffing_metrics_over_fluxes(
             duffing_calibration_mode=str(duffing_calibration_mode),
             reference_flux_values=reference_flux_values,
             reference_dressed_stack=reference_dressed_stack,
+            precomputed_mode_parameters=precomputed_mode_parameters,
         )
         j_values[i] = float(cand_j)
         zeta_values[i] = float(cand_zeta)

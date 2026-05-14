@@ -120,7 +120,7 @@
         "flux_values": [0.000001, 0.12, 0.23, 0.24, 0.25, 0.36, 0.48],
         "duffing_ncut_values": [9, 10, 11, 12],
         "duffing_truncated_dim": 6,
-        "duffing_hilbert_qubit_dim_values": [2, 4],
+        "duffing_hilbert_qubit_dim_values": [4, 5, 6,9],
         "duffing_hilbert_coupler_dim_values": [2, 4],
         "lowest_excited_levels_to_plot": 12,
         "circuit_reference_ncut": 11,
