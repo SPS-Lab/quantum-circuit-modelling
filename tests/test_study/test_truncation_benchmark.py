@@ -11,6 +11,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
+import comparison.truncation as truncation_module
 from comparison.truncation import run_circuit_truncation_benchmark, run_duffing_truncation_benchmark
 from plotting.truncation import plot_circuit_truncation_benchmark, plot_duffing_truncation_benchmark
 from study_config import _flatten_run_all_benchmark_params, load_study_config
@@ -231,6 +232,41 @@ def test_duffing_truncation_benchmark_runs_with_symbolic_fitted_static(tmp_path:
     assert np.all(np.isfinite(out.duffing_ncut_energy_rmse))
     assert np.all(np.isfinite(out.duffing_hilbert_qubit_energy_rmse))
     assert np.all(np.isfinite(out.duffing_hilbert_coupler_energy_rmse))
+
+
+def test_duffing_truncation_benchmark_uses_truncation_fluxes_for_reference_fit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    flux_values = [0.10, 0.20, 0.23, 0.24, 0.25, 0.40, 0.50]
+    cfg = load_study_config(
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(
+            tmp_path,
+            duffing_calibration_mode="symbolic-fitted-static",
+            flux_num_points=11,
+            duffing_ncut_values=[3],
+            truncation_flux_values=flux_values,
+        ),
+    )
+
+    original = truncation_module._build_reference_dressed_stack
+    captured_lengths: list[int] = []
+
+    def _wrapped_build_reference_dressed_stack(**kwargs):
+        local_flux_values = kwargs.get("flux_values")
+        assert local_flux_values is not None
+        captured_lengths.append(int(np.asarray(local_flux_values, dtype=float).shape[0]))
+        return original(**kwargs)
+
+    monkeypatch.setattr(
+        truncation_module,
+        "_build_reference_dressed_stack",
+        _wrapped_build_reference_dressed_stack,
+    )
+
+    run_duffing_truncation_benchmark(cfg, selected_sweeps=("ncut",))
+
+    assert captured_lengths == [len(flux_values)]
 
 
 def test_duffing_truncation_benchmark_can_run_only_ncut_sweep(tmp_path: Path) -> None:

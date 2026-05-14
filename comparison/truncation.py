@@ -199,8 +199,13 @@ def _build_reference_dressed_stack(
     circuit_reference_ncut: int,
     reference_qubit_truncated_dim: int,
     reference_coupler_truncated_dim: int,
+    flux_values: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    flux_values = build_flux_values(config.static_benchmark.flux_sweep)
+    flux_values_arr = (
+        build_flux_values(config.static_benchmark.flux_sweep)
+        if flux_values is None
+        else np.asarray(flux_values, dtype=float)
+    )
     system_ref = replace(
         config.system,
         q0=replace(config.system.q0, ncut=int(circuit_reference_ncut)),
@@ -212,7 +217,7 @@ def _build_reference_dressed_stack(
         coupler_truncated_dim=int(reference_coupler_truncated_dim),
     )
     H_cir = build_circuit_model_stack(
-        flux_values=flux_values,
+        flux_values=flux_values_arr,
         system_params=system_ref,
         coupler_frequency=config.static_benchmark.coupler_frequency,
         circuit_config=circuit_cfg,
@@ -225,7 +230,7 @@ def _build_reference_dressed_stack(
         n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
         selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
     )
-    return np.asarray(flux_values, dtype=float), np.asarray(H_cir_eff, dtype=complex)
+    return np.asarray(flux_values_arr, dtype=float), np.asarray(H_cir_eff, dtype=complex)
 
 
 def _extract_duffing_metrics(
@@ -661,6 +666,7 @@ def run_duffing_truncation_benchmark(
             circuit_reference_ncut=int(cfg.circuit_reference_ncut),
             reference_qubit_truncated_dim=int(cfg.circuit_reference_qubit_truncated_dim),
             reference_coupler_truncated_dim=int(cfg.circuit_reference_coupler_truncated_dim),
+            flux_values=flux_values,
         )
     base_duf_qdim = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit)
     base_duf_cdim = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler)
