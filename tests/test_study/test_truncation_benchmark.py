@@ -90,6 +90,8 @@ def _write_small_study_params(
     dtb["duffing_truncated_dim"] = 12
     dtb["duffing_hilbert_qubit_dim_values"] = [2, 3]
     dtb["duffing_hilbert_coupler_dim_values"] = [2, 3]
+    dtb["duffing_reference_hilbert_qubit_dim"] = 3
+    dtb["duffing_reference_hilbert_coupler_dim"] = 3
     dtb["lowest_excited_levels_to_plot"] = 2
     dtb["circuit_reference_ncut"] = 35
     dtb["circuit_reference_qubit_truncated_dim"] = 4

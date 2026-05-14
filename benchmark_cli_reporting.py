@@ -122,6 +122,10 @@ def build_duffing_truncation_benchmark_extra_lines(config: StudyConfig) -> list[
         f"  duffing_truncated_dim={int(tb.duffing_truncated_dim)}",
         f"  duffing_hilbert_qubit_dim_values=[{duffing_hilbert_qubit_dims}]",
         f"  duffing_hilbert_coupler_dim_values=[{duffing_hilbert_coupler_dims}]",
+        (
+            "  duffing_reference_hilbert_truncation="
+            f"{int(tb.duffing_reference_hilbert_qubit_dim)}/{int(tb.duffing_reference_hilbert_coupler_dim)}"
+        ),
         f"  duffing_calibration_mode={mode}",
         f"  circuit_reference_ncut={int(tb.circuit_reference_ncut)}",
         (

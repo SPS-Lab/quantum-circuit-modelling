@@ -182,6 +182,8 @@ class DuffingTruncationBenchmarkConfig:
     duffing_truncated_dim: int
     duffing_hilbert_qubit_dim_values: tuple[int, ...]
     duffing_hilbert_coupler_dim_values: tuple[int, ...]
+    duffing_reference_hilbert_qubit_dim: int
+    duffing_reference_hilbert_coupler_dim: int
     lowest_excited_levels_to_plot: int
     circuit_reference_ncut: int
     circuit_reference_qubit_truncated_dim: int
@@ -719,6 +721,24 @@ def _parse_duffing_truncation_benchmark(study_payload: dict[str, Any]) -> Duffin
         raise ValueError(
             "study.duffing_truncation_benchmark.duffing_hilbert_coupler_dim_values must contain integers >= 2"
         )
+    duffing_reference_hilbert_qubit_dim = _require_int(
+        tb,
+        "duffing_reference_hilbert_qubit_dim",
+        "study.duffing_truncation_benchmark",
+    )
+    if duffing_reference_hilbert_qubit_dim < 2:
+        raise ValueError(
+            "study.duffing_truncation_benchmark.duffing_reference_hilbert_qubit_dim must be >= 2"
+        )
+    duffing_reference_hilbert_coupler_dim = _require_int(
+        tb,
+        "duffing_reference_hilbert_coupler_dim",
+        "study.duffing_truncation_benchmark",
+    )
+    if duffing_reference_hilbert_coupler_dim < 2:
+        raise ValueError(
+            "study.duffing_truncation_benchmark.duffing_reference_hilbert_coupler_dim must be >= 2"
+        )
     n_levels_to_plot = _require_int(tb, "lowest_excited_levels_to_plot", "study.duffing_truncation_benchmark")
     if n_levels_to_plot < 1:
         raise ValueError("study.duffing_truncation_benchmark.lowest_excited_levels_to_plot must be >= 1")
@@ -744,6 +764,8 @@ def _parse_duffing_truncation_benchmark(study_payload: dict[str, Any]) -> Duffin
         duffing_truncated_dim=trunc_dim,
         duffing_hilbert_qubit_dim_values=duffing_hilbert_qubit_dims,
         duffing_hilbert_coupler_dim_values=duffing_hilbert_coupler_dims,
+        duffing_reference_hilbert_qubit_dim=duffing_reference_hilbert_qubit_dim,
+        duffing_reference_hilbert_coupler_dim=duffing_reference_hilbert_coupler_dim,
         lowest_excited_levels_to_plot=n_levels_to_plot,
         circuit_reference_ncut=_require_int(tb, "circuit_reference_ncut", "study.duffing_truncation_benchmark"),
         circuit_reference_qubit_truncated_dim=_require_int(

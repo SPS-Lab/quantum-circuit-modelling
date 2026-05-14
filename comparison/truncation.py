@@ -719,8 +719,8 @@ def run_duffing_truncation_benchmark(
             reference_coupler_truncated_dim=int(cfg.circuit_reference_coupler_truncated_dim),
             flux_values=flux_values,
         )
-    base_duf_qdim = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit)
-    base_duf_cdim = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler)
+    base_duf_qdim = int(cfg.duffing_reference_hilbert_qubit_dim)
+    base_duf_cdim = int(cfg.duffing_reference_hilbert_coupler_dim)
     base_extract_ncut = int(config.static_benchmark.duffing_model.transmon_spectral_extraction.ncut)
     base_extract_trunc_dim = int(config.static_benchmark.duffing_model.transmon_spectral_extraction.truncated_dim)
     if run_ncut:

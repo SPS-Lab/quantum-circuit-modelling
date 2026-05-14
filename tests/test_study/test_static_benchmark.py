@@ -144,6 +144,8 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.duffing_truncation_benchmark.duffing_truncated_dim >= 3
     assert len(cfg.duffing_truncation_benchmark.duffing_hilbert_qubit_dim_values) > 0
     assert len(cfg.duffing_truncation_benchmark.duffing_hilbert_coupler_dim_values) > 0
+    assert cfg.duffing_truncation_benchmark.duffing_reference_hilbert_qubit_dim >= 2
+    assert cfg.duffing_truncation_benchmark.duffing_reference_hilbert_coupler_dim >= 2
     assert cfg.duffing_truncation_benchmark.lowest_excited_levels_to_plot >= 1
     assert cfg.duffing_truncation_benchmark.circuit_reference_ncut > 0
     assert cfg.duffing_truncation_benchmark.circuit_reference_qubit_truncated_dim > 0
