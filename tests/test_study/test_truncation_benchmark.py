@@ -143,6 +143,43 @@ def test_circuit_truncation_benchmark_accepts_more_than_five_flux_points(tmp_pat
     assert out.reference_circuit_zeta_values.shape == (7,)
 
 
+def test_strict_circuit_reference_builds_batched_stack_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    flux_values = [0.10, 0.20, 0.23, 0.24, 0.25, 0.40, 0.50]
+    cfg = load_study_config(
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(tmp_path, truncation_flux_values=flux_values),
+    )
+
+    original = truncation_module.build_circuit_model_stack
+    captured_flux_lengths: list[int] = []
+
+    def _wrapped_build_circuit_model_stack(*args, **kwargs):
+        local_flux_values = kwargs.get("flux_values")
+        captured_flux_lengths.append(int(np.asarray(local_flux_values, dtype=float).shape[0]))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(
+        truncation_module,
+        "build_circuit_model_stack",
+        _wrapped_build_circuit_model_stack,
+    )
+
+    ref_j_values, ref_zeta_values, ref_rel_e_values = truncation_module._extract_strict_circuit_reference(
+        config=cfg,
+        flux_values=np.asarray(flux_values, dtype=float),
+        reference_ncut=int(cfg.circuit_truncation_benchmark.circuit_reference_ncut),
+        reference_qdim=int(cfg.circuit_truncation_benchmark.circuit_reference_qubit_truncated_dim),
+        reference_cdim=int(cfg.circuit_truncation_benchmark.circuit_reference_coupler_truncated_dim),
+    )
+
+    assert captured_flux_lengths == [len(flux_values)]
+    assert ref_j_values.shape == (len(flux_values),)
+    assert ref_zeta_values.shape == (len(flux_values),)
+    assert ref_rel_e_values.shape[0] == len(flux_values)
+
+
 def test_duffing_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     cfg = load_study_config(
         system_params_path=_write_small_system_params(tmp_path),

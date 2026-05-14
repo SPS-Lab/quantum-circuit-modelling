@@ -167,6 +167,55 @@ def _extract_circuit_metrics(
     return float(params["J"][0]), float(params["zeta"][0]), rel_e, qubit_trunc_eff
 
 
+def _extract_circuit_metrics_over_fluxes(
+    *,
+    config: StudyConfig,
+    flux_values: np.ndarray,
+    circuit_ncut: int,
+    qubit_truncated_dim: int,
+    coupler_truncated_dim: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
+    flux_values_arr = np.asarray(flux_values, dtype=float)
+    if flux_values_arr.size == 0:
+        raise ValueError("At least one flux value is required")
+    qubit_trunc_eff = int(min(int(qubit_truncated_dim), 2 * int(circuit_ncut) + 1))
+    if qubit_trunc_eff < 2:
+        raise ValueError("Effective circuit qubit truncated_dim must be >= 2")
+    system_ref = replace(
+        config.system,
+        q0=replace(config.system.q0, ncut=int(circuit_ncut)),
+        q1=replace(config.system.q1, ncut=int(circuit_ncut)),
+    )
+    circuit_cfg = _circuit_config_with_dims(
+        config,
+        qubit_truncated_dim=qubit_trunc_eff,
+        coupler_truncated_dim=int(coupler_truncated_dim),
+    )
+    H_cir = build_circuit_model_stack(
+        flux_values=flux_values_arr,
+        system_params=system_ref,
+        coupler_frequency=config.static_benchmark.coupler_frequency,
+        circuit_config=circuit_cfg,
+        sweep_target=config.static_benchmark.flux_control.sweep_target,
+    ).hamiltonian_stack
+    H_cir_eff = build_dressed_effective_computational_stack(
+        H_cir,
+        nlevels_qubit=qubit_trunc_eff,
+        nlevels_coupler=int(coupler_truncated_dim),
+        n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+        selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+    )
+    params = extract_model1_parameters_from_4x4_stack(H_cir_eff)
+    evals = np.linalg.eigvalsh(np.asarray(H_cir, dtype=complex))
+    rel_e_values = np.asarray(evals - evals[:, :1], dtype=float)
+    return (
+        np.asarray(params["J"], dtype=float),
+        np.asarray(params["zeta"], dtype=float),
+        rel_e_values,
+        qubit_trunc_eff,
+    )
+
+
 def _extract_strict_circuit_reference(
     *,
     config: StudyConfig,
@@ -175,22 +224,15 @@ def _extract_strict_circuit_reference(
     reference_qdim: int,
     reference_cdim: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    ref_j_values = np.empty(flux_values.shape[0], dtype=float)
-    ref_zeta_values = np.empty(flux_values.shape[0], dtype=float)
-    ref_rel_e_values: list[np.ndarray] = []
     with progress_heartbeat("truncation benchmark: build strict circuit reference points"):
-        for i, flux in enumerate(np.asarray(flux_values, dtype=float)):
-            ref_j, ref_zeta, ref_rel_e, _ = _extract_circuit_metrics(
-                config=config,
-                flux=float(flux),
-                circuit_ncut=reference_ncut,
-                qubit_truncated_dim=reference_qdim,
-                coupler_truncated_dim=reference_cdim,
-            )
-            ref_j_values[i] = float(ref_j)
-            ref_zeta_values[i] = float(ref_zeta)
-            ref_rel_e_values.append(np.asarray(ref_rel_e, dtype=float))
-    return ref_j_values, ref_zeta_values, np.stack(ref_rel_e_values, axis=0)
+        ref_j_values, ref_zeta_values, ref_rel_e_values, _ = _extract_circuit_metrics_over_fluxes(
+            config=config,
+            flux_values=np.asarray(flux_values, dtype=float),
+            circuit_ncut=int(reference_ncut),
+            qubit_truncated_dim=int(reference_qdim),
+            coupler_truncated_dim=int(reference_cdim),
+        )
+    return ref_j_values, ref_zeta_values, ref_rel_e_values
 
 
 def _build_reference_dressed_stack(
@@ -330,35 +372,6 @@ def _extract_duffing_metrics(
     evals = np.linalg.eigvalsh(np.asarray(H_duf[0], dtype=complex))
     rel_e = np.asarray(evals - evals[0], dtype=float)
     return float(params["J"][0]), float(params["zeta"][0]), rel_e, trunc_dim_eff
-
-
-def _extract_circuit_metrics_over_fluxes(
-    *,
-    config: StudyConfig,
-    flux_values: np.ndarray,
-    circuit_ncut: int,
-    qubit_truncated_dim: int,
-    coupler_truncated_dim: int,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
-    j_values = np.empty(flux_values.shape[0], dtype=float)
-    zeta_values = np.empty(flux_values.shape[0], dtype=float)
-    rel_e_values: list[np.ndarray] = []
-    qdim_eff_out: int | None = None
-    for i, flux in enumerate(np.asarray(flux_values, dtype=float)):
-        cand_j, cand_zeta, cand_rel_e, qdim_eff = _extract_circuit_metrics(
-            config=config,
-            flux=float(flux),
-            circuit_ncut=int(circuit_ncut),
-            qubit_truncated_dim=int(qubit_truncated_dim),
-            coupler_truncated_dim=int(coupler_truncated_dim),
-        )
-        j_values[i] = float(cand_j)
-        zeta_values[i] = float(cand_zeta)
-        rel_e_values.append(np.asarray(cand_rel_e, dtype=float))
-        qdim_eff_out = int(qdim_eff)
-    if qdim_eff_out is None:
-        raise ValueError("At least one flux value is required")
-    return j_values, zeta_values, np.stack(rel_e_values, axis=0), qdim_eff_out
 
 
 def _extract_duffing_metrics_over_fluxes(
