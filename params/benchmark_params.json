@@ -54,7 +54,7 @@
           "amplitude": 0.0
         },
         "dressed_subspace": {
-          "n_candidate_states": 8,
+          "n_candidate_states": 12,
           "selection_mode": "bare"
         },
         "duffing_model": {
