@@ -121,6 +121,8 @@ def build_dressed_effective_stack(
         raise ValueError("subspace_indices must be non-empty")
     if np.any(subspace_indices < 0) or np.any(subspace_indices >= d):
         raise ValueError(f"subspace_indices out of bounds for d={d}: {subspace_indices}")
+    else:
+        print(f"subspace_indices has size {m=}. H_stack has energy dim {d=}.")
 
     mode = str(selection_mode).strip().lower()
     if mode not in {"continuous", "bare"}:
