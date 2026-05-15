@@ -65,8 +65,6 @@ def _add_required_study_sections(payload: dict[str, object]) -> None:
 def _write_small_system_params(tmp_path: Path) -> Path:
     src = _ROOT / "params" / "system_params.json"
     payload = json.loads(src.read_text(encoding="utf-8"))
-    payload["parameters"]["q0"]["ncut"] = 25
-    payload["parameters"]["q1"]["ncut"] = 25
 
     dst = tmp_path / "system_params_small.json"
     dst.write_text(json.dumps(payload), encoding="utf-8")
@@ -90,6 +88,8 @@ def _write_small_study_params(
     sb["dressed_subspace"]["n_candidate_states"] = 12
     sb["duffing_model"]["hilbert_truncation"]["nlevels_qubit"] = 3
     sb["duffing_model"]["hilbert_truncation"]["nlevels_coupler"] = 3
+    sb["circuit_model"]["transmon_charge_basis"]["q0_ncut"] = 25
+    sb["circuit_model"]["transmon_charge_basis"]["q1_ncut"] = 25
     sb["circuit_model"]["hilbert_truncation"]["q0_truncated_dim"] = 4
     sb["circuit_model"]["hilbert_truncation"]["q1_truncated_dim"] = 4
     sb["circuit_model"]["hilbert_truncation"]["c_truncated_dim"] = 4
@@ -133,6 +133,8 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.static_benchmark.duffing_model.symbolic_fit.pointwise_max_nfev >= 1
     assert cfg.static_benchmark.duffing_model.symbolic_fit.refinement_max_nfev >= 1
     assert cfg.static_benchmark.duffing_model.symbolic_fit.regularization_weight >= 0.0
+    assert cfg.static_benchmark.circuit_model.transmon_charge_basis.q0_ncut > 0
+    assert cfg.static_benchmark.circuit_model.transmon_charge_basis.q1_ncut > 0
     assert len(cfg.circuit_truncation_benchmark.circuit_ncut_values) > 0
     assert len(cfg.circuit_truncation_benchmark.circuit_qubit_truncated_dim_values) > 0
     assert len(cfg.circuit_truncation_benchmark.circuit_coupler_truncated_dim_values) > 0

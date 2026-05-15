@@ -35,7 +35,6 @@ class TransmonSystemParams:
     d: float
     flux: float
     ng: float
-    ncut: int
     id_str: str
 
 
@@ -121,7 +120,14 @@ class CircuitHilbertTruncationConfig:
 
 
 @dataclass(frozen=True)
+class CircuitTransmonChargeBasisConfig:
+    q0_ncut: int
+    q1_ncut: int
+
+
+@dataclass(frozen=True)
 class CircuitModelConfig:
+    transmon_charge_basis: CircuitTransmonChargeBasisConfig
     hilbert_truncation: CircuitHilbertTruncationConfig
     interaction_validity_check: bool
 
@@ -416,7 +422,6 @@ def _parse_system(system_payload: dict[str, Any]) -> SystemParams:
         d=_require_float(q0p, "d", "system.parameters.q0"),
         flux=_require_float(q0p, "flux", "system.parameters.q0"),
         ng=_require_float(q0p, "ng", "system.parameters.q0"),
-        ncut=_require_int(q0p, "ncut", "system.parameters.q0"),
         id_str=_require_str(q0p, "id_str", "system.parameters.q0"),
     )
     q1 = TransmonSystemParams(
@@ -425,7 +430,6 @@ def _parse_system(system_payload: dict[str, Any]) -> SystemParams:
         d=_require_float(q1p, "d", "system.parameters.q1"),
         flux=_require_float(q1p, "flux", "system.parameters.q1"),
         ng=_require_float(q1p, "ng", "system.parameters.q1"),
-        ncut=_require_int(q1p, "ncut", "system.parameters.q1"),
         id_str=_require_str(q1p, "id_str", "system.parameters.q1"),
     )
     c = OscillatorSystemParams(
@@ -453,6 +457,7 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
     d_hilbert = _require_dict(duffing, "hilbert_truncation", "study.static_benchmark.duffing_model")
     symbolic_fit_payload = duffing.get("symbolic_fit")
     circuit = _require_dict(sb, "circuit_model", "study.static_benchmark")
+    charge_basis = _require_dict(circuit, "transmon_charge_basis", "study.static_benchmark.circuit_model")
     c_hilbert = _require_dict(circuit, "hilbert_truncation", "study.static_benchmark.circuit_model")
     effective = _require_dict(sb, "effective_model", "study.static_benchmark")
     regime = _require_dict(sb, "regime_thresholds", "study.static_benchmark")
@@ -498,6 +503,13 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
         raise ValueError(
             "study.static_benchmark.circuit_model.hilbert_truncation requires "
             "q0_truncated_dim == q1_truncated_dim for computational-subspace indexing"
+        )
+    q0_ncut = _require_int(charge_basis, "q0_ncut", "study.static_benchmark.circuit_model.transmon_charge_basis")
+    q1_ncut = _require_int(charge_basis, "q1_ncut", "study.static_benchmark.circuit_model.transmon_charge_basis")
+    if q0_ncut < 1 or q1_ncut < 1:
+        raise ValueError(
+            "study.static_benchmark.circuit_model.transmon_charge_basis requires "
+            "positive q0_ncut and q1_ncut"
         )
 
     symbolic_fit: SymbolicDuffingFitConfig | None = None
@@ -593,6 +605,10 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
             symbolic_fit=symbolic_fit,
         ),
         circuit_model=CircuitModelConfig(
+            transmon_charge_basis=CircuitTransmonChargeBasisConfig(
+                q0_ncut=q0_ncut,
+                q1_ncut=q1_ncut,
+            ),
             hilbert_truncation=CircuitHilbertTruncationConfig(
                 q0_truncated_dim=q0_trunc,
                 q1_truncated_dim=q1_trunc,

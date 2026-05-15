@@ -41,7 +41,7 @@ def _build_circuit_hamiltonian(
         d=float(system_params.q0.d),
         flux=float(q0_flux),
         ng=float(system_params.q0.ng),
-        ncut=int(system_params.q0.ncut),
+        ncut=int(circuit_config.transmon_charge_basis.q0_ncut),
         truncated_dim=int(circuit_config.hilbert_truncation.q0_truncated_dim),
         id_str=str(system_params.q0.id_str),
     )
@@ -51,7 +51,7 @@ def _build_circuit_hamiltonian(
         d=float(system_params.q1.d),
         flux=float(q1_flux),
         ng=float(system_params.q1.ng),
-        ncut=int(system_params.q1.ncut),
+        ncut=int(circuit_config.transmon_charge_basis.q1_ncut),
         truncated_dim=int(circuit_config.hilbert_truncation.q1_truncated_dim),
         id_str=str(system_params.q1.id_str),
     )

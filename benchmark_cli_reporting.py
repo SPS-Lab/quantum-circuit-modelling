@@ -49,9 +49,9 @@ def build_common_truncation_lines(config: StudyConfig) -> list[str]:
     calibration_mode = str(sb.duffing_model.calibration_mode)
     lines = [
         "Truncation settings:",
-        "  System basis cutoffs:",
-        f"    q0 transmon charge cutoff: ncut={int(config.system.q0.ncut)}",
-        f"    q1 transmon charge cutoff: ncut={int(config.system.q1.ncut)}",
+        "  Circuit charge-basis cutoffs:",
+        f"    q0 transmon charge cutoff: ncut={int(sb.circuit_model.transmon_charge_basis.q0_ncut)}",
+        f"    q1 transmon charge cutoff: ncut={int(sb.circuit_model.transmon_charge_basis.q1_ncut)}",
         "  Duffing calibration extraction:",
         f"    calibration_mode={calibration_mode}",
         "  Dressed-subspace model truncation:",

@@ -386,7 +386,7 @@ def _circuit_qcq_state_signs_ordered(
         EC=float(config.system.q0.EC),
         d=float(config.system.q0.d),
         ng=float(config.system.q0.ng),
-        ncut=int(config.system.q0.ncut),
+        ncut=int(config.static_benchmark.circuit_model.transmon_charge_basis.q0_ncut),
         truncated_dim=n_q0,
     )
     s_q1 = _track_transmon_eigenvector_signs(
@@ -395,7 +395,7 @@ def _circuit_qcq_state_signs_ordered(
         EC=float(config.system.q1.EC),
         d=float(config.system.q1.d),
         ng=float(config.system.q1.ng),
-        ncut=int(config.system.q1.ncut),
+        ncut=int(config.static_benchmark.circuit_model.transmon_charge_basis.q1_ncut),
         truncated_dim=n_q1,
     )
 

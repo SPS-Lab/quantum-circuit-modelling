@@ -73,7 +73,7 @@ python scripts/run_static_benchmark.py --plot-only
 This reads:
 
 - `params/system_params.json` (device/system parameters)
-- `params/benchmark_params.json` (benchmark/model/plot settings)
+- `params/benchmark_params.json` (benchmark/model/plot settings, including numerical basis cutoffs such as circuit-model transmon `ncut`)
 
 The Duffing model supports calibration modes via
 `static_benchmark.duffing_model.calibration_mode`:

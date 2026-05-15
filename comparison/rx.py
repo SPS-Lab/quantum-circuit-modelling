@@ -195,7 +195,7 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
         d=float(config.system.q0.d),
         flux=float(config.system.q0.flux),
         ng=float(config.system.q0.ng),
-        ncut=int(config.system.q0.ncut),
+        ncut=int(config.static_benchmark.circuit_model.transmon_charge_basis.q0_ncut),
         truncated_dim=q0_trunc,
         id_str=str(config.system.q0.id_str),
     )
@@ -205,7 +205,7 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
         d=float(config.system.q1.d),
         flux=float(config.system.q1.flux),
         ng=float(config.system.q1.ng),
-        ncut=int(config.system.q1.ncut),
+        ncut=int(config.static_benchmark.circuit_model.transmon_charge_basis.q1_ncut),
         truncated_dim=q1_trunc,
         id_str=str(config.system.q1.id_str),
     )

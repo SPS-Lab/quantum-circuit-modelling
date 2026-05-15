@@ -89,14 +89,25 @@ def _circuit_config_with_dims(
     *,
     qubit_truncated_dim: int,
     coupler_truncated_dim: int,
+    circuit_ncut: int | None = None,
 ):
-    return replace(
+    circuit_cfg = replace(
         config.static_benchmark.circuit_model,
         hilbert_truncation=replace(
             config.static_benchmark.circuit_model.hilbert_truncation,
             q0_truncated_dim=int(qubit_truncated_dim),
             q1_truncated_dim=int(qubit_truncated_dim),
             c_truncated_dim=int(coupler_truncated_dim),
+        ),
+    )
+    if circuit_ncut is None:
+        return circuit_cfg
+    return replace(
+        circuit_cfg,
+        transmon_charge_basis=replace(
+            circuit_cfg.transmon_charge_basis,
+            q0_ncut=int(circuit_ncut),
+            q1_ncut=int(circuit_ncut),
         ),
     )
 
@@ -137,19 +148,15 @@ def _extract_circuit_metrics(
     qubit_trunc_eff = int(min(int(qubit_truncated_dim), 2 * int(circuit_ncut) + 1))
     if qubit_trunc_eff < 2:
         raise ValueError("Effective circuit qubit truncated_dim must be >= 2")
-    system_ref = replace(
-        config.system,
-        q0=replace(config.system.q0, ncut=int(circuit_ncut)),
-        q1=replace(config.system.q1, ncut=int(circuit_ncut)),
-    )
     circuit_cfg = _circuit_config_with_dims(
         config,
         qubit_truncated_dim=qubit_trunc_eff,
         coupler_truncated_dim=int(coupler_truncated_dim),
+        circuit_ncut=int(circuit_ncut),
     )
     H_cir = build_circuit_model_stack(
         flux_values=np.array([float(flux)], dtype=float),
-        system_params=system_ref,
+        system_params=config.system,
         coupler_frequency=config.static_benchmark.coupler_frequency,
         circuit_config=circuit_cfg,
         sweep_target=config.static_benchmark.flux_control.sweep_target,
@@ -181,19 +188,15 @@ def _extract_circuit_metrics_over_fluxes(
     qubit_trunc_eff = int(min(int(qubit_truncated_dim), 2 * int(circuit_ncut) + 1))
     if qubit_trunc_eff < 2:
         raise ValueError("Effective circuit qubit truncated_dim must be >= 2")
-    system_ref = replace(
-        config.system,
-        q0=replace(config.system.q0, ncut=int(circuit_ncut)),
-        q1=replace(config.system.q1, ncut=int(circuit_ncut)),
-    )
     circuit_cfg = _circuit_config_with_dims(
         config,
         qubit_truncated_dim=qubit_trunc_eff,
         coupler_truncated_dim=int(coupler_truncated_dim),
+        circuit_ncut=int(circuit_ncut),
     )
     H_cir = build_circuit_model_stack(
         flux_values=flux_values_arr,
-        system_params=system_ref,
+        system_params=config.system,
         coupler_frequency=config.static_benchmark.coupler_frequency,
         circuit_config=circuit_cfg,
         sweep_target=config.static_benchmark.flux_control.sweep_target,
@@ -248,19 +251,15 @@ def _build_reference_dressed_stack(
         if flux_values is None
         else np.asarray(flux_values, dtype=float)
     )
-    system_ref = replace(
-        config.system,
-        q0=replace(config.system.q0, ncut=int(circuit_reference_ncut)),
-        q1=replace(config.system.q1, ncut=int(circuit_reference_ncut)),
-    )
     circuit_cfg = _circuit_config_with_dims(
         config,
         qubit_truncated_dim=int(reference_qubit_truncated_dim),
         coupler_truncated_dim=int(reference_coupler_truncated_dim),
+        circuit_ncut=int(circuit_reference_ncut),
     )
     H_cir = build_circuit_model_stack(
         flux_values=flux_values_arr,
-        system_params=system_ref,
+        system_params=config.system,
         coupler_frequency=config.static_benchmark.coupler_frequency,
         circuit_config=circuit_cfg,
         sweep_target=config.static_benchmark.flux_control.sweep_target,

@@ -53,13 +53,13 @@ def _config_with_qubit_truncation(
 ) -> StudyConfig:
     trunc_int = int(qubit_truncation)
     max_circuit_trunc = min(
-        2 * int(config.system.q0.ncut) + 1,
-        2 * int(config.system.q1.ncut) + 1,
+        2 * int(config.static_benchmark.circuit_model.transmon_charge_basis.q0_ncut) + 1,
+        2 * int(config.static_benchmark.circuit_model.transmon_charge_basis.q1_ncut) + 1,
     )
     if trunc_int > max_circuit_trunc:
         raise ValueError(
             "qubit_truncation exceeds the circuit transmon basis available from "
-            f"system ncut; got {trunc_int}, max supported is {max_circuit_trunc}"
+            f"configured transmon_charge_basis ncut; got {trunc_int}, max supported is {max_circuit_trunc}"
         )
     static_cfg = replace(
         config.static_benchmark,
