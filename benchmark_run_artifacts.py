@@ -18,6 +18,18 @@ from typing import Any
 
 _SCHEMA_VERSION = "benchmark_run_v1"
 _DEFAULT_OUTPUT_ROOT = Path("results/experiments")
+_THREAD_ENV_VARS = (
+    "OMP_NUM_THREADS",
+    "OMP_DYNAMIC",
+    "OMP_PROC_BIND",
+    "OMP_PLACES",
+    "OPENBLAS_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+    "BLIS_NUM_THREADS",
+    "GOTO_NUM_THREADS",
+)
 
 
 @dataclass(frozen=True)
@@ -189,6 +201,8 @@ def _materialize_run_metadata(
         "hostname": platform.node(),
         "user": os.environ.get("USER", ""),
         "invocation": shlex.join([str(token) for token in argv]),
+        "hardware": _collect_hardware_snapshot(),
+        "runtime_environment": _collect_runtime_environment_snapshot(),
         "git": git_info,
         "git_head": {
             "path": _display_path(paths.git_head_path, repo_root),
@@ -212,6 +226,148 @@ def get_git_info(repo_root: Path) -> dict[str, Any]:
         "branch": _run_git(repo_root, "rev-parse", "--abbrev-ref", "HEAD"),
         "dirty": bool(_run_git(repo_root, "status", "--porcelain", "--untracked-files=no")),
     }
+
+
+def _collect_hardware_snapshot() -> dict[str, Any]:
+    total_memory_bytes = _detect_total_memory_bytes()
+    return {
+        "architecture": platform.machine() or "",
+        "cpu_model": _detect_cpu_model(),
+        "logical_cpu_count": int(os.cpu_count() or 0),
+        "affinity_cpu_count": _detect_affinity_cpu_count(),
+        "physical_core_count": _detect_physical_core_count(),
+        "total_memory_bytes": int(total_memory_bytes) if total_memory_bytes is not None else None,
+        "total_memory_gib": (
+            round(float(total_memory_bytes) / float(1 << 30), 3)
+            if total_memory_bytes is not None
+            else None
+        ),
+    }
+
+
+def _collect_runtime_environment_snapshot() -> dict[str, Any]:
+    return {
+        "pid": int(os.getpid()),
+        "threading_env": {name: os.environ.get(name) for name in _THREAD_ENV_VARS},
+        "threadpoolctl": _detect_threadpoolctl_snapshot(),
+    }
+
+
+def _detect_threadpoolctl_snapshot() -> dict[str, Any]:
+    try:
+        from threadpoolctl import threadpool_info
+    except ImportError:
+        return {
+            "available": False,
+            "libraries": [],
+        }
+
+    try:
+        libraries = [
+            {str(key): _json_safe(value) for key, value in entry.items()}
+            for entry in threadpool_info()
+        ]
+    except Exception as exc:  # pragma: no cover - defensive snapshotting only
+        return {
+            "available": True,
+            "libraries": [],
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+
+    return {
+        "available": True,
+        "libraries": libraries,
+    }
+
+
+def _detect_cpu_model() -> str:
+    cpuinfo_path = Path("/proc/cpuinfo")
+    if cpuinfo_path.exists():
+        try:
+            for line in cpuinfo_path.read_text(encoding="utf-8").splitlines():
+                if ":" not in line:
+                    continue
+                key, value = line.split(":", 1)
+                if key.strip().lower() == "model name":
+                    return value.strip()
+        except OSError:
+            pass
+
+    processor = platform.processor().strip()
+    if processor:
+        return processor
+    uname_processor = getattr(platform.uname(), "processor", "").strip()
+    return uname_processor
+
+
+def _detect_total_memory_bytes() -> int | None:
+    try:
+        page_size = os.sysconf("SC_PAGE_SIZE")
+        phys_pages = os.sysconf("SC_PHYS_PAGES")
+        if isinstance(page_size, int) and isinstance(phys_pages, int) and page_size > 0 and phys_pages > 0:
+            return int(page_size * phys_pages)
+    except (AttributeError, OSError, ValueError):
+        pass
+
+    meminfo_path = Path("/proc/meminfo")
+    if meminfo_path.exists():
+        try:
+            for line in meminfo_path.read_text(encoding="utf-8").splitlines():
+                if not line.startswith("MemTotal:"):
+                    continue
+                parts = line.split()
+                if len(parts) >= 2 and parts[1].isdigit():
+                    return int(parts[1]) * 1024
+        except OSError:
+            pass
+
+    return None
+
+
+def _detect_affinity_cpu_count() -> int | None:
+    if not hasattr(os, "sched_getaffinity"):
+        return None
+    try:
+        return int(len(os.sched_getaffinity(0)))
+    except OSError:
+        return None
+
+
+def _detect_physical_core_count() -> int | None:
+    cpuinfo_path = Path("/proc/cpuinfo")
+    if cpuinfo_path.exists():
+        try:
+            physical_cores: set[tuple[str, str]] = set()
+            current_physical_id = ""
+            current_core_id = ""
+            found_core_id = False
+            for raw_line in cpuinfo_path.read_text(encoding="utf-8").splitlines():
+                line = raw_line.strip()
+                if not line:
+                    if found_core_id:
+                        physical_cores.add((current_physical_id, current_core_id))
+                    current_physical_id = ""
+                    current_core_id = ""
+                    found_core_id = False
+                    continue
+                if ":" not in line:
+                    continue
+                key, value = line.split(":", 1)
+                normalized = key.strip().lower()
+                if normalized == "physical id":
+                    current_physical_id = value.strip()
+                elif normalized == "core id":
+                    current_core_id = value.strip()
+                    found_core_id = True
+
+            if found_core_id:
+                physical_cores.add((current_physical_id, current_core_id))
+            if physical_cores:
+                return len(physical_cores)
+        except OSError:
+            pass
+
+    return None
 
 
 def _write_git_snapshot(*, repo_root: Path, outfile: Path) -> dict[str, Any]:
@@ -299,3 +455,13 @@ def _sanitize(value: str) -> str:
     while "__" in compact:
         compact = compact.replace("__", "_")
     return compact or "run"
+
+
+def _json_safe(value: Any) -> Any:
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    return str(value)

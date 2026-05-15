@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import sys
 
@@ -41,3 +42,21 @@ def test_prepare_benchmark_run_embeds_commit_in_run_dir_and_summary(tmp_path: Pa
 
     assert commit_short
     assert commit_short in paths.run_dir.name
+
+    metadata = json.loads(paths.metadata_path.read_text(encoding="utf-8"))
+    assert metadata["python_executable"]
+    assert metadata["invocation"] == "python scripts/run_static_benchmark.py"
+
+    hardware = metadata["hardware"]
+    assert "cpu_model" in hardware
+    assert "logical_cpu_count" in hardware
+    assert "total_memory_bytes" in hardware
+
+    runtime_environment = metadata["runtime_environment"]
+    threading_env = runtime_environment["threading_env"]
+    assert "OMP_NUM_THREADS" in threading_env
+    assert "OPENBLAS_NUM_THREADS" in threading_env
+
+    threadpoolctl = runtime_environment["threadpoolctl"]
+    assert "available" in threadpoolctl
+    assert "libraries" in threadpoolctl
