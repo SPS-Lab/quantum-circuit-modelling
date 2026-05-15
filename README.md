@@ -2,6 +2,8 @@
 
 Code to answer the question "Which Superconducting-Qubit Model Is Good Enough?"
 
+Coefficients for the models presented in the paper is presented in [paper_data.md](paper_data.md)
+
 ## Setup
 
 ```bash
