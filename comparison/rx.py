@@ -11,8 +11,8 @@ from comparison.cz import TWO_PI
 from models import (
     build_circuit_model_stack,
     build_dressed_effective_computational_stack,
-    build_duffing_model_stack,
     build_duffing_model_stack_from_parameters,
+    build_duffing_model_stack_from_scratch,
     build_effective_hamiltonian_stack,
     computational_state_indices,
     extract_effective_model_parameters_from_4x4_stack,
@@ -254,7 +254,7 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
 def _single_point_duffing_stack(config: StudyConfig, *, flux_value: float, sweep_target: str) -> np.ndarray:
     flux_arr = np.array([float(flux_value)], dtype=float)
     if not is_reference_calibrated_duffing_mode(config.static_benchmark.duffing_model.calibration_mode):
-        return build_duffing_model_stack(
+        return build_duffing_model_stack_from_scratch(
             flux_values=flux_arr,
             system_params=config.system,
             duffing_config=config.static_benchmark.duffing_model,

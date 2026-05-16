@@ -23,9 +23,10 @@ from comparison.rx import run_rx_benchmark
 from comparison.static import StaticBenchmarkResult, run_static_benchmark
 import comparison.static as static_module
 import models.duffing as duffing_module
+import models.duffing_calibration as duffing_calibration_module
 from models import (
     build_circuit_model_stack,
-    build_duffing_model_stack,
+    build_duffing_model_stack_from_scratch,
     evaluate_symbolic_duffing_mode_parameters,
 )
 from models.dressed import extract_effective_model_parameters_from_4x4_stack
@@ -300,7 +301,7 @@ def test_static_duffing_truncation_style_rmse_uses_sorted_full_spectra(tmp_path:
         circuit_config=cfg.static_benchmark.circuit_model,
         sweep_target=cfg.static_benchmark.flux_control.sweep_target,
     )
-    duffing = build_duffing_model_stack(
+    duffing = build_duffing_model_stack_from_scratch(
         flux_values=out.flux_values,
         system_params=cfg.system,
         duffing_config=cfg.static_benchmark.duffing_model,
@@ -560,7 +561,7 @@ def test_duffing_symbolic_fitted_static_reuses_initial_mode_parameter_arrays(
     )
     cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
 
-    original = duffing_module._build_mode_parameter_arrays
+    original = duffing_calibration_module._build_mode_parameter_arrays
     call_count = 0
 
     def counting_build_mode_parameter_arrays(*args, **kwargs):
@@ -569,7 +570,7 @@ def test_duffing_symbolic_fitted_static_reuses_initial_mode_parameter_arrays(
         return original(*args, **kwargs)
 
     monkeypatch.setattr(
-        duffing_module,
+        duffing_calibration_module,
         "_build_mode_parameter_arrays",
         counting_build_mode_parameter_arrays,
     )
@@ -590,7 +591,7 @@ def test_duffing_symbolic_fitted_static_does_not_use_manual_flux_to_ej_mapping(
     )
     cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
 
-    original = duffing_module.flux_dependent_EJ
+    original = duffing_calibration_module.flux_dependent_EJ
     call_count = 0
 
     def counting_flux_dependent_EJ(*args, **kwargs):
@@ -599,7 +600,7 @@ def test_duffing_symbolic_fitted_static_does_not_use_manual_flux_to_ej_mapping(
         return original(*args, **kwargs)
 
     monkeypatch.setattr(
-        duffing_module,
+        duffing_calibration_module,
         "flux_dependent_EJ",
         counting_flux_dependent_EJ,
     )

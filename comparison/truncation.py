@@ -12,7 +12,7 @@ import numpy as np
 from models import (
     build_circuit_model_stack,
     build_dressed_effective_computational_stack,
-    build_duffing_model_stack,
+    build_duffing_model_stack_from_scratch,
     build_duffing_model_stack_from_parameters,
     evaluate_symbolic_duffing_mode_parameters,
     extract_effective_model_parameters_from_4x4_stack,
@@ -390,7 +390,7 @@ def _extract_duffing_metrics(
             duffing_config=dcfg,
         ).hamiltonian_stack
     else:
-        H_duf = build_duffing_model_stack(
+        H_duf = build_duffing_model_stack_from_scratch(
             flux_values=np.array([float(flux)], dtype=float),
             system_params=config.system,
             duffing_config=dcfg,

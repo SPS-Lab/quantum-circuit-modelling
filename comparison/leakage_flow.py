@@ -17,8 +17,8 @@ from comparison.fitted_reconstruction import duffing_mode_parameters_for_flux
 from comparison.static import run_static_benchmark
 from models import (
     build_circuit_model_stack,
-    build_duffing_model_stack,
     build_duffing_model_stack_from_parameters,
+    build_duffing_model_stack_from_scratch,
     computational_state_indices,
     is_reference_calibrated_duffing_mode,
 )
@@ -457,7 +457,7 @@ def run_leakage_flow_benchmark(
             duffing_config=config.static_benchmark.duffing_model,
         ).hamiltonian_stack
     else:
-        duffing_stack = build_duffing_model_stack(
+        duffing_stack = build_duffing_model_stack_from_scratch(
             flux_values=pulse_flux,
             system_params=config.system,
             duffing_config=config.static_benchmark.duffing_model,

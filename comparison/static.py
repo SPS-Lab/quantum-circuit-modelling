@@ -9,12 +9,12 @@ import numpy as np
 from models import (
     build_circuit_model_stack,
     build_dressed_effective_computational_stack,
-    build_duffing_model_stack,
+    build_duffing_model_stack_from_coefficients,
     build_duffing_model_stack_from_parameters,
+    build_duffing_model_stack_from_scratch,
     build_effective_hamiltonian_stack,
     derive_effective_model_from_dressed_stack,
     extract_effective_model_parameters_from_4x4_stack,
-    evaluate_symbolic_duffing_mode_parameters,
     fit_duffing_mode_parameters_to_reference,
     fit_symbolic_duffing_mode_parameters_to_reference,
     resolve_static_sweep_values,
@@ -174,22 +174,19 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
             )
         duffing_symbolic_coefficient_names = duffing_symbolic_fit.coefficient_names
         duffing_symbolic_coefficients = duffing_symbolic_fit.coefficients
-        duffing_mode_parameters = evaluate_symbolic_duffing_mode_parameters(
-            flux_values,
-            system_params=config.system,
-            sweep_target=config.static_benchmark.flux_control.sweep_target,
-            coefficient_names=duffing_symbolic_coefficient_names,
-            coefficients=duffing_symbolic_coefficients,
-        )
-        with progress_heartbeat("static benchmark: build_duffing_model_stack_from_parameters"):
-            duffing = build_duffing_model_stack_from_parameters(
-                duffing_mode_parameters,
+        with progress_heartbeat("static benchmark: build_duffing_model_stack_from_coefficients"):
+            duffing = build_duffing_model_stack_from_coefficients(
+                flux_values,
                 system_params=config.system,
                 duffing_config=config.static_benchmark.duffing_model,
+                sweep_target=config.static_benchmark.flux_control.sweep_target,
+                coefficient_names=duffing_symbolic_coefficient_names,
+                coefficients=duffing_symbolic_coefficients,
             )
+        duffing_mode_parameters = duffing.mode_parameters
     else:
-        with progress_heartbeat("static benchmark: build_duffing_model_stack"):
-            duffing = build_duffing_model_stack(
+        with progress_heartbeat("static benchmark: build_duffing_model_stack_from_scratch"):
+            duffing = build_duffing_model_stack_from_scratch(
                 flux_values=flux_values,
                 system_params=config.system,
                 duffing_config=config.static_benchmark.duffing_model,
