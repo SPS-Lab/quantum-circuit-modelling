@@ -35,17 +35,12 @@ def effective_parameters_for_flux(
         getattr(static_result, "effective_fit_basis", "")
         or config.static_benchmark.effective_model.fit_basis
     )
-    _, _, wc = resolve_static_sweep_values(
-        flux_arr,
-        system_params=config.system,
-        sweep_target=_sweep_target(static_result, config),
-    )
     return evaluate_effective_parameter_fit(
         flux_arr,
+        system_params=config.system,
         fit_basis=fit_basis,
         coefficient_names=coeff_names,
         coefficients=coeffs,
-        coupler_frequency_values=np.asarray(wc, dtype=float),
     )
 
 

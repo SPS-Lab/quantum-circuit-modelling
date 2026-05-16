@@ -343,10 +343,13 @@ def test_effective_fit_reconstructs_static_grid(tmp_path: Path) -> None:
         assert np.allclose(reconstructed[key], out.effective_parameters[key])
 
 
-def test_magnitude_exchange_fit_reconstructs_asymmetric_exchange_targets() -> None:
+def test_magnitude_exchange_fit_reconstructs_asymmetric_exchange_targets(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
     flux_values = np.linspace(-0.2, 0.2, 17)
     theta = 2.0 * np.pi * flux_values
-    wc = 6.25 + 0.12 * np.cos(theta) - 0.03 * np.cos(2.0 * theta)
+    wc = np.full_like(flux_values, float(cfg.system.c.E_osc), dtype=float)
     w0 = 4.95 + 0.22 * np.cos(theta) - 0.06 * np.cos(2.0 * theta) + 0.01 * np.cos(3.0 * theta)
     w1 = 5.35 - 0.18 * np.cos(theta) + 0.04 * np.cos(2.0 * theta) - 0.015 * np.cos(3.0 * theta)
 
@@ -370,10 +373,10 @@ def test_magnitude_exchange_fit_reconstructs_asymmetric_exchange_targets() -> No
     )
     reconstructed = evaluate_effective_parameter_fit(
         flux_values,
+        system_params=cfg.system,
         fit_basis="magnitude-exchange-like",
         coefficient_names=fit.coefficient_names,
         coefficients=fit.coefficients,
-        coupler_frequency_values=wc,
     )
 
     for key, expected in (("w0", w0), ("w1", w1), ("J", j_target), ("zeta", zeta_target)):

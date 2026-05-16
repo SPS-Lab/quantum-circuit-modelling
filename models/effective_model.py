@@ -6,6 +6,7 @@ from typing import Mapping
 
 import numpy as np
 
+from study_config import SystemParams
 from toolkit.helpers import I2, px, py, pz
 
 
@@ -78,10 +79,10 @@ def _even_three_harmonic_design_matrix(flux_values: np.ndarray) -> np.ndarray:
 def evaluate_effective_parameter_fit(
     flux_values: np.ndarray,
     *,
+    system_params: SystemParams,
     fit_basis: str,
     coefficient_names: Mapping[str, tuple[str, ...] | np.ndarray],
     coefficients: Mapping[str, np.ndarray],
-    coupler_frequency_values: np.ndarray | None = None,
 ) -> dict[str, np.ndarray]:
     """Evaluate fitted effective-model parameters at flux points."""
     flux_arr = np.asarray(flux_values, dtype=float).ravel()
@@ -100,14 +101,7 @@ def evaluate_effective_parameter_fit(
             beta = np.asarray(coefficients[name], dtype=float).ravel()
             out[name] = np.asarray(design_w @ beta, dtype=float)
 
-        if coupler_frequency_values is None:
-            raise ValueError(
-                "coupler_frequency_values are required to evaluate fit_basis "
-                "'magnitude-exchange-like'"
-            )
-        wc = np.asarray(coupler_frequency_values, dtype=float).ravel()
-        if wc.shape != out["w0"].shape:
-            raise ValueError("coupler_frequency_values must match the evaluated flux grid shape")
+        wc = np.full_like(out["w0"], float(system_params.c.E_osc), dtype=float)
 
         delta1 = out["w0"] - wc
         delta2 = out["w1"] - wc
