@@ -45,6 +45,7 @@ class StaticBenchmarkResult:
     idle_mask: np.ndarray
     near_mask: np.ndarray
     summary: dict[str, float]
+    metric_notes: dict[str, str]
 
 
 
@@ -69,12 +70,33 @@ def _per_flux_rmse(pred: np.ndarray, ref: np.ndarray) -> np.ndarray:
     return np.sqrt(np.mean(diff * diff, axis=1))
 
 
+def _aggregate_rmse(
+    pred: np.ndarray,
+    ref: np.ndarray,
+    *,
+    n_excited: int | None = None,
+) -> float:
+    pred_arr = np.asarray(pred, dtype=float)
+    ref_arr = np.asarray(ref, dtype=float)
+    max_excited = min(int(pred_arr.shape[1]), int(ref_arr.shape[1])) - 1
+    n_use = max_excited if n_excited is None else min(max(0, int(n_excited)), max_excited)
+    if n_use <= 0:
+        return 0.0
+    diff = pred_arr[:, 1 : 1 + n_use] - ref_arr[:, 1 : 1 + n_use]
+    return float(np.sqrt(np.mean(diff * diff)))
+
+
 
 def _masked_rmse_max(err: np.ndarray, mask: np.ndarray) -> tuple[float, float]:
     if not np.any(mask):
         return float("nan"), float("nan")
     values = np.asarray(err, dtype=float)[mask]
     return float(np.sqrt(np.mean(values * values))), float(np.max(np.abs(values)))
+
+
+def _mean_abs_error(candidate: np.ndarray, reference: np.ndarray) -> float:
+    diff = np.asarray(candidate, dtype=float) - np.asarray(reference, dtype=float)
+    return float(np.mean(np.abs(diff)))
 
 
 
@@ -239,8 +261,30 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     eff_near = _masked_rmse_max(err_eff, near_mask)
     duf_idle = _masked_rmse_max(err_duf, idle_mask)
     duf_near = _masked_rmse_max(err_duf, near_mask)
+    eff_comp_rmse = _aggregate_rmse(E_eff, E_cir)
+    duf_comp_rmse = _aggregate_rmse(E_duf, E_cir)
+    duf_trunc_levels = min(
+        int(config.duffing_truncation_benchmark.lowest_excited_levels_to_plot),
+        int(E_duf_full.shape[1]) - 1,
+        int(E_cir_full.shape[1]) - 1,
+    )
+    duf_trunc_style_rmse = _aggregate_rmse(E_duf_full, E_cir_full, n_excited=duf_trunc_levels)
+    eff_j_abs = _mean_abs_error(effective_parameters["J"], params_circuit["J"])
+    eff_zeta_abs = _mean_abs_error(effective_parameters["zeta"], params_circuit["zeta"])
+    duf_j_abs = _mean_abs_error(params_duffing["J"], params_circuit["J"])
+    duf_zeta_abs = _mean_abs_error(params_duffing["zeta"], params_circuit["zeta"])
 
     summary = {
+        "flux_count": float(flux_values.size),
+        "computational_excited_levels_compared": float(n_track - 1),
+        "effective_computational_energy_rmse": eff_comp_rmse,
+        "duffing_computational_energy_rmse": duf_comp_rmse,
+        "effective_mean_abs_dJ": eff_j_abs,
+        "effective_mean_abs_dzeta": eff_zeta_abs,
+        "duffing_mean_abs_dJ": duf_j_abs,
+        "duffing_mean_abs_dzeta": duf_zeta_abs,
+        "duffing_truncation_style_excited_levels_compared": float(duf_trunc_levels),
+        "duffing_truncation_style_energy_rmse": duf_trunc_style_rmse,
         "effective_idle_rmse": eff_idle[0],
         "effective_idle_max_abs": eff_idle[1],
         "effective_near_rmse": eff_near[0],
@@ -249,6 +293,47 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         "duffing_idle_max_abs": duf_idle[1],
         "duffing_near_rmse": duf_near[0],
         "duffing_near_max_abs": duf_near[1],
+    }
+    metric_notes = {
+        "effective_error_rmse": (
+            "Per-flux RMSE plotted in the static benchmark. At each flux point this is the RMS "
+            "energy error over the 3 excited levels of the dressed 4x4 computational subspace, "
+            "relative to the circuit model."
+        ),
+        "duffing_error_rmse": (
+            "Per-flux RMSE plotted in the static benchmark. At each flux point this is the RMS "
+            "energy error over the 3 excited levels of the dressed 4x4 computational subspace, "
+            "relative to the circuit model."
+        ),
+        "effective_computational_energy_rmse": (
+            "Flux-aggregated version of effective_error_rmse: one RMS value pooled over all static "
+            "flux points and the 3 excited computational-subspace levels."
+        ),
+        "duffing_computational_energy_rmse": (
+            "Flux-aggregated version of duffing_error_rmse: one RMS value pooled over all static "
+            "flux points and the 3 excited computational-subspace levels."
+        ),
+        "duffing_truncation_style_energy_rmse": (
+            "Closest static-benchmark analog to the Duffing truncation benchmark energy_rmse. "
+            "It uses the full Duffing and circuit spectra on the static benchmark flux grid and "
+            "pools over the lowest excited levels requested by duffing_truncation_benchmark."
+        ),
+        "effective_mean_abs_dJ": (
+            "Mean absolute exchange error on the static benchmark flux grid. Same quantity type "
+            "as truncation |dJ|, but evaluated on the static benchmark grid."
+        ),
+        "effective_mean_abs_dzeta": (
+            "Mean absolute residual-ZZ error on the static benchmark flux grid. Same quantity type "
+            "as truncation |dzeta|, but evaluated on the static benchmark grid."
+        ),
+        "duffing_mean_abs_dJ": (
+            "Mean absolute exchange error on the static benchmark flux grid. Same quantity type "
+            "as truncation |dJ|, but evaluated on the static benchmark grid."
+        ),
+        "duffing_mean_abs_dzeta": (
+            "Mean absolute residual-ZZ error on the static benchmark flux grid. Same quantity type "
+            "as truncation |dzeta|, but evaluated on the static benchmark grid."
+        ),
     }
 
     return StaticBenchmarkResult(
@@ -276,4 +361,5 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         idle_mask=np.asarray(idle_mask, dtype=bool),
         near_mask=np.asarray(near_mask, dtype=bool),
         summary=summary,
+        metric_notes=metric_notes,
     )

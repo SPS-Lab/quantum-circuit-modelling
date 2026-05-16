@@ -98,11 +98,17 @@ def main() -> None:
     results_path = run_paths.results_path
 
     if args.plot_only:
-        result = load_result_hdf5(
-            results_path,
-            StaticBenchmarkResult,
-            expected_benchmark_name="static",
-        )
+        try:
+            result = load_result_hdf5(
+                results_path,
+                StaticBenchmarkResult,
+                expected_benchmark_name="static",
+            )
+        except ValueError as exc:
+            raise ValueError(
+                f"{results_path} does not match the current static benchmark schema. "
+                "Re-run without --plot-only to regenerate the results file."
+            ) from exc
     else:
         result = run_static_benchmark(config)
         save_result_hdf5(result, results_path, benchmark_name="static")
@@ -131,6 +137,20 @@ def main() -> None:
     reporter.line("Static benchmark summary (GHz):")
     for key, value in result.summary.items():
         reporter.line(f"  {key}: {value:.6e}")
+    reporter.line("Static benchmark metric notes:")
+    for key in (
+        "effective_error_rmse",
+        "duffing_error_rmse",
+        "effective_computational_energy_rmse",
+        "duffing_computational_energy_rmse",
+        "duffing_truncation_style_energy_rmse",
+        "effective_mean_abs_dJ",
+        "effective_mean_abs_dzeta",
+        "duffing_mean_abs_dJ",
+        "duffing_mean_abs_dzeta",
+    ):
+        if key in result.metric_notes:
+            reporter.line(f"  {key}: {result.metric_notes[key]}")
     reporter.line("Effective-model fit coefficients (GHz):")
     for name in ("w0", "w1", "J", "zeta"):
         reporter.line(

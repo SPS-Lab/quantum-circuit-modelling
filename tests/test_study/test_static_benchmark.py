@@ -238,6 +238,15 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.circuit_relative_energies.shape == (9, 4)
     assert np.isfinite(float(np.mean(out.effective_error_rmse)))
     assert np.isfinite(float(np.mean(out.duffing_error_rmse)))
+    assert float(out.summary["computational_excited_levels_compared"]) == 3.0
+    assert np.isfinite(float(out.summary["effective_computational_energy_rmse"]))
+    assert np.isfinite(float(out.summary["duffing_computational_energy_rmse"]))
+    assert np.isfinite(float(out.summary["duffing_truncation_style_energy_rmse"]))
+    assert np.isfinite(float(out.summary["effective_mean_abs_dJ"]))
+    assert np.isfinite(float(out.summary["effective_mean_abs_dzeta"]))
+    assert np.isfinite(float(out.summary["duffing_mean_abs_dJ"]))
+    assert np.isfinite(float(out.summary["duffing_mean_abs_dzeta"]))
+    assert "duffing_truncation_style_energy_rmse" in out.metric_notes
     assert set(out.effective_fit_coefficient_names) == {"w0", "w1", "J", "zeta"}
     assert set(out.effective_fit_coefficients) == {"w0", "w1", "J", "zeta"}
     assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
@@ -270,6 +279,8 @@ def test_static_benchmark_fit_coefficients_roundtrip_through_hdf5(tmp_path: Path
         assert np.array_equal(loaded.duffing_symbolic_coefficient_names[key], out.duffing_symbolic_coefficient_names[key])
     for key in loaded.duffing_symbolic_coefficients:
         assert np.allclose(loaded.duffing_symbolic_coefficients[key], out.duffing_symbolic_coefficients[key])
+    assert loaded.metric_notes == out.metric_notes
+    assert loaded.summary.keys() == out.summary.keys()
 
 
 def test_effective_fit_reconstructs_static_grid(tmp_path: Path) -> None:
