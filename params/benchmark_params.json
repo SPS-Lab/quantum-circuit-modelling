@@ -79,12 +79,12 @@
         },
         "circuit_model": {
           "transmon_charge_basis": {
-            "q0_ncut": 45,
-            "q1_ncut": 45
+            "q0_ncut": 11,
+            "q1_ncut": 11
           },
           "hilbert_truncation": {
-            "q0_truncated_dim": 10,
-            "q1_truncated_dim": 10,
+            "q0_truncated_dim": 9,
+            "q1_truncated_dim": 9,
             "c_truncated_dim": 6
           },
           "interaction_validity_check": true
