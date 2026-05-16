@@ -23,7 +23,11 @@ from comparison.rx import run_rx_benchmark
 from comparison.static import StaticBenchmarkResult, run_static_benchmark
 import comparison.static as static_module
 import models.duffing as duffing_module
-from models import build_circuit_model_stack, build_duffing_model_stack
+from models import (
+    build_circuit_model_stack,
+    build_duffing_model_stack,
+    evaluate_symbolic_duffing_mode_parameters,
+)
 from models.dressed import extract_effective_model_parameters_from_4x4_stack
 from plotting.cz import plot_cz_benchmark
 from plotting.leakage_flow import plot_leakage_flow_benchmark
@@ -623,9 +627,12 @@ def test_symbolic_duffing_evaluator_returns_symbolic_parameters_only(tmp_path: P
     )
     assert set(symbolic_parameters) == {"w0", "w1", "alpha0", "alpha1", "g0c", "g1c"}
 
-    full_parameters = duffing_module._assemble_fixed_bus_duffing_mode_parameters(
-        symbolic_parameters,
+    full_parameters = evaluate_symbolic_duffing_mode_parameters(
+        out.flux_values,
         system_params=cfg.system,
+        sweep_target=cfg.static_benchmark.flux_control.sweep_target,
+        coefficient_names=out.duffing_symbolic_coefficient_names,
+        coefficients=out.duffing_symbolic_coefficients,
     )
     assert set(full_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
     assert np.allclose(full_parameters["wc"], cfg.system.c.E_osc)

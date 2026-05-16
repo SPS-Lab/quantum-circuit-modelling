@@ -14,6 +14,7 @@ from models import (
     build_effective_hamiltonian_stack,
     derive_effective_model_from_dressed_stack,
     extract_effective_model_parameters_from_4x4_stack,
+    evaluate_symbolic_duffing_mode_parameters,
     fit_duffing_mode_parameters_to_reference,
     fit_symbolic_duffing_mode_parameters_to_reference,
     resolve_static_sweep_values,
@@ -171,9 +172,15 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
                 regularization_weight=float(symbolic_fit_cfg.regularization_weight),
                 progress_label="static benchmark: symbolic Duffing fit to circuit reference",
             )
-        duffing_mode_parameters = duffing_symbolic_fit.fitted_parameters
         duffing_symbolic_coefficient_names = duffing_symbolic_fit.coefficient_names
         duffing_symbolic_coefficients = duffing_symbolic_fit.coefficients
+        duffing_mode_parameters = evaluate_symbolic_duffing_mode_parameters(
+            flux_values,
+            system_params=config.system,
+            sweep_target=config.static_benchmark.flux_control.sweep_target,
+            coefficient_names=duffing_symbolic_coefficient_names,
+            coefficients=duffing_symbolic_coefficients,
+        )
         with progress_heartbeat("static benchmark: build_duffing_model_stack_from_parameters"):
             duffing = build_duffing_model_stack_from_parameters(
                 duffing_mode_parameters,

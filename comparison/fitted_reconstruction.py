@@ -6,9 +6,9 @@ from typing import Any
 
 import numpy as np
 
-from models import evaluate_effective_parameter_fit, evaluate_symbolic_duffing_parameter_fit
-from models.duffing import (
-    _assemble_fixed_bus_duffing_mode_parameters,
+from models import (
+    evaluate_effective_parameter_fit,
+    evaluate_symbolic_duffing_mode_parameters,
 )
 from study_config import StudyConfig
 from models.sweep import resolve_static_sweep_values
@@ -66,15 +66,12 @@ def duffing_mode_parameters_for_flux(
         symbolic_coefficients = getattr(static_result, "duffing_symbolic_coefficients", {})
         required = ("w0", "w1", "alpha0", "alpha1", "g0c", "g1c")
         if all(name in symbolic_coeff_names and name in symbolic_coefficients for name in required):
-            symbolic_parameters = evaluate_symbolic_duffing_parameter_fit(
+            return evaluate_symbolic_duffing_mode_parameters(
                 flux_arr,
+                system_params=config.system,
                 sweep_target=sweep_target,
                 coefficient_names=symbolic_coeff_names,
                 coefficients=symbolic_coefficients,
-            )
-            return _assemble_fixed_bus_duffing_mode_parameters(
-                symbolic_parameters,
-                system_params=config.system,
             )
     return _interpolate_parameters(
         static_result,

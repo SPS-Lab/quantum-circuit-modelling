@@ -39,7 +39,6 @@ class DuffingModelBuildResult:
 class DuffingSymbolicParameterFitResult:
     coefficient_names: dict[str, np.ndarray]
     coefficients: dict[str, np.ndarray]
-    fitted_parameters: dict[str, np.ndarray]
 
 
 def is_reference_calibrated_duffing_mode(calibration_mode: str) -> bool:
@@ -478,6 +477,27 @@ def evaluate_symbolic_duffing_parameter_fit(
     )
 
 
+def evaluate_symbolic_duffing_mode_parameters(
+    flux_values: np.ndarray,
+    *,
+    system_params: SystemParams,
+    sweep_target: str,
+    coefficient_names: Mapping[str, np.ndarray],
+    coefficients: Mapping[str, np.ndarray],
+) -> dict[str, np.ndarray]:
+    """Evaluate symbolic Duffing coefficients into full fixed-bus mode parameters."""
+    symbolic_parameters = evaluate_symbolic_duffing_parameter_fit(
+        flux_values,
+        sweep_target=sweep_target,
+        coefficient_names=coefficient_names,
+        coefficients=coefficients,
+    )
+    return _assemble_fixed_bus_duffing_mode_parameters(
+        symbolic_parameters,
+        system_params=system_params,
+    )
+
+
 def _assemble_fixed_bus_duffing_mode_parameters(
     symbolic_parameters: Mapping[str, np.ndarray],
     *,
@@ -815,15 +835,6 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         coefficient_sizes=coefficient_sizes,
         parameter_order=parameter_order,
     )
-    symbolic_fitted = _evaluate_parameter_coefficients_from_designs(
-        coefficient_map=coeff_best,
-        design_map=design_map,
-        parameter_order=parameter_order,
-    )
-    fitted = _assemble_fixed_bus_duffing_mode_parameters(
-        symbolic_fitted,
-        system_params=system_params,
-    )
     coefficients = {
         name: np.asarray(values, dtype=float)
         for name, values in coeff_best.items()
@@ -841,7 +852,6 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
             for name in parameter_order
         },
         coefficients=coefficients,
-        fitted_parameters=fitted,
     )
 
 

@@ -14,6 +14,7 @@ from models import (
     build_dressed_effective_computational_stack,
     build_duffing_model_stack,
     build_duffing_model_stack_from_parameters,
+    evaluate_symbolic_duffing_mode_parameters,
     extract_effective_model_parameters_from_4x4_stack,
     fit_duffing_mode_parameters_to_reference,
     fit_symbolic_duffing_mode_parameters_to_reference,
@@ -350,7 +351,7 @@ def _extract_duffing_metrics(
                 raise ValueError(
                     "symbolic-fitted-static requires static_benchmark.duffing_model.symbolic_fit settings"
                 )
-            mode_parameters = fit_symbolic_duffing_mode_parameters_to_reference(
+            symbolic_fit = fit_symbolic_duffing_mode_parameters_to_reference(
                 reference_flux_values,
                 reference_dressed_stack=reference_dressed_stack,
                 system_params=config.system,
@@ -362,7 +363,14 @@ def _extract_duffing_metrics(
                 pointwise_max_nfev=int(symbolic_fit_cfg.pointwise_max_nfev),
                 refinement_max_nfev=int(symbolic_fit_cfg.refinement_max_nfev),
                 regularization_weight=float(symbolic_fit_cfg.regularization_weight),
-            ).fitted_parameters
+            )
+            mode_parameters = evaluate_symbolic_duffing_mode_parameters(
+                reference_flux_values,
+                system_params=config.system,
+                sweep_target=config.static_benchmark.flux_control.sweep_target,
+                coefficient_names=symbolic_fit.coefficient_names,
+                coefficients=symbolic_fit.coefficients,
+            )
         point_parameters = {
             key: np.array(
                 [
@@ -466,7 +474,7 @@ def _extract_duffing_metrics_over_fluxes(
                     "symbolic-fitted-static requires static_benchmark.duffing_model.symbolic_fit settings"
                 )
             if progress_label is None:
-                precomputed_mode_parameters = fit_symbolic_duffing_mode_parameters_to_reference(
+                symbolic_fit = fit_symbolic_duffing_mode_parameters_to_reference(
                     reference_flux_values,
                     reference_dressed_stack=reference_dressed_stack,
                     system_params=config.system,
@@ -478,9 +486,16 @@ def _extract_duffing_metrics_over_fluxes(
                     pointwise_max_nfev=int(symbolic_fit_cfg.pointwise_max_nfev),
                     refinement_max_nfev=int(symbolic_fit_cfg.refinement_max_nfev),
                     regularization_weight=float(symbolic_fit_cfg.regularization_weight),
-                ).fitted_parameters
+                )
+                precomputed_mode_parameters = evaluate_symbolic_duffing_mode_parameters(
+                    reference_flux_values,
+                    system_params=config.system,
+                    sweep_target=config.static_benchmark.flux_control.sweep_target,
+                    coefficient_names=symbolic_fit.coefficient_names,
+                    coefficients=symbolic_fit.coefficients,
+                )
             else:
-                precomputed_mode_parameters = _timed_point_step(
+                symbolic_fit = _timed_point_step(
                     progress_label,
                     "prepare symbolic-fitted-static Duffing parameters from circuit reference",
                     lambda: fit_symbolic_duffing_mode_parameters_to_reference(
@@ -495,7 +510,14 @@ def _extract_duffing_metrics_over_fluxes(
                         pointwise_max_nfev=int(symbolic_fit_cfg.pointwise_max_nfev),
                         refinement_max_nfev=int(symbolic_fit_cfg.refinement_max_nfev),
                         regularization_weight=float(symbolic_fit_cfg.regularization_weight),
-                    ).fitted_parameters,
+                    ),
+                )
+                precomputed_mode_parameters = evaluate_symbolic_duffing_mode_parameters(
+                    reference_flux_values,
+                    system_params=config.system,
+                    sweep_target=config.static_benchmark.flux_control.sweep_target,
+                    coefficient_names=symbolic_fit.coefficient_names,
+                    coefficients=symbolic_fit.coefficients,
                 )
     for i, flux in enumerate(np.asarray(flux_values, dtype=float)):
         cand_j, cand_zeta, cand_rel_e, trunc_dim_eff = _extract_duffing_metrics(
