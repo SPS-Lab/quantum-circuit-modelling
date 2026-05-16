@@ -21,6 +21,8 @@ from comparison.cz import run_cz_benchmark
 from comparison.leakage_flow import run_leakage_flow_benchmark
 from comparison.rx import run_rx_benchmark
 from comparison.static import StaticBenchmarkResult, run_static_benchmark
+import comparison.static as static_module
+from models import build_circuit_model_stack, build_duffing_model_stack
 from models.dressed import extract_model1_parameters_from_4x4_stack
 from plotting.cz import plot_cz_benchmark
 from plotting.leakage_flow import plot_leakage_flow_benchmark
@@ -282,6 +284,50 @@ def test_static_benchmark_fit_coefficients_roundtrip_through_hdf5(tmp_path: Path
         assert np.allclose(loaded.duffing_symbolic_coefficients[key], out.duffing_symbolic_coefficients[key])
     assert loaded.metric_notes == out.metric_notes
     assert loaded.summary.keys() == out.summary.keys()
+
+
+def test_static_duffing_truncation_style_rmse_uses_sorted_full_spectra(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path, duffing_calibration_mode="analytic-per-flux")
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+
+    out = run_static_benchmark(cfg)
+    circuit = build_circuit_model_stack(
+        flux_values=out.flux_values,
+        system_params=cfg.system,
+        coupler_frequency=cfg.static_benchmark.coupler_frequency,
+        circuit_config=cfg.static_benchmark.circuit_model,
+        sweep_target=cfg.static_benchmark.flux_control.sweep_target,
+    )
+    duffing = build_duffing_model_stack(
+        flux_values=out.flux_values,
+        system_params=cfg.system,
+        coupler_frequency=cfg.static_benchmark.coupler_frequency,
+        duffing_config=cfg.static_benchmark.duffing_model,
+        sweep_target=cfg.static_benchmark.flux_control.sweep_target,
+    )
+    n_full_track = min(10, duffing.hamiltonian_stack.shape[1], circuit.hamiltonian_stack.shape[1])
+    circuit_sorted = static_module._sorted_relative_energies(
+        circuit.hamiltonian_stack,
+        n_track=n_full_track,
+    )
+    duffing_sorted = static_module._sorted_relative_energies(
+        duffing.hamiltonian_stack,
+        n_track=n_full_track,
+    )
+    n_excited = min(
+        int(cfg.duffing_truncation_benchmark.lowest_excited_levels_to_plot),
+        int(circuit_sorted.shape[1]) - 1,
+        int(duffing_sorted.shape[1]) - 1,
+    )
+    expected_rmse = static_module._aggregate_rmse(
+        duffing_sorted,
+        circuit_sorted,
+        n_excited=n_excited,
+    )
+
+    assert out.summary["duffing_truncation_style_excited_levels_compared"] == float(n_excited)
+    assert out.summary["duffing_truncation_style_energy_rmse"] == pytest.approx(expected_rmse)
 
 
 def test_effective_fit_reconstructs_static_grid(tmp_path: Path) -> None:

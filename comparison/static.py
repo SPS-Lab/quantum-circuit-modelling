@@ -70,6 +70,12 @@ def _per_flux_rmse(pred: np.ndarray, ref: np.ndarray) -> np.ndarray:
     return np.sqrt(np.mean(diff * diff, axis=1))
 
 
+def _sorted_relative_energies(H_stack: np.ndarray, *, n_track: int) -> np.ndarray:
+    evals = np.linalg.eigvalsh(np.asarray(H_stack, dtype=complex))
+    rel_e = np.asarray(evals - evals[:, :1], dtype=float)
+    return np.asarray(rel_e[:, : int(n_track)], dtype=float)
+
+
 def _aggregate_rmse(
     pred: np.ndarray,
     ref: np.ndarray,
@@ -240,6 +246,8 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     n_full_track = int(min(10, duffing.hamiltonian_stack.shape[1], circuit.hamiltonian_stack.shape[1]))
     E_duf_full = _relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
     E_cir_full = _relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
+    E_duf_full_sorted = _sorted_relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
+    E_cir_full_sorted = _sorted_relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
 
     err_eff = _per_flux_rmse(E_eff, E_cir)
     err_duf = _per_flux_rmse(E_duf, E_cir)
@@ -265,10 +273,14 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     duf_comp_rmse = _aggregate_rmse(E_duf, E_cir)
     duf_trunc_levels = min(
         int(config.duffing_truncation_benchmark.lowest_excited_levels_to_plot),
-        int(E_duf_full.shape[1]) - 1,
-        int(E_cir_full.shape[1]) - 1,
+        int(E_duf_full_sorted.shape[1]) - 1,
+        int(E_cir_full_sorted.shape[1]) - 1,
     )
-    duf_trunc_style_rmse = _aggregate_rmse(E_duf_full, E_cir_full, n_excited=duf_trunc_levels)
+    duf_trunc_style_rmse = _aggregate_rmse(
+        E_duf_full_sorted,
+        E_cir_full_sorted,
+        n_excited=duf_trunc_levels,
+    )
     eff_j_abs = _mean_abs_error(effective_parameters["J"], params_circuit["J"])
     eff_zeta_abs = _mean_abs_error(effective_parameters["zeta"], params_circuit["zeta"])
     duf_j_abs = _mean_abs_error(params_duffing["J"], params_circuit["J"])
@@ -315,8 +327,9 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         ),
         "duffing_truncation_style_energy_rmse": (
             "Closest static-benchmark analog to the Duffing truncation benchmark energy_rmse. "
-            "It uses the full Duffing and circuit spectra on the static benchmark flux grid and "
-            "pools over the lowest excited levels requested by duffing_truncation_benchmark."
+            "It uses sorted eigenvalues from the full Duffing and circuit spectra on the static "
+            "benchmark flux grid, matching the truncation benchmark definition, and pools over "
+            "the lowest excited levels requested by duffing_truncation_benchmark."
         ),
         "effective_mean_abs_dJ": (
             "Mean absolute exchange error on the static benchmark flux grid. Same quantity type "
