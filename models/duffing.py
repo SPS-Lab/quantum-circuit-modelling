@@ -49,8 +49,10 @@ def is_reference_calibrated_duffing_mode(calibration_mode: str) -> bool:
 
 def _transmon_w01_alpha(
     *,
-    EJ: float,
+    EJmax: float,
     EC: float,
+    d: float,
+    flux: float,
     ng: float,
     ncut: int,
     truncated_dim: int,
@@ -60,9 +62,11 @@ def _transmon_w01_alpha(
     except Exception as exc:  # pragma: no cover - import guard only
         raise ImportError("scqubits import failed while calibrating Duffing parameters") from exc
 
-    transmon = scq.Transmon(
-        EJ=float(EJ),
+    transmon = scq.TunableTransmon(
+        EJmax=float(EJmax),
         EC=float(EC),
+        d=float(d),
+        flux=float(flux),
         ng=float(ng),
         ncut=int(ncut),
         truncated_dim=int(truncated_dim),
@@ -117,23 +121,6 @@ def _build_mode_parameter_arrays(
     trunc_dim = int(duffing_config.transmon_spectral_extraction.truncated_dim)
     calibration_mode = str(duffing_config.calibration_mode).strip().lower()
 
-    EJ0_arr = np.asarray(
-        flux_dependent_EJ(
-            EJ_max=system_params.q0.EJmax,
-            flux_bias=q0_flux_arr,
-            d=system_params.q0.d
-        ),
-        dtype=float,
-    ).ravel()
-    EJ1_arr = np.asarray(
-        flux_dependent_EJ(
-            EJ_max=system_params.q1.EJmax,
-            flux_bias=q1_flux_arr,
-            d=system_params.q1.d
-        ),
-        dtype=float,
-    ).ravel()
-
     if calibration_mode in {"per-flux", "fitted-static", "symbolic-fitted-static"}:
         w0_arr = np.empty_like(flux_arr, dtype=float)
         w1_arr = np.empty_like(flux_arr, dtype=float)
@@ -141,20 +128,40 @@ def _build_mode_parameter_arrays(
         alpha1_arr = np.empty_like(flux_arr, dtype=float)
         for k in range(flux_arr.shape[0]):
             w0_arr[k], alpha0_arr[k] = _transmon_w01_alpha(
-                EJ=float(EJ0_arr[k]),
+                EJmax=system_params.q0.EJmax,
                 EC=system_params.q0.EC,
+                d=system_params.q0.d,
+                flux=float(q0_flux_arr[k]),
                 ng=system_params.q0.ng,
                 ncut=ncut,
                 truncated_dim=trunc_dim,
             )
             w1_arr[k], alpha1_arr[k] = _transmon_w01_alpha(
-                EJ=float(EJ1_arr[k]),
+                EJmax=system_params.q1.EJmax,
                 EC=system_params.q1.EC,
+                d=system_params.q1.d,
+                flux=float(q1_flux_arr[k]),
                 ng=system_params.q1.ng,
                 ncut=ncut,
                 truncated_dim=trunc_dim,
             )
     elif calibration_mode == "analytic-per-flux":
+        EJ0_arr = np.asarray(
+            flux_dependent_EJ(
+                EJ_max=system_params.q0.EJmax,
+                flux_bias=q0_flux_arr,
+                d=system_params.q0.d,
+            ),
+            dtype=float,
+        ).ravel()
+        EJ1_arr = np.asarray(
+            flux_dependent_EJ(
+                EJ_max=system_params.q1.EJmax,
+                flux_bias=q1_flux_arr,
+                d=system_params.q1.d,
+            ),
+            dtype=float,
+        ).ravel()
         w0_arr, alpha0_arr = _transmon_analytic_w01_alpha(
             EJ=EJ0_arr,
             EC=system_params.q0.EC
@@ -164,26 +171,20 @@ def _build_mode_parameter_arrays(
             EC=system_params.q1.EC
         )
     elif calibration_mode == "fixed":
-        EJ0_ref = float(flux_dependent_EJ(
-            EJ_max=system_params.q0.EJmax,
-            flux_bias=system_params.q0.flux,
-            d=system_params.q0.d
-        ))
-        EJ1_ref = float(flux_dependent_EJ(
-            EJ_max=system_params.q1.EJmax,
-            flux_bias=system_params.q1.flux,
-            d=system_params.q1.d)
-        )
         w0_ref, alpha0_ref = _transmon_w01_alpha(
-            EJ=EJ0_ref,
+            EJmax=system_params.q0.EJmax,
             EC=system_params.q0.EC,
+            d=system_params.q0.d,
+            flux=system_params.q0.flux,
             ng=system_params.q0.ng,
             ncut=ncut,
             truncated_dim=trunc_dim,
         )
         w1_ref, alpha1_ref = _transmon_w01_alpha(
-            EJ=EJ1_ref,
+            EJmax=system_params.q1.EJmax,
             EC=system_params.q1.EC,
+            d=system_params.q1.d,
+            flux=system_params.q1.flux,
             ng=system_params.q1.ng,
             ncut=ncut,
             truncated_dim=trunc_dim,

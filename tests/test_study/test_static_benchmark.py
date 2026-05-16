@@ -584,6 +584,37 @@ def test_duffing_symbolic_fitted_static_reuses_initial_mode_parameter_arrays(
     assert call_count == 1
 
 
+def test_duffing_symbolic_fitted_static_does_not_use_manual_flux_to_ej_mapping(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(
+        tmp_path,
+        coupler_amplitude=0.0,
+        sweep_target="q0",
+        duffing_calibration_mode="symbolic-fitted-static",
+    )
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+
+    original = duffing_module.flux_dependent_EJ
+    call_count = 0
+
+    def counting_flux_dependent_EJ(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(
+        duffing_module,
+        "flux_dependent_EJ",
+        counting_flux_dependent_EJ,
+    )
+
+    run_static_benchmark(cfg)
+
+    assert call_count == 0
+
+
 def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
