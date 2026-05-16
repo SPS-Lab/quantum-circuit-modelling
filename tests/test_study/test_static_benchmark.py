@@ -79,7 +79,6 @@ def _write_small_system_params(tmp_path: Path) -> Path:
 def _write_small_study_params(
     tmp_path: Path,
     *,
-    coupler_amplitude: float = 0.0,
     sweep_target: str = "q0",
     duffing_calibration_mode: str = "analytic-per-flux",
 ) -> Path:
@@ -97,7 +96,6 @@ def _write_small_study_params(
     sb["circuit_model"]["hilbert_truncation"]["q0_truncated_dim"] = 4
     sb["circuit_model"]["hilbert_truncation"]["q1_truncated_dim"] = 4
     sb["circuit_model"]["hilbert_truncation"]["c_truncated_dim"] = 4
-    sb["coupler_frequency"]["amplitude"] = float(coupler_amplitude)
     sb["flux_control"]["sweep_target"] = str(sweep_target)
     sb["duffing_model"]["calibration_mode"] = str(duffing_calibration_mode)
     rb = payload["rx_benchmark"]
@@ -108,8 +106,7 @@ def _write_small_study_params(
     rb["dt_ns"] = 0.1
     rb["rise_time_ns"] = 1.0
 
-    suffix = str(coupler_amplitude).replace("-", "m").replace(".", "p")
-    dst = tmp_path / f"study_params_small_{sweep_target}_A{suffix}_{duffing_calibration_mode}.json"
+    dst = tmp_path / f"study_params_small_{sweep_target}_{duffing_calibration_mode}.json"
     dst.write_text(json.dumps(payload), encoding="utf-8")
     return dst
 
@@ -124,7 +121,7 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.static_benchmark.flux_sweep.num_points > 2
     assert cfg.static_benchmark.effective_model.derivation_source in {"duffing", "circuit"}
     assert cfg.static_benchmark.effective_model.fit_basis in {"single-harmonic", "magnitude-exchange-like"}
-    assert cfg.static_benchmark.flux_control.sweep_target in {"coupler", "q0", "q1"}
+    assert cfg.static_benchmark.flux_control.sweep_target in {"q0", "q1"}
     assert cfg.static_benchmark.duffing_model.calibration_mode in {
         "fixed",
         "analytic-per-flux",
@@ -296,14 +293,12 @@ def test_static_duffing_truncation_style_rmse_uses_sorted_full_spectra(tmp_path:
     circuit = build_circuit_model_stack(
         flux_values=out.flux_values,
         system_params=cfg.system,
-        coupler_frequency=cfg.static_benchmark.coupler_frequency,
         circuit_config=cfg.static_benchmark.circuit_model,
         sweep_target=cfg.static_benchmark.flux_control.sweep_target,
     )
     duffing = build_duffing_model_stack(
         flux_values=out.flux_values,
         system_params=cfg.system,
-        coupler_frequency=cfg.static_benchmark.coupler_frequency,
         duffing_config=cfg.static_benchmark.duffing_model,
         sweep_target=cfg.static_benchmark.flux_control.sweep_target,
     )
@@ -461,22 +456,24 @@ def test_truncation_static_companion_materializes_artifacts(tmp_path: Path) -> N
     assert loaded_paths == paths
 
 
-def test_static_benchmark_uses_coupler_amplitude_from_config(tmp_path: Path) -> None:
+def test_static_benchmark_uses_fixed_coupler_frequency_from_system_params(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
-    study_path_zero = _write_small_study_params(tmp_path, coupler_amplitude=0.0, sweep_target="coupler")
-    study_path_nonzero = _write_small_study_params(tmp_path, coupler_amplitude=0.8, sweep_target="coupler")
+    study_path = _write_small_study_params(tmp_path, sweep_target="q1")
 
-    out_zero = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path_zero))
-    out_nonzero = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path_nonzero))
+    baseline = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
 
-    # Nonzero coupler modulation must produce flux variation in the static spectrum.
-    assert float(np.ptp(out_zero.circuit_relative_energies[:, 1])) < 1e-10
-    assert float(np.ptp(out_nonzero.circuit_relative_energies[:, 1])) > 1e-6
+    payload = json.loads(system_path.read_text(encoding="utf-8"))
+    payload["parameters"]["c"]["E_osc"] = 7.321
+    system_path.write_text(json.dumps(payload), encoding="utf-8")
+    shifted = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
+
+    # Changing the fixed bus frequency in system params must change the benchmark outputs.
+    assert not np.allclose(baseline.circuit_parameters["w0"], shifted.circuit_parameters["w0"])
 
 
 def test_static_benchmark_q0_sweep_varies_spectrum_with_fixed_coupler(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
-    study_path = _write_small_study_params(tmp_path, coupler_amplitude=0.0, sweep_target="q0")
+    study_path = _write_small_study_params(tmp_path, sweep_target="q0")
 
     out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
 
@@ -487,7 +484,6 @@ def test_duffing_fixed_calibration_is_not_recomputed_per_flux(tmp_path: Path) ->
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(
         tmp_path,
-        coupler_amplitude=0.0,
         sweep_target="q0",
         duffing_calibration_mode="fixed",
     )
@@ -499,7 +495,6 @@ def test_duffing_per_flux_calibration_can_be_enabled_explicitly(tmp_path: Path) 
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(
         tmp_path,
-        coupler_amplitude=0.0,
         sweep_target="q0",
         duffing_calibration_mode="per-flux",
     )
@@ -511,7 +506,6 @@ def test_duffing_analytic_per_flux_calibration_varies_with_flux(tmp_path: Path) 
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(
         tmp_path,
-        coupler_amplitude=0.0,
         sweep_target="q0",
         duffing_calibration_mode="analytic-per-flux",
     )
@@ -523,7 +517,6 @@ def test_duffing_fitted_static_calibration_runs_and_exposes_mode_parameters(tmp_
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(
         tmp_path,
-        coupler_amplitude=0.0,
         sweep_target="q0",
         duffing_calibration_mode="fitted-static",
     )
@@ -539,7 +532,6 @@ def test_duffing_symbolic_fitted_static_runs_and_exposes_symbolic_coefficients(t
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(
         tmp_path,
-        coupler_amplitude=0.0,
         sweep_target="q0",
         duffing_calibration_mode="symbolic-fitted-static",
     )
@@ -559,7 +551,6 @@ def test_duffing_symbolic_fitted_static_reuses_initial_mode_parameter_arrays(
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(
         tmp_path,
-        coupler_amplitude=0.0,
         sweep_target="q0",
         duffing_calibration_mode="symbolic-fitted-static",
     )
@@ -590,7 +581,6 @@ def test_duffing_symbolic_fitted_static_does_not_use_manual_flux_to_ej_mapping(
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(
         tmp_path,
-        coupler_amplitude=0.0,
         sweep_target="q0",
         duffing_calibration_mode="symbolic-fitted-static",
     )

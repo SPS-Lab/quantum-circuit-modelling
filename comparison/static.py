@@ -113,7 +113,6 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         circuit = build_circuit_model_stack(
             flux_values=flux_values,
             system_params=config.system,
-            coupler_frequency=config.static_benchmark.coupler_frequency,
             circuit_config=config.static_benchmark.circuit_model,
             sweep_target=config.static_benchmark.flux_control.sweep_target,
         )
@@ -139,7 +138,6 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
                 flux_values=flux_values,
                 reference_dressed_stack=H_circuit_eff,
                 system_params=config.system,
-                coupler_frequency=config.static_benchmark.coupler_frequency,
                 duffing_config=config.static_benchmark.duffing_model,
                 sweep_target=config.static_benchmark.flux_control.sweep_target,
                 selection_mode=dressed_mode,
@@ -163,7 +161,6 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
                 flux_values=flux_values,
                 reference_dressed_stack=H_circuit_eff,
                 system_params=config.system,
-                coupler_frequency=config.static_benchmark.coupler_frequency,
                 duffing_config=config.static_benchmark.duffing_model,
                 sweep_target=config.static_benchmark.flux_control.sweep_target,
                 selection_mode=dressed_mode,
@@ -188,7 +185,6 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
             duffing = build_duffing_model_stack(
                 flux_values=flux_values,
                 system_params=config.system,
-                coupler_frequency=config.static_benchmark.coupler_frequency,
                 duffing_config=config.static_benchmark.duffing_model,
                 sweep_target=config.static_benchmark.flux_control.sweep_target,
             )
@@ -214,7 +210,6 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     _, _, wc = resolve_static_sweep_values(
         flux_values,
         system_params=config.system,
-        coupler_frequency_config=config.static_benchmark.coupler_frequency,
         sweep_target=config.static_benchmark.flux_control.sweep_target,
     )
 

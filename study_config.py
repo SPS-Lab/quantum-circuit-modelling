@@ -17,7 +17,7 @@ import numpy as np
 SelectionMode = Literal["continuous", "bare"]
 DerivationSource = Literal["duffing", "circuit"]
 FitBasis = Literal["single-harmonic", "magnitude-exchange-like"]
-SweepTarget = Literal["coupler", "q0", "q1"]
+SweepTarget = Literal["q0", "q1"]
 DuffingCalibrationMode = Literal[
     "fixed",
     "analytic-per-flux",
@@ -69,12 +69,6 @@ class FluxSweepConfig:
 @dataclass(frozen=True)
 class FluxControlConfig:
     sweep_target: SweepTarget
-
-
-@dataclass(frozen=True)
-class CouplerFrequencyConfig:
-    wc0: float
-    amplitude: float
 
 
 @dataclass(frozen=True)
@@ -159,7 +153,6 @@ class RxOutputConfig:
 class StaticBenchmarkConfig:
     flux_sweep: FluxSweepConfig
     flux_control: FluxControlConfig
-    coupler_frequency: CouplerFrequencyConfig
     dressed_subspace: DressedSubspaceConfig
     duffing_model: DuffingModelConfig
     circuit_model: CircuitModelConfig
@@ -450,7 +443,6 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
 
     flux = _require_dict(sb, "flux_sweep", "study.static_benchmark")
     flux_control = _require_dict(sb, "flux_control", "study.static_benchmark")
-    coupler = _require_dict(sb, "coupler_frequency", "study.static_benchmark")
     dressed = _require_dict(sb, "dressed_subspace", "study.static_benchmark")
     duffing = _require_dict(sb, "duffing_model", "study.static_benchmark")
     d_spec = _require_dict(duffing, "transmon_spectral_extraction", "study.static_benchmark.duffing_model")
@@ -493,8 +485,8 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
         )
 
     sweep_target_str = _require_str(flux_control, "sweep_target", "study.static_benchmark.flux_control")
-    if sweep_target_str not in ("coupler", "q0", "q1"):
-        raise ValueError("study.static_benchmark.flux_control.sweep_target must be 'coupler', 'q0', or 'q1'")
+    if sweep_target_str not in ("q0", "q1"):
+        raise ValueError("study.static_benchmark.flux_control.sweep_target must be 'q0' or 'q1'")
     sweep_target: SweepTarget = sweep_target_str
 
     q0_trunc = _require_int(c_hilbert, "q0_truncated_dim", "study.static_benchmark.circuit_model.hilbert_truncation")
@@ -570,10 +562,6 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
         ),
         flux_control=FluxControlConfig(
             sweep_target=sweep_target,
-        ),
-        coupler_frequency=CouplerFrequencyConfig(
-            wc0=_require_float(coupler, "wc0", "study.static_benchmark.coupler_frequency"),
-            amplitude=_require_float(coupler, "amplitude", "study.static_benchmark.coupler_frequency"),
         ),
         dressed_subspace=DressedSubspaceConfig(
             n_candidate_states=_require_int(dressed, "n_candidate_states", "study.static_benchmark.dressed_subspace"),

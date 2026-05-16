@@ -355,11 +355,6 @@ def _pulse_qubit_flux_arrays(
         return np.asarray(flux, dtype=float), np.full(flux.shape, float(q1_idle_flux), dtype=float)
     if sweep_target == "q1":
         return np.full(flux.shape, float(q0_idle_flux), dtype=float), np.asarray(flux, dtype=float)
-    if sweep_target == "coupler":
-        return (
-            np.full(flux.shape, float(q0_idle_flux), dtype=float),
-            np.full(flux.shape, float(q1_idle_flux), dtype=float),
-        )
     raise ValueError(f"Unsupported sweep_target {sweep_target!r}")
 
 
@@ -465,7 +460,6 @@ def run_leakage_flow_benchmark(
         duffing_stack = build_duffing_model_stack(
             flux_values=pulse_flux,
             system_params=config.system,
-            coupler_frequency=config.static_benchmark.coupler_frequency,
             duffing_config=config.static_benchmark.duffing_model,
             sweep_target=sweep_target,
         ).hamiltonian_stack
@@ -473,7 +467,6 @@ def run_leakage_flow_benchmark(
     circuit_stack = build_circuit_model_stack(
         flux_values=pulse_flux,
         system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
         circuit_config=config.static_benchmark.circuit_model,
         sweep_target=sweep_target,
     ).hamiltonian_stack

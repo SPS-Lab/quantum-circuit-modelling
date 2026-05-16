@@ -191,7 +191,6 @@ def _extract_circuit_metrics(
     H_cir = build_circuit_model_stack(
         flux_values=np.array([float(flux)], dtype=float),
         system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
         circuit_config=circuit_cfg,
         sweep_target=config.static_benchmark.flux_control.sweep_target,
     ).hamiltonian_stack
@@ -231,7 +230,6 @@ def _extract_circuit_metrics_over_fluxes(
     H_cir = build_circuit_model_stack(
         flux_values=flux_values_arr,
         system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
         circuit_config=circuit_cfg,
         sweep_target=config.static_benchmark.flux_control.sweep_target,
     ).hamiltonian_stack
@@ -294,7 +292,6 @@ def _build_reference_dressed_stack(
     H_cir = build_circuit_model_stack(
         flux_values=flux_values_arr,
         system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
         circuit_config=circuit_cfg,
         sweep_target=config.static_benchmark.flux_control.sweep_target,
     ).hamiltonian_stack
@@ -342,7 +339,6 @@ def _extract_duffing_metrics(
                 reference_flux_values,
                 reference_dressed_stack=reference_dressed_stack,
                 system_params=config.system,
-                coupler_frequency=config.static_benchmark.coupler_frequency,
                 duffing_config=dcfg,
                 sweep_target=config.static_benchmark.flux_control.sweep_target,
                 n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
@@ -358,7 +354,6 @@ def _extract_duffing_metrics(
                 reference_flux_values,
                 reference_dressed_stack=reference_dressed_stack,
                 system_params=config.system,
-                coupler_frequency=config.static_benchmark.coupler_frequency,
                 duffing_config=dcfg,
                 sweep_target=config.static_benchmark.flux_control.sweep_target,
                 n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
@@ -390,7 +385,6 @@ def _extract_duffing_metrics(
         H_duf = build_duffing_model_stack(
             flux_values=np.array([float(flux)], dtype=float),
             system_params=config.system,
-            coupler_frequency=config.static_benchmark.coupler_frequency,
             duffing_config=dcfg,
             sweep_target=config.static_benchmark.flux_control.sweep_target,
         ).hamiltonian_stack
@@ -446,7 +440,6 @@ def _extract_duffing_metrics_over_fluxes(
                     reference_flux_values,
                     reference_dressed_stack=reference_dressed_stack,
                     system_params=config.system,
-                    coupler_frequency=config.static_benchmark.coupler_frequency,
                     duffing_config=dcfg,
                     sweep_target=config.static_benchmark.flux_control.sweep_target,
                     n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
@@ -460,7 +453,6 @@ def _extract_duffing_metrics_over_fluxes(
                         reference_flux_values,
                         reference_dressed_stack=reference_dressed_stack,
                         system_params=config.system,
-                        coupler_frequency=config.static_benchmark.coupler_frequency,
                         duffing_config=dcfg,
                         sweep_target=config.static_benchmark.flux_control.sweep_target,
                         n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
@@ -478,7 +470,6 @@ def _extract_duffing_metrics_over_fluxes(
                     reference_flux_values,
                     reference_dressed_stack=reference_dressed_stack,
                     system_params=config.system,
-                    coupler_frequency=config.static_benchmark.coupler_frequency,
                     duffing_config=dcfg,
                     sweep_target=config.static_benchmark.flux_control.sweep_target,
                     n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
@@ -496,7 +487,6 @@ def _extract_duffing_metrics_over_fluxes(
                         reference_flux_values,
                         reference_dressed_stack=reference_dressed_stack,
                         system_params=config.system,
-                        coupler_frequency=config.static_benchmark.coupler_frequency,
                         duffing_config=dcfg,
                         sweep_target=config.static_benchmark.flux_control.sweep_target,
                         n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,

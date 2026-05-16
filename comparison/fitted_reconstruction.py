@@ -35,7 +35,6 @@ def effective_parameters_for_flux(
     _, _, wc = resolve_static_sweep_values(
         flux_arr,
         system_params=config.system,
-        coupler_frequency_config=config.static_benchmark.coupler_frequency,
         sweep_target=_sweep_target(static_result, config),
     )
     return evaluate_effective_parameter_fit(
@@ -73,7 +72,6 @@ def duffing_mode_parameters_for_flux(
             _, _, wc = resolve_static_sweep_values(
                 flux_arr,
                 system_params=config.system,
-                coupler_frequency_config=config.static_benchmark.coupler_frequency,
                 sweep_target=sweep_target,
             )
             parameters["wc"] = np.asarray(wc, dtype=float)
@@ -108,7 +106,6 @@ def _interpolate_parameters(
         _, _, wc = resolve_static_sweep_values(
             x,
             system_params=config.system,
-            coupler_frequency_config=config.static_benchmark.coupler_frequency,
             sweep_target=_sweep_target(static_result, config),
         )
         out["wc"] = np.asarray(wc, dtype=float)

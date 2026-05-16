@@ -51,10 +51,6 @@
         "flux_control": {
           "sweep_target": "q1"
         },
-        "coupler_frequency": {
-          "wc0": 6.902,
-          "amplitude": 0.0
-        },
         "dressed_subspace": {
           "n_candidate_states": 12,
           "selection_mode": "bare"

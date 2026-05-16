@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from models.sweep import resolve_static_sweep_values
-from study_config import CircuitModelConfig, CouplerFrequencyConfig, SystemParams
+from study_config import CircuitModelConfig, SystemParams
 
 
 @dataclass(frozen=True)
@@ -84,7 +84,6 @@ def build_circuit_model_stack(
     *,
     flux_values: np.ndarray,
     system_params: SystemParams,
-    coupler_frequency: CouplerFrequencyConfig,
     circuit_config: CircuitModelConfig,
     sweep_target: str,
 ) -> CircuitModelBuildResult:
@@ -92,7 +91,6 @@ def build_circuit_model_stack(
     q0_flux_arr, q1_flux_arr, wc = resolve_static_sweep_values(
         flux_values,
         system_params=system_params,
-        coupler_frequency_config=coupler_frequency,
         sweep_target=sweep_target,
     )
 

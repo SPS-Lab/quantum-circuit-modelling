@@ -77,6 +77,11 @@ This reads:
 - `params/system_params.json` (device/system parameters)
 - `params/benchmark_params.json` (benchmark/model/plot settings, including numerical basis cutoffs such as circuit-model transmon `ncut`)
 
+For the current DiCarlo-style fixed harmonic bus workflow, the coupler frequency
+is taken from `system_params.json` as `system.parameters.c.E_osc`. The static
+flux sweep target is qubit-only (`q0` or `q1`); benchmark config no longer
+defines a separate tunable `wc`.
+
 The Duffing model supports calibration modes via
 `static_benchmark.duffing_model.calibration_mode`:
 - `fixed`: calibrate transmon Duffing parameters once at system parking biases

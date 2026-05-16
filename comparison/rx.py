@@ -210,7 +210,7 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
         id_str=str(config.system.q1.id_str),
     )
     c = scq.Oscillator(
-        E_osc=float(config.static_benchmark.coupler_frequency.wc0),
+        E_osc=float(config.system.c.E_osc),
         truncated_dim=c_trunc,
         id_str=str(config.system.c.id_str),
     )
@@ -257,7 +257,6 @@ def _single_point_duffing_stack(config: StudyConfig, *, flux_value: float, sweep
         return build_duffing_model_stack(
             flux_values=flux_arr,
             system_params=config.system,
-            coupler_frequency=config.static_benchmark.coupler_frequency,
             duffing_config=config.static_benchmark.duffing_model,
             sweep_target=sweep_target,
         ).hamiltonian_stack
@@ -265,7 +264,6 @@ def _single_point_duffing_stack(config: StudyConfig, *, flux_value: float, sweep
     circuit_stack = build_circuit_model_stack(
         flux_values=flux_arr,
         system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
         circuit_config=config.static_benchmark.circuit_model,
         sweep_target=sweep_target,
     ).hamiltonian_stack
@@ -280,7 +278,6 @@ def _single_point_duffing_stack(config: StudyConfig, *, flux_value: float, sweep
         flux_values=flux_arr,
         reference_dressed_stack=H_circuit_eff,
         system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
         duffing_config=config.static_benchmark.duffing_model,
         sweep_target=sweep_target,
         n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
@@ -305,7 +302,6 @@ def _single_point_effective_hamiltonian(config: StudyConfig) -> np.ndarray:
     circuit_stack = build_circuit_model_stack(
         flux_values=flux_value,
         system_params=config.system,
-        coupler_frequency=config.static_benchmark.coupler_frequency,
         circuit_config=config.static_benchmark.circuit_model,
         sweep_target=sweep_target,
     ).hamiltonian_stack

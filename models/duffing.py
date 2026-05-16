@@ -16,7 +16,7 @@ from models.josephson import flux_dependent_EJ
 from models.sweep import resolve_static_sweep_values
 from models.three_mode import three_mode_hamiltonian
 from runtime_utils import format_elapsed_compact, log_progress
-from study_config import CouplerFrequencyConfig, DuffingModelConfig, SystemParams
+from study_config import DuffingModelConfig, SystemParams
 
 
 @dataclass(frozen=True)
@@ -101,7 +101,6 @@ def _build_mode_parameter_arrays(
     flux_values: np.ndarray,
     *,
     system_params: SystemParams,
-    coupler_frequency: CouplerFrequencyConfig,
     duffing_config: DuffingModelConfig,
     sweep_target: str,
 ) -> dict[str, np.ndarray]:
@@ -110,7 +109,6 @@ def _build_mode_parameter_arrays(
     q0_flux_arr, q1_flux_arr, wc_arr = resolve_static_sweep_values(
         flux_arr,
         system_params=system_params,
-        coupler_frequency_config=coupler_frequency,
         sweep_target=sweep_target,
     )
 
@@ -491,7 +489,6 @@ def fit_duffing_mode_parameters_to_reference(
     *,
     reference_dressed_stack: np.ndarray,
     system_params: SystemParams,
-    coupler_frequency: CouplerFrequencyConfig,
     duffing_config: DuffingModelConfig,
     sweep_target: str,
     n_candidate_states: int,
@@ -509,7 +506,6 @@ def fit_duffing_mode_parameters_to_reference(
         initial = _build_mode_parameter_arrays(
             flux_values,
             system_params=system_params,
-            coupler_frequency=coupler_frequency,
             duffing_config=duffing_config,
             sweep_target=sweep_target,
         )
@@ -657,7 +653,6 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
     *,
     reference_dressed_stack: np.ndarray,
     system_params: SystemParams,
-    coupler_frequency: CouplerFrequencyConfig,
     duffing_config: DuffingModelConfig,
     sweep_target: str,
     n_candidate_states: int,
@@ -676,7 +671,6 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
     initial = _build_mode_parameter_arrays(
         flux_arr,
         system_params=system_params,
-        coupler_frequency=coupler_frequency,
         duffing_config=duffing_config,
         sweep_target=sweep_target,
     )
@@ -684,7 +678,6 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         flux_arr,
         reference_dressed_stack=reference_dressed_stack,
         system_params=system_params,
-        coupler_frequency=coupler_frequency,
         duffing_config=duffing_config,
         sweep_target=sweep_target,
         n_candidate_states=n_candidate_states,
@@ -837,9 +830,8 @@ def build_duffing_model_stack(
     flux_values: np.ndarray,
     *,
     system_params: SystemParams,
-    coupler_frequency: CouplerFrequencyConfig,
     duffing_config: DuffingModelConfig,
-    sweep_target: str = "coupler",
+    sweep_target: str = "q1",
 ) -> DuffingModelBuildResult:
     """Build a three-mode Duffing Hamiltonian stack from system + study config.
 
@@ -861,7 +853,6 @@ def build_duffing_model_stack(
     mode_parameters = _build_mode_parameter_arrays(
         flux_values,
         system_params=system_params,
-        coupler_frequency=coupler_frequency,
         duffing_config=duffing_config,
         sweep_target=sweep_target,
     )
