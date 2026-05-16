@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, replace
+import time
+from typing import TypeVar
 
 import numpy as np
 
@@ -16,7 +19,7 @@ from models import (
     fit_symbolic_duffing_mode_parameters_to_reference,
     is_reference_calibrated_duffing_mode,
 )
-from runtime_utils import log_progress, progress_heartbeat
+from runtime_utils import format_elapsed_compact, log_progress, progress_heartbeat
 from study_config import StudyConfig, build_flux_values
 
 
@@ -76,6 +79,36 @@ class DuffingTruncationBenchmarkResult:
 
 _DUFFING_TRUNCATION_SWEEP_NAMES = frozenset({"ncut", "qubit", "coupler"})
 _CIRCUIT_TRUNCATION_SWEEP_NAMES = frozenset({"ncut", "qubit", "coupler"})
+_StepResultT = TypeVar("_StepResultT")
+
+
+def _timed_point_step(
+    point_label: str, step_label: str, fn: Callable[[], _StepResultT]
+) -> _StepResultT:
+    log_progress(f"{point_label}: {step_label}")
+    started = time.perf_counter()
+    value = fn()
+    elapsed = time.perf_counter() - started
+    log_progress(f"{point_label}: {step_label} finished in {format_elapsed_compact(elapsed)}")
+    return value
+
+
+def _log_point_complete(
+    *,
+    point_label: str,
+    point_started: float,
+    energy_rmse: float,
+    j_abs_error: float,
+    zeta_abs_error: float,
+    extra_details: str | None = None,
+) -> None:
+    total_elapsed = time.perf_counter() - point_started
+    detail_text = f", {extra_details}" if extra_details else ""
+    log_progress(
+        f"{point_label}: complete in {format_elapsed_compact(total_elapsed)}"
+        f"{detail_text}, energy_rmse={float(energy_rmse):.6g}, "
+        f"|dJ|={float(j_abs_error):.6g}, |dzeta|={float(zeta_abs_error):.6g}"
+    )
 
 
 def _rmse(values: np.ndarray) -> float:
@@ -385,6 +418,7 @@ def _extract_duffing_metrics_over_fluxes(
     duffing_calibration_mode: str,
     reference_flux_values: np.ndarray | None = None,
     reference_dressed_stack: np.ndarray | None = None,
+    progress_label: str | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
     j_values = np.empty(flux_values.shape[0], dtype=float)
     zeta_values = np.empty(flux_values.shape[0], dtype=float)
@@ -407,36 +441,72 @@ def _extract_duffing_metrics_over_fluxes(
         )
         mode = str(duffing_calibration_mode).strip().lower()
         if mode == "fitted-static":
-            precomputed_mode_parameters = fit_duffing_mode_parameters_to_reference(
-                reference_flux_values,
-                reference_dressed_stack=reference_dressed_stack,
-                system_params=config.system,
-                coupler_frequency=config.static_benchmark.coupler_frequency,
-                duffing_config=dcfg,
-                sweep_target=config.static_benchmark.flux_control.sweep_target,
-                n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
-                selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
-            )
+            if progress_label is None:
+                precomputed_mode_parameters = fit_duffing_mode_parameters_to_reference(
+                    reference_flux_values,
+                    reference_dressed_stack=reference_dressed_stack,
+                    system_params=config.system,
+                    coupler_frequency=config.static_benchmark.coupler_frequency,
+                    duffing_config=dcfg,
+                    sweep_target=config.static_benchmark.flux_control.sweep_target,
+                    n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+                    selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+                )
+            else:
+                precomputed_mode_parameters = _timed_point_step(
+                    progress_label,
+                    "prepare fitted-static Duffing parameters from circuit reference",
+                    lambda: fit_duffing_mode_parameters_to_reference(
+                        reference_flux_values,
+                        reference_dressed_stack=reference_dressed_stack,
+                        system_params=config.system,
+                        coupler_frequency=config.static_benchmark.coupler_frequency,
+                        duffing_config=dcfg,
+                        sweep_target=config.static_benchmark.flux_control.sweep_target,
+                        n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+                        selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+                    ),
+                )
         else:
             symbolic_fit_cfg = dcfg.symbolic_fit
             if symbolic_fit_cfg is None:
                 raise ValueError(
                     "symbolic-fitted-static requires static_benchmark.duffing_model.symbolic_fit settings"
                 )
-            precomputed_mode_parameters = fit_symbolic_duffing_mode_parameters_to_reference(
-                reference_flux_values,
-                reference_dressed_stack=reference_dressed_stack,
-                system_params=config.system,
-                coupler_frequency=config.static_benchmark.coupler_frequency,
-                duffing_config=dcfg,
-                sweep_target=config.static_benchmark.flux_control.sweep_target,
-                n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
-                selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
-                max_harmonics=int(symbolic_fit_cfg.max_harmonics),
-                pointwise_max_nfev=int(symbolic_fit_cfg.pointwise_max_nfev),
-                refinement_max_nfev=int(symbolic_fit_cfg.refinement_max_nfev),
-                regularization_weight=float(symbolic_fit_cfg.regularization_weight),
-            ).fitted_parameters
+            if progress_label is None:
+                precomputed_mode_parameters = fit_symbolic_duffing_mode_parameters_to_reference(
+                    reference_flux_values,
+                    reference_dressed_stack=reference_dressed_stack,
+                    system_params=config.system,
+                    coupler_frequency=config.static_benchmark.coupler_frequency,
+                    duffing_config=dcfg,
+                    sweep_target=config.static_benchmark.flux_control.sweep_target,
+                    n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+                    selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+                    max_harmonics=int(symbolic_fit_cfg.max_harmonics),
+                    pointwise_max_nfev=int(symbolic_fit_cfg.pointwise_max_nfev),
+                    refinement_max_nfev=int(symbolic_fit_cfg.refinement_max_nfev),
+                    regularization_weight=float(symbolic_fit_cfg.regularization_weight),
+                ).fitted_parameters
+            else:
+                precomputed_mode_parameters = _timed_point_step(
+                    progress_label,
+                    "prepare symbolic-fitted-static Duffing parameters from circuit reference",
+                    lambda: fit_symbolic_duffing_mode_parameters_to_reference(
+                        reference_flux_values,
+                        reference_dressed_stack=reference_dressed_stack,
+                        system_params=config.system,
+                        coupler_frequency=config.static_benchmark.coupler_frequency,
+                        duffing_config=dcfg,
+                        sweep_target=config.static_benchmark.flux_control.sweep_target,
+                        n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+                        selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+                        max_harmonics=int(symbolic_fit_cfg.max_harmonics),
+                        pointwise_max_nfev=int(symbolic_fit_cfg.pointwise_max_nfev),
+                        refinement_max_nfev=int(symbolic_fit_cfg.refinement_max_nfev),
+                        regularization_weight=float(symbolic_fit_cfg.regularization_weight),
+                    ).fitted_parameters,
+                )
     for i, flux in enumerate(np.asarray(flux_values, dtype=float)):
         cand_j, cand_zeta, cand_rel_e, trunc_dim_eff = _extract_duffing_metrics(
             config=config,
@@ -580,27 +650,48 @@ def run_circuit_truncation_benchmark(
         circuit_ncut_zeta_abs_error = np.empty(circuit_ncut_values.shape[0], dtype=float)
         log_progress(f"circuit truncation benchmark: ncut sweep with {circuit_ncut_values.size} points")
         for i, ncut in enumerate(circuit_ncut_values):
-            log_progress(f"circuit truncation benchmark: ncut point {i + 1}/{circuit_ncut_values.size} (ncut={int(ncut)})")
-            cand_j_values, cand_zeta_values, cand_rel_e_values, qdim_eff = _extract_circuit_metrics_over_fluxes(
-                config=config,
-                flux_values=flux_values,
-                circuit_ncut=int(ncut),
-                qubit_truncated_dim=int(cfg.circuit_reference_qubit_truncated_dim),
-                coupler_truncated_dim=int(cfg.circuit_reference_coupler_truncated_dim),
+            point_label = (
+                f"circuit truncation benchmark: ncut point {i + 1}/{circuit_ncut_values.size} "
+                f"(ncut={int(ncut)})"
+            )
+            point_started = time.perf_counter()
+            log_progress(point_label)
+            cand_j_values, cand_zeta_values, cand_rel_e_values, qdim_eff = _timed_point_step(
+                point_label,
+                f"evaluate candidate over {flux_values.size} flux points",
+                lambda: _extract_circuit_metrics_over_fluxes(
+                    config=config,
+                    flux_values=flux_values,
+                    circuit_ncut=int(ncut),
+                    qubit_truncated_dim=int(cfg.circuit_reference_qubit_truncated_dim),
+                    coupler_truncated_dim=int(cfg.circuit_reference_coupler_truncated_dim),
+                ),
             )
             circuit_ncut_effective_qdim[i] = int(qdim_eff)
             (
                 circuit_ncut_energy_rmse[i],
                 circuit_ncut_j_abs_error[i],
                 circuit_ncut_zeta_abs_error[i],
-            ) = _static_error_metrics(
-                candidate_j=cand_j_values,
-                candidate_zeta=cand_zeta_values,
-                candidate_rel_e=cand_rel_e_values,
-                reference_j=ref_j_values,
-                reference_zeta=ref_zeta_values,
-                reference_rel_e=ref_rel_e_values,
-                lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
+            ) = _timed_point_step(
+                point_label,
+                "aggregate errors vs strict circuit reference",
+                lambda: _static_error_metrics(
+                    candidate_j=cand_j_values,
+                    candidate_zeta=cand_zeta_values,
+                    candidate_rel_e=cand_rel_e_values,
+                    reference_j=ref_j_values,
+                    reference_zeta=ref_zeta_values,
+                    reference_rel_e=ref_rel_e_values,
+                    lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
+                ),
+            )
+            _log_point_complete(
+                point_label=point_label,
+                point_started=point_started,
+                energy_rmse=circuit_ncut_energy_rmse[i],
+                j_abs_error=circuit_ncut_j_abs_error[i],
+                zeta_abs_error=circuit_ncut_zeta_abs_error[i],
+                extra_details=f"effective_qdim={int(qdim_eff)}",
             )
     else:
         circuit_ncut_values = np.asarray([], dtype=int)
@@ -616,29 +707,47 @@ def run_circuit_truncation_benchmark(
         circuit_qubit_zeta_abs_error = np.empty(circuit_qubit_dims.shape[0], dtype=float)
         log_progress(f"circuit truncation benchmark: qubit truncated-dim sweep with {circuit_qubit_dims.size} points")
         for i, qdim in enumerate(circuit_qubit_dims):
-            log_progress(
+            point_label = (
                 "circuit truncation benchmark: qubit truncated-dim point "
-                f"{i + 1}/{circuit_qubit_dims.size} (q={int(qdim)}, c_fixed={int(cfg.circuit_reference_coupler_truncated_dim)})"
+                f"{i + 1}/{circuit_qubit_dims.size} "
+                f"(q={int(qdim)}, c_fixed={int(cfg.circuit_reference_coupler_truncated_dim)})"
             )
-            cand_j_values, cand_zeta_values, cand_rel_e_values, _ = _extract_circuit_metrics_over_fluxes(
-                config=config,
-                flux_values=flux_values,
-                circuit_ncut=int(cfg.circuit_reference_ncut),
-                qubit_truncated_dim=int(qdim),
-                coupler_truncated_dim=int(cfg.circuit_reference_coupler_truncated_dim),
+            point_started = time.perf_counter()
+            log_progress(point_label)
+            cand_j_values, cand_zeta_values, cand_rel_e_values, _ = _timed_point_step(
+                point_label,
+                f"evaluate candidate over {flux_values.size} flux points",
+                lambda: _extract_circuit_metrics_over_fluxes(
+                    config=config,
+                    flux_values=flux_values,
+                    circuit_ncut=int(cfg.circuit_reference_ncut),
+                    qubit_truncated_dim=int(qdim),
+                    coupler_truncated_dim=int(cfg.circuit_reference_coupler_truncated_dim),
+                ),
             )
             (
                 circuit_qubit_energy_rmse[i],
                 circuit_qubit_j_abs_error[i],
                 circuit_qubit_zeta_abs_error[i],
-            ) = _static_error_metrics(
-                candidate_j=cand_j_values,
-                candidate_zeta=cand_zeta_values,
-                candidate_rel_e=cand_rel_e_values,
-                reference_j=ref_j_values,
-                reference_zeta=ref_zeta_values,
-                reference_rel_e=ref_rel_e_values,
-                lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
+            ) = _timed_point_step(
+                point_label,
+                "aggregate errors vs strict circuit reference",
+                lambda: _static_error_metrics(
+                    candidate_j=cand_j_values,
+                    candidate_zeta=cand_zeta_values,
+                    candidate_rel_e=cand_rel_e_values,
+                    reference_j=ref_j_values,
+                    reference_zeta=ref_zeta_values,
+                    reference_rel_e=ref_rel_e_values,
+                    lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
+                ),
+            )
+            _log_point_complete(
+                point_label=point_label,
+                point_started=point_started,
+                energy_rmse=circuit_qubit_energy_rmse[i],
+                j_abs_error=circuit_qubit_j_abs_error[i],
+                zeta_abs_error=circuit_qubit_zeta_abs_error[i],
             )
     else:
         circuit_qubit_dims = np.asarray([], dtype=int)
@@ -655,29 +764,47 @@ def run_circuit_truncation_benchmark(
             f"circuit truncation benchmark: coupler truncated-dim sweep with {circuit_coupler_dims.size} points"
         )
         for i, cdim in enumerate(circuit_coupler_dims):
-            log_progress(
+            point_label = (
                 "circuit truncation benchmark: coupler truncated-dim point "
-                f"{i + 1}/{circuit_coupler_dims.size} (c={int(cdim)}, q_fixed={int(cfg.circuit_reference_qubit_truncated_dim)})"
+                f"{i + 1}/{circuit_coupler_dims.size} "
+                f"(c={int(cdim)}, q_fixed={int(cfg.circuit_reference_qubit_truncated_dim)})"
             )
-            cand_j_values, cand_zeta_values, cand_rel_e_values, _ = _extract_circuit_metrics_over_fluxes(
-                config=config,
-                flux_values=flux_values,
-                circuit_ncut=int(cfg.circuit_reference_ncut),
-                qubit_truncated_dim=int(cfg.circuit_reference_qubit_truncated_dim),
-                coupler_truncated_dim=int(cdim),
+            point_started = time.perf_counter()
+            log_progress(point_label)
+            cand_j_values, cand_zeta_values, cand_rel_e_values, _ = _timed_point_step(
+                point_label,
+                f"evaluate candidate over {flux_values.size} flux points",
+                lambda: _extract_circuit_metrics_over_fluxes(
+                    config=config,
+                    flux_values=flux_values,
+                    circuit_ncut=int(cfg.circuit_reference_ncut),
+                    qubit_truncated_dim=int(cfg.circuit_reference_qubit_truncated_dim),
+                    coupler_truncated_dim=int(cdim),
+                ),
             )
             (
                 circuit_coupler_energy_rmse[i],
                 circuit_coupler_j_abs_error[i],
                 circuit_coupler_zeta_abs_error[i],
-            ) = _static_error_metrics(
-                candidate_j=cand_j_values,
-                candidate_zeta=cand_zeta_values,
-                candidate_rel_e=cand_rel_e_values,
-                reference_j=ref_j_values,
-                reference_zeta=ref_zeta_values,
-                reference_rel_e=ref_rel_e_values,
-                lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
+            ) = _timed_point_step(
+                point_label,
+                "aggregate errors vs strict circuit reference",
+                lambda: _static_error_metrics(
+                    candidate_j=cand_j_values,
+                    candidate_zeta=cand_zeta_values,
+                    candidate_rel_e=cand_rel_e_values,
+                    reference_j=ref_j_values,
+                    reference_zeta=ref_zeta_values,
+                    reference_rel_e=ref_rel_e_values,
+                    lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
+                ),
+            )
+            _log_point_complete(
+                point_label=point_label,
+                point_started=point_started,
+                energy_rmse=circuit_coupler_energy_rmse[i],
+                j_abs_error=circuit_coupler_j_abs_error[i],
+                zeta_abs_error=circuit_coupler_zeta_abs_error[i],
             )
     else:
         circuit_coupler_dims = np.asarray([], dtype=int)
@@ -800,34 +927,53 @@ def run_duffing_truncation_benchmark(
         duffing_ncut_zeta_abs_error = np.empty(duffing_ncut_values.shape[0], dtype=float)
         log_progress(f"duffing truncation benchmark: extraction ncut sweep with {duffing_ncut_values.size} points")
         for i, ncut in enumerate(duffing_ncut_values):
-            log_progress(
+            point_label = (
                 f"duffing truncation benchmark: extraction ncut point "
                 f"{i + 1}/{duffing_ncut_values.size} (ncut={int(ncut)})"
             )
-            cand_j_values, cand_zeta_values, cand_rel_e_values, trunc_dim_eff = _extract_duffing_metrics_over_fluxes(
-                config=config,
-                flux_values=flux_values,
-                extraction_ncut=int(ncut),
-                extraction_truncated_dim=int(cfg.duffing_truncated_dim),
-                hilbert_qubit_dim=base_duf_qdim,
-                hilbert_coupler_dim=base_duf_cdim,
-                duffing_calibration_mode=str(cfg.duffing_calibration_mode),
-                reference_flux_values=reference_flux_values,
-                reference_dressed_stack=reference_dressed_stack,
+            point_started = time.perf_counter()
+            log_progress(point_label)
+            cand_j_values, cand_zeta_values, cand_rel_e_values, trunc_dim_eff = _timed_point_step(
+                point_label,
+                f"evaluate candidate over {flux_values.size} flux points",
+                lambda: _extract_duffing_metrics_over_fluxes(
+                    config=config,
+                    flux_values=flux_values,
+                    extraction_ncut=int(ncut),
+                    extraction_truncated_dim=int(cfg.duffing_truncated_dim),
+                    hilbert_qubit_dim=base_duf_qdim,
+                    hilbert_coupler_dim=base_duf_cdim,
+                    duffing_calibration_mode=str(cfg.duffing_calibration_mode),
+                    reference_flux_values=reference_flux_values,
+                    reference_dressed_stack=reference_dressed_stack,
+                    progress_label=point_label,
+                ),
             )
             duffing_ncut_effective_trunc_dim[i] = int(trunc_dim_eff)
             (
                 duffing_ncut_energy_rmse[i],
                 duffing_ncut_j_abs_error[i],
                 duffing_ncut_zeta_abs_error[i],
-            ) = _static_error_metrics(
-                candidate_j=cand_j_values,
-                candidate_zeta=cand_zeta_values,
-                candidate_rel_e=cand_rel_e_values,
-                reference_j=ref_j_values,
-                reference_zeta=ref_zeta_values,
-                reference_rel_e=ref_rel_e_values,
-                lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
+            ) = _timed_point_step(
+                point_label,
+                "aggregate errors vs strict circuit reference",
+                lambda: _static_error_metrics(
+                    candidate_j=cand_j_values,
+                    candidate_zeta=cand_zeta_values,
+                    candidate_rel_e=cand_rel_e_values,
+                    reference_j=ref_j_values,
+                    reference_zeta=ref_zeta_values,
+                    reference_rel_e=ref_rel_e_values,
+                    lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
+                ),
+            )
+            _log_point_complete(
+                point_label=point_label,
+                point_started=point_started,
+                energy_rmse=duffing_ncut_energy_rmse[i],
+                j_abs_error=duffing_ncut_j_abs_error[i],
+                zeta_abs_error=duffing_ncut_zeta_abs_error[i],
+                extra_details=f"effective_truncated_dim={int(trunc_dim_eff)}",
             )
     else:
         duffing_ncut_values = np.asarray([], dtype=int)
@@ -845,33 +991,52 @@ def run_duffing_truncation_benchmark(
             f"duffing truncation benchmark: qubit Hilbert truncation sweep with {duffing_hilbert_qubit_dims.size} points"
         )
         for i, qdim in enumerate(duffing_hilbert_qubit_dims):
-            log_progress(
+            point_label = (
                 "duffing truncation benchmark: qubit Hilbert point "
-                f"{i + 1}/{duffing_hilbert_qubit_dims.size} (q={int(qdim)}, c_fixed={int(base_duf_cdim)})"
+                f"{i + 1}/{duffing_hilbert_qubit_dims.size} "
+                f"(q={int(qdim)}, c_fixed={int(base_duf_cdim)})"
             )
-            cand_j_values, cand_zeta_values, cand_rel_e_values, _ = _extract_duffing_metrics_over_fluxes(
-                config=config,
-                flux_values=flux_values,
-                extraction_ncut=base_extract_ncut,
-                extraction_truncated_dim=base_extract_trunc_dim,
-                hilbert_qubit_dim=int(qdim),
-                hilbert_coupler_dim=int(base_duf_cdim),
-                duffing_calibration_mode=str(cfg.duffing_calibration_mode),
-                reference_flux_values=reference_flux_values,
-                reference_dressed_stack=reference_dressed_stack,
+            point_started = time.perf_counter()
+            log_progress(point_label)
+            cand_j_values, cand_zeta_values, cand_rel_e_values, _ = _timed_point_step(
+                point_label,
+                f"evaluate candidate over {flux_values.size} flux points",
+                lambda: _extract_duffing_metrics_over_fluxes(
+                    config=config,
+                    flux_values=flux_values,
+                    extraction_ncut=base_extract_ncut,
+                    extraction_truncated_dim=base_extract_trunc_dim,
+                    hilbert_qubit_dim=int(qdim),
+                    hilbert_coupler_dim=int(base_duf_cdim),
+                    duffing_calibration_mode=str(cfg.duffing_calibration_mode),
+                    reference_flux_values=reference_flux_values,
+                    reference_dressed_stack=reference_dressed_stack,
+                    progress_label=point_label,
+                ),
             )
             (
                 duffing_hilbert_qubit_energy_rmse[i],
                 duffing_hilbert_qubit_j_abs_error[i],
                 duffing_hilbert_qubit_zeta_abs_error[i],
-            ) = _static_error_metrics(
-                candidate_j=cand_j_values,
-                candidate_zeta=cand_zeta_values,
-                candidate_rel_e=cand_rel_e_values,
-                reference_j=ref_j_values,
-                reference_zeta=ref_zeta_values,
-                reference_rel_e=ref_rel_e_values,
-                lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
+            ) = _timed_point_step(
+                point_label,
+                "aggregate errors vs strict circuit reference",
+                lambda: _static_error_metrics(
+                    candidate_j=cand_j_values,
+                    candidate_zeta=cand_zeta_values,
+                    candidate_rel_e=cand_rel_e_values,
+                    reference_j=ref_j_values,
+                    reference_zeta=ref_zeta_values,
+                    reference_rel_e=ref_rel_e_values,
+                    lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
+                ),
+            )
+            _log_point_complete(
+                point_label=point_label,
+                point_started=point_started,
+                energy_rmse=duffing_hilbert_qubit_energy_rmse[i],
+                j_abs_error=duffing_hilbert_qubit_j_abs_error[i],
+                zeta_abs_error=duffing_hilbert_qubit_zeta_abs_error[i],
             )
     else:
         duffing_hilbert_qubit_dims = np.asarray([], dtype=int)
@@ -889,33 +1054,52 @@ def run_duffing_truncation_benchmark(
             f"with {duffing_hilbert_coupler_dims.size} points"
         )
         for i, cdim in enumerate(duffing_hilbert_coupler_dims):
-            log_progress(
+            point_label = (
                 "duffing truncation benchmark: coupler Hilbert point "
-                f"{i + 1}/{duffing_hilbert_coupler_dims.size} (c={int(cdim)}, q_fixed={int(base_duf_qdim)})"
+                f"{i + 1}/{duffing_hilbert_coupler_dims.size} "
+                f"(c={int(cdim)}, q_fixed={int(base_duf_qdim)})"
             )
-            cand_j_values, cand_zeta_values, cand_rel_e_values, _ = _extract_duffing_metrics_over_fluxes(
-                config=config,
-                flux_values=flux_values,
-                extraction_ncut=base_extract_ncut,
-                extraction_truncated_dim=base_extract_trunc_dim,
-                hilbert_qubit_dim=int(base_duf_qdim),
-                hilbert_coupler_dim=int(cdim),
-                duffing_calibration_mode=str(cfg.duffing_calibration_mode),
-                reference_flux_values=reference_flux_values,
-                reference_dressed_stack=reference_dressed_stack,
+            point_started = time.perf_counter()
+            log_progress(point_label)
+            cand_j_values, cand_zeta_values, cand_rel_e_values, _ = _timed_point_step(
+                point_label,
+                f"evaluate candidate over {flux_values.size} flux points",
+                lambda: _extract_duffing_metrics_over_fluxes(
+                    config=config,
+                    flux_values=flux_values,
+                    extraction_ncut=base_extract_ncut,
+                    extraction_truncated_dim=base_extract_trunc_dim,
+                    hilbert_qubit_dim=int(base_duf_qdim),
+                    hilbert_coupler_dim=int(cdim),
+                    duffing_calibration_mode=str(cfg.duffing_calibration_mode),
+                    reference_flux_values=reference_flux_values,
+                    reference_dressed_stack=reference_dressed_stack,
+                    progress_label=point_label,
+                ),
             )
             (
                 duffing_hilbert_coupler_energy_rmse[i],
                 duffing_hilbert_coupler_j_abs_error[i],
                 duffing_hilbert_coupler_zeta_abs_error[i],
-            ) = _static_error_metrics(
-                candidate_j=cand_j_values,
-                candidate_zeta=cand_zeta_values,
-                candidate_rel_e=cand_rel_e_values,
-                reference_j=ref_j_values,
-                reference_zeta=ref_zeta_values,
-                reference_rel_e=ref_rel_e_values,
-                lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
+            ) = _timed_point_step(
+                point_label,
+                "aggregate errors vs strict circuit reference",
+                lambda: _static_error_metrics(
+                    candidate_j=cand_j_values,
+                    candidate_zeta=cand_zeta_values,
+                    candidate_rel_e=cand_rel_e_values,
+                    reference_j=ref_j_values,
+                    reference_zeta=ref_zeta_values,
+                    reference_rel_e=ref_rel_e_values,
+                    lowest_excited_levels_to_compare=int(cfg.lowest_excited_levels_to_plot),
+                ),
+            )
+            _log_point_complete(
+                point_label=point_label,
+                point_started=point_started,
+                energy_rmse=duffing_hilbert_coupler_energy_rmse[i],
+                j_abs_error=duffing_hilbert_coupler_j_abs_error[i],
+                zeta_abs_error=duffing_hilbert_coupler_zeta_abs_error[i],
             )
     else:
         duffing_hilbert_coupler_dims = np.asarray([], dtype=int)
