@@ -449,7 +449,7 @@ def evaluate_symbolic_duffing_parameter_fit(
     coefficient_names: Mapping[str, np.ndarray],
     coefficients: Mapping[str, np.ndarray],
 ) -> dict[str, np.ndarray]:
-    """Evaluate the symbolic Duffing surrogate at flux points."""
+    """Evaluate the six symbolic Duffing parameter curves at flux points."""
     flux_arr = np.asarray(flux_values, dtype=float).ravel()
     inferred_harmonics = 0
     for name, labels in coefficient_names.items():
@@ -476,6 +476,25 @@ def evaluate_symbolic_duffing_parameter_fit(
         design_map=design_map,
         parameter_order=parameter_order,
     )
+
+
+def _assemble_fixed_bus_duffing_mode_parameters(
+    symbolic_parameters: Mapping[str, np.ndarray],
+    *,
+    system_params: SystemParams,
+) -> dict[str, np.ndarray]:
+    """Attach fixed-bus mode parameters needed for a full Duffing Hamiltonian build."""
+    parameters = {
+        key: np.asarray(values, dtype=float).ravel()
+        for key, values in symbolic_parameters.items()
+    }
+    if not parameters:
+        raise ValueError("symbolic_parameters must not be empty")
+    reference_shape = next(iter(parameters.values())).shape
+    if any(np.asarray(values, dtype=float).ravel().shape != reference_shape for values in parameters.values()):
+        raise ValueError("All Duffing symbolic parameter arrays must share the same shape")
+    parameters["wc"] = np.full(reference_shape, float(system_params.c.E_osc), dtype=float)
+    return parameters
 
 
 def fit_duffing_mode_parameters_to_reference(
@@ -744,9 +763,12 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
             design_map=design_map,
             parameter_order=parameter_order,
         )
-        symbolic_parameters["wc"] = np.asarray(initial["wc"], dtype=float).ravel()
-        candidate = build_duffing_model_stack_from_parameters(
+        full_mode_parameters = _assemble_fixed_bus_duffing_mode_parameters(
             symbolic_parameters,
+            system_params=system_params,
+        )
+        candidate = build_duffing_model_stack_from_parameters(
+            full_mode_parameters,
             system_params=system_params,
             duffing_config=duffing_config,
         ).hamiltonian_stack
@@ -768,12 +790,12 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         )
         reg_res = float(regularization_weight) * np.concatenate(
             [
-                (np.asarray(symbolic_parameters["w0"], dtype=float).ravel() - np.asarray(pointwise_targets["w0"], dtype=float).ravel()) / latent_scale["w0"],
-                (np.asarray(symbolic_parameters["w1"], dtype=float).ravel() - np.asarray(pointwise_targets["w1"], dtype=float).ravel()) / latent_scale["w1"],
-                (np.asarray(symbolic_parameters["alpha0"], dtype=float).ravel() - np.asarray(pointwise_targets["alpha0"], dtype=float).ravel()) / latent_scale["alpha0"],
-                (np.asarray(symbolic_parameters["alpha1"], dtype=float).ravel() - np.asarray(pointwise_targets["alpha1"], dtype=float).ravel()) / latent_scale["alpha1"],
-                (np.asarray(symbolic_parameters["g0c"], dtype=float).ravel() - np.asarray(pointwise_targets["g0c"], dtype=float).ravel()) / latent_scale["g0c"],
-                (np.asarray(symbolic_parameters["g1c"], dtype=float).ravel() - np.asarray(pointwise_targets["g1c"], dtype=float).ravel()) / latent_scale["g1c"],
+                (np.asarray(full_mode_parameters["w0"], dtype=float).ravel() - np.asarray(pointwise_targets["w0"], dtype=float).ravel()) / latent_scale["w0"],
+                (np.asarray(full_mode_parameters["w1"], dtype=float).ravel() - np.asarray(pointwise_targets["w1"], dtype=float).ravel()) / latent_scale["w1"],
+                (np.asarray(full_mode_parameters["alpha0"], dtype=float).ravel() - np.asarray(pointwise_targets["alpha0"], dtype=float).ravel()) / latent_scale["alpha0"],
+                (np.asarray(full_mode_parameters["alpha1"], dtype=float).ravel() - np.asarray(pointwise_targets["alpha1"], dtype=float).ravel()) / latent_scale["alpha1"],
+                (np.asarray(full_mode_parameters["g0c"], dtype=float).ravel() - np.asarray(pointwise_targets["g0c"], dtype=float).ravel()) / latent_scale["g0c"],
+                (np.asarray(full_mode_parameters["g1c"], dtype=float).ravel() - np.asarray(pointwise_targets["g1c"], dtype=float).ravel()) / latent_scale["g1c"],
             ]
         )
         now = time.perf_counter()
@@ -793,12 +815,15 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         coefficient_sizes=coefficient_sizes,
         parameter_order=parameter_order,
     )
-    fitted = _evaluate_parameter_coefficients_from_designs(
+    symbolic_fitted = _evaluate_parameter_coefficients_from_designs(
         coefficient_map=coeff_best,
         design_map=design_map,
         parameter_order=parameter_order,
     )
-    fitted["wc"] = np.asarray(initial["wc"], dtype=float).ravel()
+    fitted = _assemble_fixed_bus_duffing_mode_parameters(
+        symbolic_fitted,
+        system_params=system_params,
+    )
     coefficients = {
         name: np.asarray(values, dtype=float)
         for name, values in coeff_best.items()

@@ -605,6 +605,32 @@ def test_duffing_symbolic_fitted_static_does_not_use_manual_flux_to_ej_mapping(
     assert call_count == 0
 
 
+def test_symbolic_duffing_evaluator_returns_symbolic_parameters_only(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(
+        tmp_path,
+        sweep_target="q0",
+        duffing_calibration_mode="symbolic-fitted-static",
+    )
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    out = run_static_benchmark(cfg)
+
+    symbolic_parameters = duffing_module.evaluate_symbolic_duffing_parameter_fit(
+        out.flux_values,
+        sweep_target=cfg.static_benchmark.flux_control.sweep_target,
+        coefficient_names=out.duffing_symbolic_coefficient_names,
+        coefficients=out.duffing_symbolic_coefficients,
+    )
+    assert set(symbolic_parameters) == {"w0", "w1", "alpha0", "alpha1", "g0c", "g1c"}
+
+    full_parameters = duffing_module._assemble_fixed_bus_duffing_mode_parameters(
+        symbolic_parameters,
+        system_params=cfg.system,
+    )
+    assert set(full_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
+    assert np.allclose(full_parameters["wc"], cfg.system.c.E_osc)
+
+
 def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
