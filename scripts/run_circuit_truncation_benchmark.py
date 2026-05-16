@@ -20,6 +20,7 @@ from benchmark_run_artifacts import prepare_benchmark_run
 from comparison.truncation import CircuitTruncationBenchmarkResult, run_circuit_truncation_benchmark
 from plotting.truncation import plot_circuit_truncation_benchmark
 from study_config import load_study_config
+from truncation_static_companion import materialize_static_companion_artifacts
 
 
 def _selected_sweeps_from_args(args: argparse.Namespace) -> tuple[str, ...]:
@@ -103,6 +104,12 @@ def main() -> None:
         save_result_hdf5(result, results_path, benchmark_name="circuit_truncation")
 
     plot_circuit_truncation_benchmark(result, figure_path)
+    static_paths = materialize_static_companion_artifacts(
+        run_dir=run_paths.run_dir,
+        config=config,
+        repo_root=repo_root,
+        plot_only=bool(args.plot_only),
+    )
 
     for line in build_common_truncation_lines(config):
         reporter.line(line)
@@ -160,6 +167,14 @@ def main() -> None:
     else:
         reporter.line(f"Wrote results: {results_path}")
     reporter.line(f"Wrote figure: {figure_path}")
+    if static_paths is not None:
+        if args.plot_only:
+            reporter.line(f"Loaded companion static results: {static_paths.results_path}")
+        else:
+            reporter.line(f"Wrote companion static results: {static_paths.results_path}")
+        reporter.line(f"Wrote companion static figure: {static_paths.figure_path}")
+        reporter.line(f"Wrote companion static fitted-parameter artifact: {static_paths.fitted_json_path}")
+        reporter.line(f"Wrote companion static LaTeX table: {static_paths.fitted_table_path}")
     if run_paths.git_head_path.exists():
         reporter.line(f"Wrote git head summary: {run_paths.git_head_path}")
     if run_paths.metadata_path.exists():

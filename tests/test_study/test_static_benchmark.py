@@ -33,6 +33,7 @@ from static_fitted_artifacts import (
     save_static_fitted_models_artifact,
 )
 from study_config import _flatten_run_all_benchmark_params, load_study_config
+from truncation_static_companion import materialize_static_companion_artifacts
 from models.effective import (
     evaluate_effective_parameter_fit,
     fit_magnitude_exchange_parameters,
@@ -384,6 +385,33 @@ def test_static_fitted_models_artifact_roundtrip_and_latex(tmp_path: Path) -> No
     assert r"\begin{tabular}{lll}" in latex
     assert latex.count("% Git provenance: commit=") == 2
     assert latex.count("% Experiment folder: 20260513_123550_static_2b0daa0") == 2
+
+
+def test_truncation_static_companion_materializes_artifacts(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+
+    run_dir = tmp_path / "truncation_run"
+    paths = materialize_static_companion_artifacts(
+        run_dir=run_dir,
+        config=cfg,
+        repo_root=_ROOT,
+        plot_only=False,
+    )
+    assert paths is not None
+    assert paths.results_path.exists()
+    assert paths.figure_path.exists()
+    assert paths.fitted_json_path.exists()
+    assert paths.fitted_table_path.exists()
+
+    loaded_paths = materialize_static_companion_artifacts(
+        run_dir=run_dir,
+        config=cfg,
+        repo_root=_ROOT,
+        plot_only=True,
+    )
+    assert loaded_paths == paths
 
 
 def test_static_benchmark_uses_coupler_amplitude_from_config(tmp_path: Path) -> None:
