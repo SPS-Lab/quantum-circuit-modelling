@@ -15,7 +15,7 @@ from models import (
     build_duffing_model_stack_from_parameters,
     build_effective_hamiltonian_stack,
     computational_state_indices,
-    extract_model1_parameters_from_4x4_stack,
+    extract_effective_model_parameters_from_4x4_stack,
     fit_duffing_mode_parameters_to_reference,
     is_reference_calibrated_duffing_mode,
 )
@@ -331,7 +331,7 @@ def _single_point_effective_hamiltonian(config: StudyConfig) -> np.ndarray:
     else:  # pragma: no cover - config parser guards this
         raise ValueError(f"Unsupported effective derivation source {source!r}")
 
-    params = extract_model1_parameters_from_4x4_stack(source_stack)
+    params = extract_effective_model_parameters_from_4x4_stack(source_stack)
     effective_stack = build_effective_hamiltonian_stack(params)
     return np.asarray(effective_stack[0], dtype=complex)
 

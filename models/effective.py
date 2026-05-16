@@ -7,7 +7,7 @@ from typing import Mapping
 
 import numpy as np
 
-from models.dressed import extract_model1_parameters_from_4x4_stack
+from models.dressed import extract_effective_model_parameters_from_4x4_stack
 from toolkit.helpers import I2, px, py, pz
 
 
@@ -285,7 +285,7 @@ def derive_effective_model_from_dressed_stack(
     coupler_frequency_values: np.ndarray | None = None,
 ) -> EffectiveModelDerivationResult:
     """Extract effective parameters from a dressed stack and fit compact flux laws."""
-    extracted = extract_model1_parameters_from_4x4_stack(dressed_stack)
+    extracted = extract_effective_model_parameters_from_4x4_stack(dressed_stack)
     if fit_basis == "single-harmonic":
         parameter_fit = fit_single_harmonic_parameters(flux_values, extracted_parameters=extracted)
     elif fit_basis == "magnitude-exchange-like":

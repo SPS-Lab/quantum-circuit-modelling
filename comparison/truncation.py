@@ -14,7 +14,7 @@ from models import (
     build_dressed_effective_computational_stack,
     build_duffing_model_stack,
     build_duffing_model_stack_from_parameters,
-    extract_model1_parameters_from_4x4_stack,
+    extract_effective_model_parameters_from_4x4_stack,
     fit_duffing_mode_parameters_to_reference,
     fit_symbolic_duffing_mode_parameters_to_reference,
     is_reference_calibrated_duffing_mode,
@@ -201,7 +201,7 @@ def _extract_circuit_metrics(
         n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
         selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
     )
-    params = extract_model1_parameters_from_4x4_stack(H_cir_eff)
+    params = extract_effective_model_parameters_from_4x4_stack(H_cir_eff)
     evals = np.linalg.eigvalsh(np.asarray(H_cir[0], dtype=complex))
     rel_e = np.asarray(evals - evals[0], dtype=float)
     return float(params["J"][0]), float(params["zeta"][0]), rel_e, qubit_trunc_eff
@@ -240,7 +240,7 @@ def _extract_circuit_metrics_over_fluxes(
         n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
         selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
     )
-    params = extract_model1_parameters_from_4x4_stack(H_cir_eff)
+    params = extract_effective_model_parameters_from_4x4_stack(H_cir_eff)
     evals = np.linalg.eigvalsh(np.asarray(H_cir, dtype=complex))
     rel_e_values = np.asarray(evals - evals[:, :1], dtype=float)
     return (
@@ -395,7 +395,7 @@ def _extract_duffing_metrics(
         n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
         selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
     )
-    params = extract_model1_parameters_from_4x4_stack(H_duf_eff)
+    params = extract_effective_model_parameters_from_4x4_stack(H_duf_eff)
     evals = np.linalg.eigvalsh(np.asarray(H_duf[0], dtype=complex))
     rel_e = np.asarray(evals - evals[0], dtype=float)
     return float(params["J"][0]), float(params["zeta"][0]), rel_e, trunc_dim_eff

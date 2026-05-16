@@ -4,7 +4,7 @@ from models.circuit import CircuitModelBuildResult, build_circuit_model_stack
 from models.dressed import (
     build_dressed_effective_computational_stack,
     build_dressed_effective_stack,
-    extract_model1_parameters_from_4x4_stack,
+    extract_effective_model_parameters_from_4x4_stack,
 )
 from models.duffing import (
     DuffingModelBuildResult,
@@ -54,7 +54,7 @@ __all__ = [
     "heff",
     "build_dressed_effective_stack",
     "build_dressed_effective_computational_stack",
-    "extract_model1_parameters_from_4x4_stack",
+    "extract_effective_model_parameters_from_4x4_stack",
     "flux_dependent_EJ",
     "resolve_static_sweep_values",
     "ThreeModeHamiltonianCommonKwargs",

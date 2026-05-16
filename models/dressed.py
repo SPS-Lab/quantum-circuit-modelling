@@ -188,7 +188,7 @@ def build_dressed_effective_computational_stack(
 
 
 
-def extract_model1_parameters_from_4x4_stack(
+def extract_effective_model_parameters_from_4x4_stack(
     H_eff: np.ndarray,
     *,
     zeta_tol: float = 1e-12,

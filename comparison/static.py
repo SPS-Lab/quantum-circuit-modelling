@@ -13,7 +13,7 @@ from models import (
     build_duffing_model_stack_from_parameters,
     build_effective_hamiltonian_stack,
     derive_effective_model_from_dressed_stack,
-    extract_model1_parameters_from_4x4_stack,
+    extract_effective_model_parameters_from_4x4_stack,
     fit_duffing_mode_parameters_to_reference,
     fit_symbolic_duffing_mode_parameters_to_reference,
     resolve_static_sweep_values,
@@ -247,8 +247,8 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     err_eff = _per_flux_rmse(E_eff, E_cir)
     err_duf = _per_flux_rmse(E_duf, E_cir)
 
-    params_duffing = extract_model1_parameters_from_4x4_stack(H_duffing_eff)
-    params_circuit = extract_model1_parameters_from_4x4_stack(H_circuit_eff)
+    params_duffing = extract_effective_model_parameters_from_4x4_stack(H_duffing_eff)
+    params_circuit = extract_effective_model_parameters_from_4x4_stack(H_circuit_eff)
 
     d1 = np.abs(params_circuit["w0"] - wc)
     d2 = np.abs(params_circuit["w1"] - wc)

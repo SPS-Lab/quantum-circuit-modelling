@@ -24,7 +24,7 @@ from comparison.static import StaticBenchmarkResult, run_static_benchmark
 import comparison.static as static_module
 import models.duffing as duffing_module
 from models import build_circuit_model_stack, build_duffing_model_stack
-from models.dressed import extract_model1_parameters_from_4x4_stack
+from models.dressed import extract_effective_model_parameters_from_4x4_stack
 from plotting.cz import plot_cz_benchmark
 from plotting.leakage_flow import plot_leakage_flow_benchmark
 from plotting.rx import plot_rx_diagnostics_benchmark, plot_rx_populations_benchmark
@@ -208,7 +208,7 @@ def test_effective_fit_is_compact_global_model() -> None:
     assert mismatch > 1e-3
 
 
-def test_extract_model1_parameters_gauge_fixes_exchange_phase() -> None:
+def test_extract_effective_model_parameters_gauge_fixes_exchange_phase() -> None:
     H = np.zeros((3, 4, 4), dtype=complex)
     for k, j in enumerate([0.05, -0.06, 0.04]):
         H[k, 1, 1] = 1.0
@@ -216,8 +216,8 @@ def test_extract_model1_parameters_gauge_fixes_exchange_phase() -> None:
         H[k, 1, 2] = 2.0 * j
         H[k, 2, 1] = 2.0 * j
 
-    params_raw = extract_model1_parameters_from_4x4_stack(H, gauge_fix_exchange=False)
-    params_fixed = extract_model1_parameters_from_4x4_stack(H, gauge_fix_exchange=True)
+    params_raw = extract_effective_model_parameters_from_4x4_stack(H, gauge_fix_exchange=False)
+    params_fixed = extract_effective_model_parameters_from_4x4_stack(H, gauge_fix_exchange=True)
 
     assert np.any(params_raw["J"] < 0.0)
     assert np.all(params_fixed["J"] >= 0.0)

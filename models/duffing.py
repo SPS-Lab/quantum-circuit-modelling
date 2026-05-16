@@ -10,7 +10,7 @@ import numpy as np
 
 from models.dressed import (
     build_dressed_effective_computational_stack,
-    extract_model1_parameters_from_4x4_stack,
+    extract_effective_model_parameters_from_4x4_stack,
 )
 from models.josephson import flux_dependent_EJ
 from models.sweep import resolve_static_sweep_values
@@ -527,7 +527,7 @@ def fit_duffing_mode_parameters_to_reference(
             key: np.asarray(values, dtype=float).ravel()
             for key, values in initial_mode_parameters.items()
         }
-    ref_params = extract_model1_parameters_from_4x4_stack(reference_dressed_stack)
+    ref_params = extract_effective_model_parameters_from_4x4_stack(reference_dressed_stack)
     n_q = int(duffing_config.hilbert_truncation.nlevels_qubit)
     n_c = int(duffing_config.hilbert_truncation.nlevels_coupler)
 
@@ -617,7 +617,7 @@ def fit_duffing_mode_parameters_to_reference(
                 n_candidate_states=n_candidate_states,
                 selection_mode=selection_mode,
             )
-            params = extract_model1_parameters_from_4x4_stack(dressed)
+            params = extract_effective_model_parameters_from_4x4_stack(dressed)
             obs = np.array(
                 [
                     float(params["w0"][0]),
@@ -710,7 +710,7 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         "g0c": np.asarray(initial["g0c"], dtype=float).ravel(),
         "g1c": np.asarray(initial["g1c"], dtype=float).ravel(),
     }
-    ref_params = extract_model1_parameters_from_4x4_stack(reference_dressed_stack)
+    ref_params = extract_effective_model_parameters_from_4x4_stack(reference_dressed_stack)
     n_q = int(duffing_config.hilbert_truncation.nlevels_qubit)
     n_c = int(duffing_config.hilbert_truncation.nlevels_coupler)
     # Calibrate the swept-side qubit and coupling more flexibly than the parked side.
@@ -779,7 +779,7 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
             n_candidate_states=n_candidate_states,
             selection_mode=selection_mode,
         )
-        params = extract_model1_parameters_from_4x4_stack(dressed)
+        params = extract_effective_model_parameters_from_4x4_stack(dressed)
         obs_res = np.concatenate(
             [
                 (np.asarray(params["w0"], dtype=float).ravel() - np.asarray(ref_params["w0"], dtype=float).ravel()) / obs_scale["w0"],
