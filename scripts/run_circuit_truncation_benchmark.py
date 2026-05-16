@@ -22,12 +22,40 @@ from plotting.truncation import plot_circuit_truncation_benchmark
 from study_config import load_study_config
 
 
+def _selected_sweeps_from_args(args: argparse.Namespace) -> tuple[str, ...]:
+    selected: list[str] = []
+    if args.only_ncut:
+        selected.append("ncut")
+    if args.only_qubit_dim:
+        selected.append("qubit")
+    if args.only_coupler_dim:
+        selected.append("coupler")
+    if not selected:
+        return ("ncut", "qubit", "coupler")
+    return tuple(selected)
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results", type=Path, default=None)
     parser.add_argument("--plot-only", action="store_true")
     parser.add_argument("--experiment-name", type=str, default=None)
     parser.add_argument("--output-root", type=Path, default=None)
+    parser.add_argument(
+        "--only-ncut",
+        action="store_true",
+        help="Run or plot only the charge-basis ncut sweep subplot.",
+    )
+    parser.add_argument(
+        "--only-qubit-dim",
+        action="store_true",
+        help="Run or plot only the qubit Hilbert-dimension sweep subplot.",
+    )
+    parser.add_argument(
+        "--only-coupler-dim",
+        action="store_true",
+        help="Run or plot only the coupler Hilbert-dimension sweep subplot.",
+    )
     return parser.parse_args()
 
 
@@ -35,6 +63,7 @@ def main() -> None:
     args = _parse_args()
     repo_root = _REPO_ROOT
     reporter = CliReporter(benchmark_name="circuit_truncation", script_name=Path(__file__).name)
+    selected_sweeps = _selected_sweeps_from_args(args)
     config = load_study_config(
         system_params_path=repo_root / "params" / "system_params.json",
         study_params_path=repo_root / "params" / "benchmark_params.json",
@@ -70,7 +99,7 @@ def main() -> None:
                 "Re-run without --plot-only to regenerate the results file."
             ) from exc
     else:
-        result = run_circuit_truncation_benchmark(config)
+        result = run_circuit_truncation_benchmark(config, selected_sweeps=selected_sweeps)
         save_result_hdf5(result, results_path, benchmark_name="circuit_truncation")
 
     plot_circuit_truncation_benchmark(result, figure_path)
@@ -79,49 +108,53 @@ def main() -> None:
         reporter.line(line)
     for line in build_circuit_truncation_benchmark_extra_lines(config):
         reporter.line(line)
+    reporter.line(f"Selected circuit truncation sweeps: {', '.join(selected_sweeps)}")
     reporter.line("Circuit truncation benchmark summary:")
     for key, value in result.summary.items():
         reporter.line(f"  {key}: {value:.6e}")
-    reporter.line("Circuit ncut sweep (RMSE in GHz):")
-    for ncut, qdim_eff, energy_rmse, j_err, zeta_err in zip(
-        result.circuit_ncut_values,
-        result.circuit_ncut_effective_qubit_truncated_dim_values,
-        result.circuit_ncut_energy_rmse,
-        result.circuit_ncut_j_abs_error,
-        result.circuit_ncut_zeta_abs_error,
-    ):
+    if result.circuit_ncut_values.size > 0:
+        reporter.line("Circuit ncut sweep (RMSE in GHz):")
+        for ncut, qdim_eff, energy_rmse, j_err, zeta_err in zip(
+            result.circuit_ncut_values,
+            result.circuit_ncut_effective_qubit_truncated_dim_values,
+            result.circuit_ncut_energy_rmse,
+            result.circuit_ncut_j_abs_error,
+            result.circuit_ncut_zeta_abs_error,
+        ):
+            reporter.line(
+                f"  ncut={int(ncut):4d}, qdim_eff={int(qdim_eff):3d}: "
+                f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+            )
+    if result.circuit_qubit_truncated_dim_values.size > 0:
         reporter.line(
-            f"  ncut={int(ncut):4d}, qdim_eff={int(qdim_eff):3d}: "
-            f"energy_rmse={float(energy_rmse):.6e}, |dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+            "Circuit qubit truncated-dim sweep "
+            f"(c fixed at {int(result.reference_circuit_coupler_truncated_dim)}; RMSE in GHz):"
         )
-    reporter.line(
-        "Circuit qubit truncated-dim sweep "
-        f"(c fixed at {int(result.reference_circuit_coupler_truncated_dim)}; RMSE in GHz):"
-    )
-    for qdim, energy_rmse, j_err, zeta_err in zip(
-        result.circuit_qubit_truncated_dim_values,
-        result.circuit_qubit_truncation_energy_rmse,
-        result.circuit_qubit_truncation_j_abs_error,
-        result.circuit_qubit_truncation_zeta_abs_error,
-    ):
+        for qdim, energy_rmse, j_err, zeta_err in zip(
+            result.circuit_qubit_truncated_dim_values,
+            result.circuit_qubit_truncation_energy_rmse,
+            result.circuit_qubit_truncation_j_abs_error,
+            result.circuit_qubit_truncation_zeta_abs_error,
+        ):
+            reporter.line(
+                f"  q={int(qdim):2d}: energy_rmse={float(energy_rmse):.6e}, "
+                f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+            )
+    if result.circuit_coupler_truncated_dim_values.size > 0:
         reporter.line(
-            f"  q={int(qdim):2d}: energy_rmse={float(energy_rmse):.6e}, "
-            f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+            "Circuit coupler truncated-dim sweep "
+            f"(q fixed at {int(result.reference_circuit_qubit_truncated_dim)}; RMSE in GHz):"
         )
-    reporter.line(
-        "Circuit coupler truncated-dim sweep "
-        f"(q fixed at {int(result.reference_circuit_qubit_truncated_dim)}; RMSE in GHz):"
-    )
-    for cdim, energy_rmse, j_err, zeta_err in zip(
-        result.circuit_coupler_truncated_dim_values,
-        result.circuit_coupler_truncation_energy_rmse,
-        result.circuit_coupler_truncation_j_abs_error,
-        result.circuit_coupler_truncation_zeta_abs_error,
-    ):
-        reporter.line(
-            f"  c={int(cdim):2d}: energy_rmse={float(energy_rmse):.6e}, "
-            f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
-        )
+        for cdim, energy_rmse, j_err, zeta_err in zip(
+            result.circuit_coupler_truncated_dim_values,
+            result.circuit_coupler_truncation_energy_rmse,
+            result.circuit_coupler_truncation_j_abs_error,
+            result.circuit_coupler_truncation_zeta_abs_error,
+        ):
+            reporter.line(
+                f"  c={int(cdim):2d}: energy_rmse={float(energy_rmse):.6e}, "
+                f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
+            )
     if args.plot_only:
         reporter.line(f"Loaded results: {results_path}")
     else:

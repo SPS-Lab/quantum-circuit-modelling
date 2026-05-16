@@ -634,13 +634,35 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
     )
 
 
-def _parse_circuit_truncation_benchmark(study_payload: dict[str, Any]) -> CircuitTruncationBenchmarkConfig:
-    tb = _require_dict(study_payload, "circuit_truncation_benchmark", "study")
-
-    flux_values_raw = _require_list(tb, "flux_values", "study.circuit_truncation_benchmark")
+def _resolve_truncation_flux_values(
+    benchmark_payload: dict[str, Any],
+    *,
+    path: str,
+    static_flux_sweep: FluxSweepConfig,
+) -> tuple[float, ...]:
+    flux_values_raw = benchmark_payload.get("flux_values")
+    if flux_values_raw is None:
+        return tuple(float(v) for v in build_flux_values(static_flux_sweep))
+    if not isinstance(flux_values_raw, list):
+        raise TypeError(f"{path}.flux_values must be a list")
     flux_values = tuple(float(v) for v in flux_values_raw)
     if len(flux_values) == 0:
-        raise ValueError("study.circuit_truncation_benchmark.flux_values must be non-empty")
+        raise ValueError(f"{path}.flux_values must be non-empty")
+    return flux_values
+
+
+def _parse_circuit_truncation_benchmark(
+    study_payload: dict[str, Any],
+    *,
+    static_flux_sweep: FluxSweepConfig,
+) -> CircuitTruncationBenchmarkConfig:
+    tb = _require_dict(study_payload, "circuit_truncation_benchmark", "study")
+
+    flux_values = _resolve_truncation_flux_values(
+        tb,
+        path="study.circuit_truncation_benchmark",
+        static_flux_sweep=static_flux_sweep,
+    )
     circuit_ncuts_raw = _require_list(tb, "circuit_ncut_values", "study.circuit_truncation_benchmark")
     circuit_ncuts = tuple(int(v) for v in circuit_ncuts_raw)
     if len(circuit_ncuts) == 0:
@@ -697,13 +719,18 @@ def _parse_circuit_truncation_benchmark(study_payload: dict[str, Any]) -> Circui
     )
 
 
-def _parse_duffing_truncation_benchmark(study_payload: dict[str, Any]) -> DuffingTruncationBenchmarkConfig:
+def _parse_duffing_truncation_benchmark(
+    study_payload: dict[str, Any],
+    *,
+    static_flux_sweep: FluxSweepConfig,
+) -> DuffingTruncationBenchmarkConfig:
     tb = _require_dict(study_payload, "duffing_truncation_benchmark", "study")
 
-    flux_values_raw = _require_list(tb, "flux_values", "study.duffing_truncation_benchmark")
-    flux_values = tuple(float(v) for v in flux_values_raw)
-    if len(flux_values) == 0:
-        raise ValueError("study.duffing_truncation_benchmark.flux_values must be non-empty")
+    flux_values = _resolve_truncation_flux_values(
+        tb,
+        path="study.duffing_truncation_benchmark",
+        static_flux_sweep=static_flux_sweep,
+    )
     ncuts_raw = _require_list(tb, "duffing_ncut_values", "study.duffing_truncation_benchmark")
     ncuts = tuple(int(v) for v in ncuts_raw)
     if len(ncuts) == 0:
@@ -1081,8 +1108,14 @@ def load_study_config(
         cz_benchmark=_parse_cz_benchmark(study_payload),
         rx_benchmark=_parse_rx_benchmark(study_payload),
         leakage_flow_benchmark=_parse_leakage_flow_benchmark(study_payload),
-        circuit_truncation_benchmark=_parse_circuit_truncation_benchmark(study_payload),
-        duffing_truncation_benchmark=_parse_duffing_truncation_benchmark(study_payload),
+        circuit_truncation_benchmark=_parse_circuit_truncation_benchmark(
+            study_payload,
+            static_flux_sweep=static_config.flux_sweep,
+        ),
+        duffing_truncation_benchmark=_parse_duffing_truncation_benchmark(
+            study_payload,
+            static_flux_sweep=static_config.flux_sweep,
+        ),
         runtime_benchmark=_parse_runtime_benchmark(study_payload),
     )
 

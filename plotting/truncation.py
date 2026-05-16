@@ -37,8 +37,8 @@ def _plot_metric_sweeps(
     xticklabels: list[str] | None = None,
 ) -> None:
     ax.plot(x, energy_rmse, marker="s", linewidth=1.6, label="$RMSE_E$")
-    ax.plot(x, j_abs_error, marker="^", linewidth=1.6, label="$|\Delta J|$")
-    ax.plot(x, zeta_abs_error, marker="d", linewidth=1.6, label="$|\Delta \zeta|$")
+    ax.plot(x, j_abs_error, marker="^", linewidth=1.6, label=r"$|\Delta J|$")
+    ax.plot(x, zeta_abs_error, marker="d", linewidth=1.6, label=r"$|\Delta \zeta|$")
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Error (GHz)")
     ax.set_title(title)
@@ -55,37 +55,63 @@ def plot_circuit_truncation_benchmark(
     *,
     font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
-    with benchmark_plot_style(font_size):
-        fig, (ax_ncut, ax_q, ax_c) = plt.subplots(3, 1, figsize=(7.2, 12.8))
+    subplot_specs: list[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None]] = []
+    if np.asarray(result.circuit_ncut_values).size > 0:
         n_q_values = _charge_basis_dim_from_ncut(result.circuit_ncut_values)
-        _plot_metric_sweeps(
-            ax_ncut,
-            x=n_q_values,
-            energy_rmse=np.asarray(result.circuit_ncut_energy_rmse, dtype=float),
-            j_abs_error=np.asarray(result.circuit_ncut_j_abs_error, dtype=float),
-            zeta_abs_error=np.asarray(result.circuit_ncut_zeta_abs_error, dtype=float),
-            xlabel=r"$N_Q$",
-            title=r"Qubit charge basis",
-            xticklabels=_integer_ticklabels(n_q_values),
+        subplot_specs.append(
+            (
+                n_q_values,
+                np.asarray(result.circuit_ncut_energy_rmse, dtype=float),
+                np.asarray(result.circuit_ncut_j_abs_error, dtype=float),
+                np.asarray(result.circuit_ncut_zeta_abs_error, dtype=float),
+                r"$N_Q$",
+                "Qubit charge basis",
+                _integer_ticklabels(n_q_values),
+            )
         )
-        _plot_metric_sweeps(
-            ax_q,
-            x=np.asarray(result.circuit_qubit_truncated_dim_values, dtype=float),
-            energy_rmse=np.asarray(result.circuit_qubit_truncation_energy_rmse, dtype=float),
-            j_abs_error=np.asarray(result.circuit_qubit_truncation_j_abs_error, dtype=float),
-            zeta_abs_error=np.asarray(result.circuit_qubit_truncation_zeta_abs_error, dtype=float),
-            xlabel="$N_{E,q}$",
-            title="Qubit energy basis",
+    if np.asarray(result.circuit_qubit_truncated_dim_values).size > 0:
+        subplot_specs.append(
+            (
+                np.asarray(result.circuit_qubit_truncated_dim_values, dtype=float),
+                np.asarray(result.circuit_qubit_truncation_energy_rmse, dtype=float),
+                np.asarray(result.circuit_qubit_truncation_j_abs_error, dtype=float),
+                np.asarray(result.circuit_qubit_truncation_zeta_abs_error, dtype=float),
+                "$N_{E,q}$",
+                "Qubit energy basis",
+                None,
+            )
         )
-        _plot_metric_sweeps(
-            ax_c,
-            x=np.asarray(result.circuit_coupler_truncated_dim_values, dtype=float),
-            energy_rmse=np.asarray(result.circuit_coupler_truncation_energy_rmse, dtype=float),
-            j_abs_error=np.asarray(result.circuit_coupler_truncation_j_abs_error, dtype=float),
-            zeta_abs_error=np.asarray(result.circuit_coupler_truncation_zeta_abs_error, dtype=float),
-            xlabel="$N_{E,c}$",
-            title="Coupler energy basis",
+    if np.asarray(result.circuit_coupler_truncated_dim_values).size > 0:
+        subplot_specs.append(
+            (
+                np.asarray(result.circuit_coupler_truncated_dim_values, dtype=float),
+                np.asarray(result.circuit_coupler_truncation_energy_rmse, dtype=float),
+                np.asarray(result.circuit_coupler_truncation_j_abs_error, dtype=float),
+                np.asarray(result.circuit_coupler_truncation_zeta_abs_error, dtype=float),
+                "$N_{E,c}$",
+                "Coupler energy basis",
+                None,
+            )
         )
+    if not subplot_specs:
+        raise ValueError("Circuit truncation plot requires at least one populated sweep")
+
+    with benchmark_plot_style(font_size):
+        fig_height = max(4.4, 4.2 * len(subplot_specs))
+        fig, axes = plt.subplots(len(subplot_specs), 1, figsize=(7.2, fig_height))
+        if not isinstance(axes, np.ndarray):
+            axes = np.asarray([axes], dtype=object)
+        for ax, (x, energy_rmse, j_abs_error, zeta_abs_error, xlabel, title, xticklabels) in zip(axes, subplot_specs):
+            _plot_metric_sweeps(
+                ax,
+                x=x,
+                energy_rmse=energy_rmse,
+                j_abs_error=j_abs_error,
+                zeta_abs_error=zeta_abs_error,
+                xlabel=xlabel,
+                title=title,
+                xticklabels=xticklabels,
+            )
         fig.suptitle("Circuit static truncation convergence")
         fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.94), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
         outfile.parent.mkdir(parents=True, exist_ok=True)

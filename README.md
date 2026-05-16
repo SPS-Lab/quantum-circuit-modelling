@@ -209,7 +209,8 @@ This reads settings from:
 - `params/benchmark_params.json` under `circuit_truncation_benchmark`
 
 This benchmark:
-- aggregates static RMSE over 5 configured flux points,
+- aggregates static RMSE over the full static flux sweep by default,
+- optionally accepts an explicit truncation-only `flux_values` list in `circuit_truncation_benchmark`,
 - sweeps circuit charge-basis `ncut`,
 - sweeps circuit dressed-space truncated dimensions `{qubit, coupler}`,
 - compares each sweep point to one strict circuit reference point,
@@ -232,7 +233,8 @@ This reads settings from:
 - `params/benchmark_params.json` under `duffing_truncation_benchmark`
 
 This benchmark:
-- aggregates static RMSE over 5 configured flux points,
+- aggregates static RMSE over the full static flux sweep by default,
+- optionally accepts an explicit truncation-only `flux_values` list in `duffing_truncation_benchmark`,
 - sweeps Duffing transmon calibration `ncut`,
 - clips the extraction basis per point to `min(duffing_truncated_dim, 2*ncut+1)`,
 - sweeps Duffing Hilbert-space truncated dimensions `{qubit, coupler}`,
