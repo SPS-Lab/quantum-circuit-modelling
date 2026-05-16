@@ -101,6 +101,7 @@ def _build_mode_parameter_arrays(
     duffing_config: DuffingModelConfig,
     sweep_target: str,
 ) -> dict[str, np.ndarray]:
+    """Build per-flux Duffing mode arrays, including transmon spectral extraction when needed."""
     flux_arr = np.asarray(flux_values, dtype=float).ravel()
     q0_flux_arr, q1_flux_arr, wc_arr = resolve_static_sweep_values(
         flux_arr,
@@ -109,8 +110,11 @@ def _build_mode_parameter_arrays(
         sweep_target=sweep_target,
     )
 
-    ncut = int(duffing_config.transmon_spectral_extraction.ncut) #Used to create scqubit transmon again since effective4x4 from circuit is not enough to see alpha etc.
-    trunc_dim = int(duffing_config.transmon_spectral_extraction.truncated_dim) #Also passed to scqubits.Transmon
+    # For the scqubits-backed calibration modes this is a substantive setup step:
+    # we rebuild transmon spectra at every flux point because the dressed 4x4
+    # reference stack does not expose latent quantities like alpha directly.
+    ncut = int(duffing_config.transmon_spectral_extraction.ncut)
+    trunc_dim = int(duffing_config.transmon_spectral_extraction.truncated_dim)
     calibration_mode = str(duffing_config.calibration_mode).strip().lower()
 
     EJ0_arr = np.asarray(
@@ -491,6 +495,7 @@ def fit_duffing_mode_parameters_to_reference(
     sweep_target: str,
     n_candidate_states: int,
     selection_mode: str,
+    initial_mode_parameters: Mapping[str, np.ndarray] | None = None,
     regularization_weight: float = 0.10,
     max_nfev: int = 80,
     progress_label: str | None = None,
@@ -499,13 +504,19 @@ def fit_duffing_mode_parameters_to_reference(
     """Fit latent Duffing parameters so static dressed observables track a reference stack."""
     from scipy.optimize import least_squares
 
-    initial = _build_mode_parameter_arrays(
-        flux_values,
-        system_params=system_params,
-        coupler_frequency=coupler_frequency,
-        duffing_config=duffing_config,
-        sweep_target=sweep_target,
-    )
+    if initial_mode_parameters is None:
+        initial = _build_mode_parameter_arrays(
+            flux_values,
+            system_params=system_params,
+            coupler_frequency=coupler_frequency,
+            duffing_config=duffing_config,
+            sweep_target=sweep_target,
+        )
+    else:
+        initial = {
+            key: np.asarray(values, dtype=float).ravel()
+            for key, values in initial_mode_parameters.items()
+        }
     ref_params = extract_model1_parameters_from_4x4_stack(reference_dressed_stack)
     n_q = int(duffing_config.hilbert_truncation.nlevels_qubit)
     n_c = int(duffing_config.hilbert_truncation.nlevels_coupler)
@@ -661,7 +672,7 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
     from scipy.optimize import least_squares
 
     flux_arr = np.asarray(flux_values, dtype=float).ravel()
-    initial = _build_mode_parameter_arrays( #TODO: Is this one always recomputed in fit_duffing_mode_parameters_to_reference? 
+    initial = _build_mode_parameter_arrays(
         flux_arr,
         system_params=system_params,
         coupler_frequency=coupler_frequency,
@@ -677,6 +688,7 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         sweep_target=sweep_target,
         n_candidate_states=n_candidate_states,
         selection_mode=selection_mode,
+        initial_mode_parameters=initial,
         max_nfev=pointwise_max_nfev,
         progress_label=(
             None if progress_label is None else f"{progress_label}: pointwise seed fit"

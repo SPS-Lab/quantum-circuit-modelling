@@ -22,6 +22,7 @@ from comparison.leakage_flow import run_leakage_flow_benchmark
 from comparison.rx import run_rx_benchmark
 from comparison.static import StaticBenchmarkResult, run_static_benchmark
 import comparison.static as static_module
+import models.duffing as duffing_module
 from models import build_circuit_model_stack, build_duffing_model_stack
 from models.dressed import extract_model1_parameters_from_4x4_stack
 from plotting.cz import plot_cz_benchmark
@@ -550,6 +551,37 @@ def test_duffing_symbolic_fitted_static_runs_and_exposes_symbolic_coefficients(t
     assert all(np.all(np.isfinite(values)) for values in out.duffing_symbolic_coefficients.values())
     for key, values in out.duffing_symbolic_coefficients.items():
         assert values.shape == out.duffing_symbolic_coefficient_names[key].shape
+
+
+def test_duffing_symbolic_fitted_static_reuses_initial_mode_parameter_arrays(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(
+        tmp_path,
+        coupler_amplitude=0.0,
+        sweep_target="q0",
+        duffing_calibration_mode="symbolic-fitted-static",
+    )
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+
+    original = duffing_module._build_mode_parameter_arrays
+    call_count = 0
+
+    def counting_build_mode_parameter_arrays(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(
+        duffing_module,
+        "_build_mode_parameter_arrays",
+        counting_build_mode_parameter_arrays,
+    )
+
+    run_static_benchmark(cfg)
+
+    assert call_count == 1
 
 
 def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
