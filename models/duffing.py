@@ -367,9 +367,8 @@ def _evaluate_parameter_coefficients_from_designs(
     coefficient_map: Mapping[str, np.ndarray],
     design_map: Mapping[str, np.ndarray],
     parameter_order: tuple[str, ...],
-    base_parameters: Mapping[str, np.ndarray],
 ) -> dict[str, np.ndarray]:
-    parameters = {name: np.asarray(values, dtype=float).ravel() for name, values in base_parameters.items()}
+    parameters: dict[str, np.ndarray] = {}
     for name in parameter_order:
         design = np.asarray(design_map[name], dtype=float)
         coeff = np.asarray(coefficient_map[name], dtype=float).ravel()
@@ -469,10 +468,6 @@ def evaluate_symbolic_duffing_parameter_fit(
         sweep_target=sweep_target,
         n_harmonics=inferred_harmonics,
     )
-    base_parameters = {
-        name: np.zeros(flux_arr.size, dtype=float)
-        for name in (*parameter_order, "wc")
-    }
     return _evaluate_parameter_coefficients_from_designs(
         coefficient_map={
             name: np.asarray(coefficients[name], dtype=float).ravel()
@@ -480,7 +475,6 @@ def evaluate_symbolic_duffing_parameter_fit(
         },
         design_map=design_map,
         parameter_order=parameter_order,
-        base_parameters=base_parameters,
     )
 
 
@@ -749,8 +743,8 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
             coefficient_map=coeff_map,
             design_map=design_map,
             parameter_order=parameter_order,
-            base_parameters=initial,
         )
+        symbolic_parameters["wc"] = np.asarray(initial["wc"], dtype=float).ravel()
         candidate = build_duffing_model_stack_from_parameters(
             symbolic_parameters,
             system_params=system_params,
@@ -803,8 +797,8 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         coefficient_map=coeff_best,
         design_map=design_map,
         parameter_order=parameter_order,
-        base_parameters=initial,
     )
+    fitted["wc"] = np.asarray(initial["wc"], dtype=float).ravel()
     coefficients = {
         name: np.asarray(values, dtype=float)
         for name, values in coeff_best.items()
