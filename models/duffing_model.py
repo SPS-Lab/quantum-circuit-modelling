@@ -170,50 +170,56 @@ def _reference_calibration_designs(
     flux_values: np.ndarray,
     *,
     sweep_target: str,
-    n_harmonics: int,
+    n_harmonics_w: int,
+    n_harmonics_alpha: int,
+    n_harmonics_g: int,
 ) -> tuple[tuple[str, ...], dict[str, np.ndarray], dict[str, np.ndarray]]:
-    cosine_design = _cosine_design_matrix(flux_values, n_harmonics=n_harmonics)
+    cosine_design_w = _cosine_design_matrix(flux_values, n_harmonics=n_harmonics_w)
+    cosine_design_alpha = _cosine_design_matrix(flux_values, n_harmonics=n_harmonics_alpha)
+    cosine_design_g = _cosine_design_matrix(flux_values, n_harmonics=n_harmonics_g)
     constant_design = _constant_design_matrix(flux_values)
-    cosine_names = _cosine_coefficient_names(n_harmonics=n_harmonics)
+    cosine_names_w = _cosine_coefficient_names(n_harmonics=n_harmonics_w)
+    cosine_names_alpha = _cosine_coefficient_names(n_harmonics=n_harmonics_alpha)
+    cosine_names_g = _cosine_coefficient_names(n_harmonics=n_harmonics_g)
     constant_names = np.asarray(["c0"], dtype=str)
     target = str(sweep_target).strip().lower()
 
     if target == "q1":
         design_map = {
             "w0": constant_design,
-            "w1": cosine_design,
+            "w1": cosine_design_w,
             "alpha0": constant_design,
-            "alpha1": cosine_design,
+            "alpha1": cosine_design_alpha,
             "wc": constant_design,
             "g0c": constant_design,
-            "g1c": cosine_design,
+            "g1c": cosine_design_g,
         }
         coefficient_names = {
             "w0": constant_names,
-            "w1": cosine_names,
+            "w1": cosine_names_w,
             "alpha0": constant_names,
-            "alpha1": cosine_names,
+            "alpha1": cosine_names_alpha,
             "wc": constant_names,
             "g0c": constant_names,
-            "g1c": cosine_names,
+            "g1c": cosine_names_g,
         }
     elif target == "q0":
         design_map = {
-            "w0": cosine_design,
+            "w0": cosine_design_w,
             "w1": constant_design,
-            "alpha0": cosine_design,
+            "alpha0": cosine_design_alpha,
             "alpha1": constant_design,
             "wc": constant_design,
-            "g0c": cosine_design,
+            "g0c": cosine_design_g,
             "g1c": constant_design,
         }
         coefficient_names = {
-            "w0": cosine_names,
+            "w0": cosine_names_w,
             "w1": constant_names,
-            "alpha0": cosine_names,
+            "alpha0": cosine_names_alpha,
             "alpha1": constant_names,
             "wc": constant_names,
-            "g0c": cosine_names,
+            "g0c": cosine_names_g,
             "g1c": constant_names,
         }
     else:
@@ -232,7 +238,9 @@ def evaluate_symbolic_duffing_parameter_fit(
 ) -> dict[str, np.ndarray]:
     """Evaluate the symbolic Duffing parameter curves at flux points."""
     flux_arr = np.asarray(flux_values, dtype=float).ravel()
-    inferred_harmonics = 0
+    inferred_harmonics_w = 0
+    inferred_harmonics_alpha = 0
+    inferred_harmonics_g = 0
     for name, labels in coefficient_names.items():
         if name not in coefficients:
             continue
@@ -240,14 +248,22 @@ def evaluate_symbolic_duffing_parameter_fit(
         for label in label_arr:
             if label.startswith("cos"):
                 try:
-                    inferred_harmonics = max(inferred_harmonics, int(label.removeprefix("cos")))
+                    harmonic = int(label.removeprefix("cos"))
                 except ValueError:
                     continue
+                if name in {"w0", "w1"}:
+                    inferred_harmonics_w = max(inferred_harmonics_w, harmonic)
+                elif name in {"alpha0", "alpha1"}:
+                    inferred_harmonics_alpha = max(inferred_harmonics_alpha, harmonic)
+                elif name in {"g0c", "g1c"}:
+                    inferred_harmonics_g = max(inferred_harmonics_g, harmonic)
 
     parameter_order, design_map, _ = _reference_calibration_designs(
         flux_arr,
         sweep_target=sweep_target,
-        n_harmonics=inferred_harmonics,
+        n_harmonics_w=inferred_harmonics_w,
+        n_harmonics_alpha=inferred_harmonics_alpha,
+        n_harmonics_g=inferred_harmonics_g,
     )
     available_order = tuple(
         name for name in parameter_order if name in coefficient_names and name in coefficients

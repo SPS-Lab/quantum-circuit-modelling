@@ -91,7 +91,9 @@ class DuffingHilbertTruncationConfig:
 
 @dataclass(frozen=True)
 class SymbolicDuffingFitConfig:
-    max_harmonics: int
+    max_harmonics_w: int
+    max_harmonics_alpha: int
+    max_harmonics_g: int
     pointwise_max_nfev: int
     refinement_max_nfev: int
     regularization_weight: float
@@ -508,9 +510,19 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
     if symbolic_fit_payload is not None:
         if not isinstance(symbolic_fit_payload, dict):
             raise TypeError("study.static_benchmark.duffing_model.symbolic_fit must be an object")
-        max_harmonics = _require_int(
+        max_harmonics_w = _require_int(
             symbolic_fit_payload,
-            "max_harmonics",
+            "max_harmonics_w",
+            "study.static_benchmark.duffing_model.symbolic_fit",
+        )
+        max_harmonics_alpha = _require_int(
+            symbolic_fit_payload,
+            "max_harmonics_alpha",
+            "study.static_benchmark.duffing_model.symbolic_fit",
+        )
+        max_harmonics_g = _require_int(
+            symbolic_fit_payload,
+            "max_harmonics_g",
             "study.static_benchmark.duffing_model.symbolic_fit",
         )
         pointwise_max_nfev = _require_int(
@@ -528,8 +540,18 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
             "regularization_weight",
             "study.static_benchmark.duffing_model.symbolic_fit",
         )
-        if max_harmonics < 1:
-            raise ValueError("study.static_benchmark.duffing_model.symbolic_fit.max_harmonics must be >= 1")
+        if max_harmonics_w < 1:
+            raise ValueError(
+                "study.static_benchmark.duffing_model.symbolic_fit.max_harmonics_w must be >= 1"
+            )
+        if max_harmonics_alpha < 1:
+            raise ValueError(
+                "study.static_benchmark.duffing_model.symbolic_fit.max_harmonics_alpha must be >= 1"
+            )
+        if max_harmonics_g < 1:
+            raise ValueError(
+                "study.static_benchmark.duffing_model.symbolic_fit.max_harmonics_g must be >= 1"
+            )
         if pointwise_max_nfev < 1:
             raise ValueError(
                 "study.static_benchmark.duffing_model.symbolic_fit.pointwise_max_nfev must be >= 1"
@@ -543,7 +565,9 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
                 "study.static_benchmark.duffing_model.symbolic_fit.regularization_weight must be >= 0"
             )
         symbolic_fit = SymbolicDuffingFitConfig(
-            max_harmonics=max_harmonics,
+            max_harmonics_w=max_harmonics_w,
+            max_harmonics_alpha=max_harmonics_alpha,
+            max_harmonics_g=max_harmonics_g,
             pointwise_max_nfev=pointwise_max_nfev,
             refinement_max_nfev=refinement_max_nfev,
             regularization_weight=regularization_weight,

@@ -382,7 +382,9 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
     sweep_target: str,
     n_candidate_states: int,
     selection_mode: str,
-    max_harmonics: int,
+    max_harmonics_w: int,
+    max_harmonics_alpha: int,
+    max_harmonics_g: int,
     pointwise_max_nfev: int,
     refinement_max_nfev: int,
     regularization_weight: float,
@@ -424,15 +426,31 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
     ref_params = extract_effective_model_parameters_from_4x4_stack(reference_dressed_stack)
     n_q = int(duffing_config.hilbert_truncation.nlevels_qubit)
     n_c = int(duffing_config.hilbert_truncation.nlevels_coupler)
-    n_harmonics = _select_symbolic_harmonic_count(flux_arr, max_harmonics=max_harmonics)
+    n_harmonics_w = _select_symbolic_harmonic_count(
+        flux_arr,
+        max_harmonics=max_harmonics_w,
+    )
+    n_harmonics_alpha = _select_symbolic_harmonic_count(
+        flux_arr,
+        max_harmonics=max_harmonics_alpha,
+    )
+    n_harmonics_g = _select_symbolic_harmonic_count(
+        flux_arr,
+        max_harmonics=max_harmonics_g,
+    )
     if progress_label is not None:
         log_progress(
-            f"{progress_label}: global symbolic refinement with {n_harmonics} harmonics over {flux_arr.size} flux points"
+            f"{progress_label}: global symbolic refinement with "
+            f"w harmonics={n_harmonics_w}, alpha harmonics={n_harmonics_alpha}, "
+            f"g harmonics={n_harmonics_g} "
+            f"over {flux_arr.size} flux points"
         )
     parameter_order, design_map, coefficient_names = _reference_calibration_designs(
         flux_arr,
         sweep_target=sweep_target,
-        n_harmonics=n_harmonics,
+        n_harmonics_w=n_harmonics_w,
+        n_harmonics_alpha=n_harmonics_alpha,
+        n_harmonics_g=n_harmonics_g,
     )
     x0, coeff_init = _fit_parameter_coefficients_from_designs(
         parameter_targets=pointwise_targets,

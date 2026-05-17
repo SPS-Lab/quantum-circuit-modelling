@@ -4,7 +4,9 @@
     "static_benchmark.circuit_model.transmon_charge_basis.q1_ncut": "Charge-basis cutoff used when constructing the scqubits q1 TunableTransmon for circuit-model benchmarks and helpers.",
     "static_benchmark.duffing_model.transmon_spectral_extraction.ncut": "Used when static_benchmark.duffing_model.calibration_mode is 'fixed', 'per-flux', 'fitted-static', or 'symbolic-fitted-static'. Ignored for 'analytic-per-flux'.",
     "static_benchmark.duffing_model.transmon_spectral_extraction.truncated_dim": "Used when static_benchmark.duffing_model.calibration_mode is 'fixed', 'per-flux', 'fitted-static', or 'symbolic-fitted-static'. Ignored for 'analytic-per-flux'.",
-    "static_benchmark.duffing_model.symbolic_fit.max_harmonics": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; controls the cosine basis size for the global surrogate.",
+    "static_benchmark.duffing_model.symbolic_fit.max_harmonics_w": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; controls the cosine basis size for the fitted w surrogate curves.",
+    "static_benchmark.duffing_model.symbolic_fit.max_harmonics_alpha": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; controls the cosine basis size for the fitted alpha surrogate curves.",
+    "static_benchmark.duffing_model.symbolic_fit.max_harmonics_g": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; controls the cosine basis size for the fitted g surrogate curves.",
     "static_benchmark.duffing_model.symbolic_fit.pointwise_max_nfev": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; maximum least-squares function evaluations per flux point in the seed fit.",
     "static_benchmark.duffing_model.symbolic_fit.refinement_max_nfev": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; maximum least-squares function evaluations for the global symbolic refinement.",
     "static_benchmark.duffing_model.symbolic_fit.regularization_weight": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; penalizes deviation from the pointwise seed fit during global refinement.",
@@ -61,7 +63,9 @@
             "truncated_dim": 12
           },
           "symbolic_fit": {
-            "max_harmonics": 5,
+            "max_harmonics_w": 5,
+            "max_harmonics_alpha": 5,
+            "max_harmonics_g": 5,
             "pointwise_max_nfev": 80,
             "refinement_max_nfev": 30,
             "regularization_weight": 0.02

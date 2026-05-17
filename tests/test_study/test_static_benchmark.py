@@ -136,7 +136,9 @@ def test_load_study_config(tmp_path: Path) -> None:
         "symbolic-fitted-static",
     }
     assert cfg.static_benchmark.duffing_model.symbolic_fit is not None
-    assert cfg.static_benchmark.duffing_model.symbolic_fit.max_harmonics >= 1
+    assert cfg.static_benchmark.duffing_model.symbolic_fit.max_harmonics_w >= 1
+    assert cfg.static_benchmark.duffing_model.symbolic_fit.max_harmonics_alpha >= 1
+    assert cfg.static_benchmark.duffing_model.symbolic_fit.max_harmonics_g >= 1
     assert cfg.static_benchmark.duffing_model.symbolic_fit.pointwise_max_nfev >= 1
     assert cfg.static_benchmark.duffing_model.symbolic_fit.refinement_max_nfev >= 1
     assert cfg.static_benchmark.duffing_model.symbolic_fit.regularization_weight >= 0.0
