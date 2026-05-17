@@ -6,6 +6,8 @@ import argparse
 from pathlib import Path
 import sys
 
+import numpy as np
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
@@ -61,6 +63,14 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help="Optional root directory for timestamped experiment runs.",
     )
+    parser.add_argument(
+        "--extra-sideplots",
+        action="store_true",
+        help=(
+            "Also compute and write the extra static side-plot PDFs "
+            "(raw energies, single-excitation overlaps, computational-basis amplitudes)."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -73,6 +83,15 @@ def _format_fit_line(name: str, coeff_names: object, coeffs: object) -> str:
         raise ValueError(f"Coefficient name/value mismatch for {name}: {labels!r} vs {values!r}")
     parts = ", ".join(f"{label}={value:.6e}" for label, value in zip(labels, values))
     return f"  {name}: {parts}"
+
+
+def _has_extra_sideplot_data(result: StaticBenchmarkResult) -> bool:
+    return (
+        np.asarray(result.circuit_computational_bare_overlaps).size > 0
+        and np.asarray(result.duffing_computational_bare_overlaps).size > 0
+        and np.asarray(result.circuit_tracked_branch_bare_amplitudes).size > 0
+        and np.asarray(result.duffing_tracked_branch_bare_amplitudes).size > 0
+    )
 
 
 def main() -> None:
@@ -119,7 +138,7 @@ def main() -> None:
                 "Re-run without --plot-only to regenerate the results file."
             ) from exc
     else:
-        result = run_static_benchmark(config)
+        result = run_static_benchmark(config, include_extra_sideplot_data=bool(args.extra_sideplots))
         save_result_hdf5(result, results_path, benchmark_name="static")
 
     title = (
@@ -127,13 +146,19 @@ def main() -> None:
         f"(effective source={config.static_benchmark.effective_model.derivation_source})"
     )
     plot_static_benchmark(result, figure_path, title)
-    plot_static_raw_energies(result, raw_figure_path, f"{title} [raw energies]")
-    plot_static_single_excitation_overlaps(result, overlap_figure_path, f"{title} [single-excitation overlaps]")
-    plot_static_computational_basis_amplitudes(
-        result,
-        basis_amplitude_figure_path,
-        f"{title} [computational basis amplitudes]",
-    )
+    if args.extra_sideplots:
+        if not _has_extra_sideplot_data(result):
+            raise ValueError(
+                "Extra side-plot data is not present in this static results file. "
+                "Re-run without --plot-only and with --extra-sideplots to generate it."
+            )
+        plot_static_raw_energies(result, raw_figure_path, f"{title} [raw energies]")
+        plot_static_single_excitation_overlaps(result, overlap_figure_path, f"{title} [single-excitation overlaps]")
+        plot_static_computational_basis_amplitudes(
+            result,
+            basis_amplitude_figure_path,
+            f"{title} [computational basis amplitudes]",
+        )
     fitted_artifact = build_static_fitted_models_artifact(result, config=config)
     fitted_json_path = run_paths.run_dir / "static_fitted_parameters.json"
     fitted_table_path = run_paths.run_dir / "static_fitted_parameters_table.tex"
@@ -202,9 +227,10 @@ def main() -> None:
     else:
         reporter.line(f"Wrote results: {results_path}")
     reporter.line(f"Wrote figure: {figure_path}")
-    reporter.line(f"Wrote raw-energy figure: {raw_figure_path}")
-    reporter.line(f"Wrote single-excitation overlap figure: {overlap_figure_path}")
-    reporter.line(f"Wrote computational-basis amplitude figure: {basis_amplitude_figure_path}")
+    if args.extra_sideplots:
+        reporter.line(f"Wrote raw-energy figure: {raw_figure_path}")
+        reporter.line(f"Wrote single-excitation overlap figure: {overlap_figure_path}")
+        reporter.line(f"Wrote computational-basis amplitude figure: {basis_amplitude_figure_path}")
     reporter.line(f"Wrote fitted-parameter artifact: {fitted_json_path}")
     reporter.line(f"Wrote LaTeX table: {fitted_table_path}")
     reporter.line(f"Wrote Markdown table: {fitted_markdown_path}")

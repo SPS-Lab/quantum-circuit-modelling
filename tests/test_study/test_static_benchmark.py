@@ -245,6 +245,30 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.effective_relative_energies.shape == (9, 4)
     assert out.duffing_relative_energies.shape == (9, 4)
     assert out.circuit_relative_energies.shape == (9, 4)
+    assert out.circuit_tracked_branch_bare_amplitudes.size == 0
+    assert out.duffing_tracked_branch_bare_amplitudes.size == 0
+    assert out.circuit_bare_state_labels.size == 0
+    assert out.duffing_bare_state_labels.size == 0
+    assert out.circuit_computational_bare_amplitudes.size == 0
+    assert out.duffing_computational_bare_amplitudes.size == 0
+    assert out.circuit_computational_bare_overlaps.size == 0
+    assert out.duffing_computational_bare_overlaps.size == 0
+    assert np.isfinite(float(np.mean(out.effective_error_rmse)))
+    assert np.isfinite(float(np.mean(out.duffing_error_rmse)))
+    assert float(out.summary["computational_excited_levels_compared"]) == 3.0
+    assert np.isfinite(float(out.summary["effective_computational_energy_rmse"]))
+    assert np.isfinite(float(out.summary["duffing_computational_energy_rmse"]))
+    assert np.isfinite(float(out.summary["duffing_truncation_style_energy_rmse"]))
+    assert np.isfinite(float(out.summary["effective_mean_abs_dJ"]))
+
+
+def test_static_benchmark_extra_sideplot_data_can_be_requested(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+
+    out = run_static_benchmark(cfg, include_extra_sideplot_data=True)
+
     assert out.circuit_tracked_branch_bare_amplitudes.ndim == 3
     assert out.duffing_tracked_branch_bare_amplitudes.ndim == 3
     assert out.circuit_tracked_branch_bare_amplitudes.shape[0] == 9
@@ -257,13 +281,6 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.duffing_computational_bare_amplitudes.shape == (9, 4, 4)
     assert np.iscomplexobj(out.circuit_computational_bare_amplitudes)
     assert np.iscomplexobj(out.duffing_computational_bare_amplitudes)
-    assert np.isfinite(float(np.mean(out.effective_error_rmse)))
-    assert np.isfinite(float(np.mean(out.duffing_error_rmse)))
-    assert float(out.summary["computational_excited_levels_compared"]) == 3.0
-    assert np.isfinite(float(out.summary["effective_computational_energy_rmse"]))
-    assert np.isfinite(float(out.summary["duffing_computational_energy_rmse"]))
-    assert np.isfinite(float(out.summary["duffing_truncation_style_energy_rmse"]))
-    assert np.isfinite(float(out.summary["effective_mean_abs_dJ"]))
     assert np.isfinite(float(out.summary["effective_mean_abs_dzeta"]))
     assert np.isfinite(float(out.summary["duffing_mean_abs_dJ"]))
     assert np.isfinite(float(out.summary["duffing_mean_abs_dzeta"]))

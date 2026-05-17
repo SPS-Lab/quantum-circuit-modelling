@@ -141,7 +141,11 @@ def _mean_abs_error(candidate: np.ndarray, reference: np.ndarray) -> float:
 
 
 
-def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
+def run_static_benchmark(
+    config: StudyConfig,
+    *,
+    include_extra_sideplot_data: bool = False,
+) -> StaticBenchmarkResult:
     flux_values = build_flux_values(config.static_benchmark.flux_sweep)
 
     with progress_heartbeat("static benchmark: build_circuit_model_stack"):
@@ -245,65 +249,75 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     duffing_q_dim = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit)
     duffing_c_dim = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler)
     duffing_overlap_subspace_idx = np.array([0, 1, duffing_c_dim * duffing_q_dim + 0, duffing_c_dim * duffing_q_dim + 1], dtype=int)
-    circuit_state_order_idx, circuit_state_labels = canonical_state_order_qcq(
-        nlevels_q0=circuit_q0_dim,
-        nlevels_coupler=circuit_c_dim,
-        nlevels_q1=circuit_q1_dim,
-    )
-    duffing_state_order_idx, duffing_state_labels = canonical_state_order_qcq(
-        nlevels_q0=duffing_q_dim,
-        nlevels_coupler=duffing_c_dim,
-    )
-    with progress_heartbeat("static benchmark: tracked_subspace_bare_overlaps, Circuit"):
-        circuit_comp_overlaps = tracked_subspace_bare_overlaps(
-            circuit.hamiltonian_stack,
-            subspace_indices=circuit_overlap_subspace_idx,
-            selection_mode=dressed_mode,
-            n_candidate_states=n_cand,
-            projector_blocks=((1, 2),),
+    if include_extra_sideplot_data:
+        circuit_state_order_idx, circuit_state_labels = canonical_state_order_qcq(
+            nlevels_q0=circuit_q0_dim,
+            nlevels_coupler=circuit_c_dim,
+            nlevels_q1=circuit_q1_dim,
         )
-    with progress_heartbeat("static benchmark: tracked_subspace_bare_amplitudes, Circuit"):
-        circuit_comp_amplitudes = tracked_subspace_bare_amplitudes(
-            circuit.hamiltonian_stack,
-            subspace_indices=circuit_overlap_subspace_idx,
-            selection_mode=dressed_mode,
-            n_candidate_states=n_cand,
-            projector_blocks=((1, 2),),
+        duffing_state_order_idx, duffing_state_labels = canonical_state_order_qcq(
+            nlevels_q0=duffing_q_dim,
+            nlevels_coupler=duffing_c_dim,
         )
-    with progress_heartbeat("static benchmark: tracked_bare_state_amplitudes, Circuit"):
-        circuit_branch_amplitudes = tracked_bare_state_amplitudes(
-            circuit.hamiltonian_stack,
-            tracked_state_indices=circuit_overlap_subspace_idx,
-            output_state_indices=circuit_state_order_idx,
-            selection_mode=dressed_mode,
-            n_candidate_states=n_cand,
-            projector_blocks=((1, 2),),
-        )
-    with progress_heartbeat("static benchmark: tracked_subspace_bare_overlaps, Duffing"):
-        duffing_comp_overlaps = tracked_subspace_bare_overlaps(
-            duffing.hamiltonian_stack,
-            subspace_indices=duffing_overlap_subspace_idx,
-            selection_mode=dressed_mode,
-            n_candidate_states=n_cand,
-            projector_blocks=((1, 2),),
-        )
-    with progress_heartbeat("static benchmark: tracked_subspace_bare_amplitudes, Duffing"):
-        duffing_comp_amplitudes = tracked_subspace_bare_amplitudes(
-            duffing.hamiltonian_stack,
-            subspace_indices=duffing_overlap_subspace_idx,
-            selection_mode=dressed_mode,
-            n_candidate_states=n_cand,
-            projector_blocks=((1, 2),),
-        )
-    with progress_heartbeat("static benchmark: tracked_bare_state_amplitudes, Duffing"):
-        duffing_branch_amplitudes = tracked_bare_state_amplitudes(
-            duffing.hamiltonian_stack,
-            tracked_state_indices=duffing_overlap_subspace_idx,
-            output_state_indices=duffing_state_order_idx,
-            selection_mode=dressed_mode,
-            n_candidate_states=n_cand,
-            projector_blocks=((1, 2),),
-        )
+        with progress_heartbeat("static benchmark: tracked_subspace_bare_overlaps, Circuit"):
+            circuit_comp_overlaps = tracked_subspace_bare_overlaps(
+                circuit.hamiltonian_stack,
+                subspace_indices=circuit_overlap_subspace_idx,
+                selection_mode=dressed_mode,
+                n_candidate_states=n_cand,
+                projector_blocks=((1, 2),),
+            )
+        with progress_heartbeat("static benchmark: tracked_subspace_bare_amplitudes, Circuit"):
+            circuit_comp_amplitudes = tracked_subspace_bare_amplitudes(
+                circuit.hamiltonian_stack,
+                subspace_indices=circuit_overlap_subspace_idx,
+                selection_mode=dressed_mode,
+                n_candidate_states=n_cand,
+                projector_blocks=((1, 2),),
+            )
+        with progress_heartbeat("static benchmark: tracked_bare_state_amplitudes, Circuit"):
+            circuit_branch_amplitudes = tracked_bare_state_amplitudes(
+                circuit.hamiltonian_stack,
+                tracked_state_indices=circuit_overlap_subspace_idx,
+                output_state_indices=circuit_state_order_idx,
+                selection_mode=dressed_mode,
+                n_candidate_states=n_cand,
+                projector_blocks=((1, 2),),
+            )
+        with progress_heartbeat("static benchmark: tracked_subspace_bare_overlaps, Duffing"):
+            duffing_comp_overlaps = tracked_subspace_bare_overlaps(
+                duffing.hamiltonian_stack,
+                subspace_indices=duffing_overlap_subspace_idx,
+                selection_mode=dressed_mode,
+                n_candidate_states=n_cand,
+                projector_blocks=((1, 2),),
+            )
+        with progress_heartbeat("static benchmark: tracked_subspace_bare_amplitudes, Duffing"):
+            duffing_comp_amplitudes = tracked_subspace_bare_amplitudes(
+                duffing.hamiltonian_stack,
+                subspace_indices=duffing_overlap_subspace_idx,
+                selection_mode=dressed_mode,
+                n_candidate_states=n_cand,
+                projector_blocks=((1, 2),),
+            )
+        with progress_heartbeat("static benchmark: tracked_bare_state_amplitudes, Duffing"):
+            duffing_branch_amplitudes = tracked_bare_state_amplitudes(
+                duffing.hamiltonian_stack,
+                tracked_state_indices=duffing_overlap_subspace_idx,
+                output_state_indices=duffing_state_order_idx,
+                selection_mode=dressed_mode,
+                n_candidate_states=n_cand,
+                projector_blocks=((1, 2),),
+            )
+    else:
+        circuit_state_labels = np.asarray([], dtype=str)
+        duffing_state_labels = np.asarray([], dtype=str)
+        circuit_comp_overlaps = np.empty((0,), dtype=float)
+        duffing_comp_overlaps = np.empty((0,), dtype=float)
+        circuit_comp_amplitudes = np.empty((0,), dtype=complex)
+        duffing_comp_amplitudes = np.empty((0,), dtype=complex)
+        circuit_branch_amplitudes = np.empty((0,), dtype=complex)
+        duffing_branch_amplitudes = np.empty((0,), dtype=complex)
 
     source = config.static_benchmark.effective_model.derivation_source
     if source == "duffing":
@@ -337,25 +351,28 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         name: np.asarray(derivation.parameter_fit.coefficients[name], dtype=float)
         for name in effective_fit_order
     }
-    H_effective = build_effective_hamiltonian_stack(effective_parameters)
+    with progress_heartbeat("static benchmark: build_effective_hamiltonian_stack"):
+        H_effective = build_effective_hamiltonian_stack(effective_parameters)
 
-    n_track = int(H_effective.shape[-1])
-    raw_E_eff = _raw_energies(H_effective, n_track=n_track, projector_track_single_excitation=True)
-    rel_E_eff = _relative_energies(H_effective, n_track=n_track, projector_track_single_excitation=True)
-    raw_E_duf = _raw_energies(H_duffing_eff, n_track=n_track, projector_track_single_excitation=True)
-    rel_E_duf = _relative_energies(H_duffing_eff, n_track=n_track, projector_track_single_excitation=True)
-    raw_E_cir = _raw_energies(H_circuit_eff, n_track=n_track, projector_track_single_excitation=True)
-    rel_E_cir = _relative_energies(H_circuit_eff, n_track=n_track, projector_track_single_excitation=True)
+    with progress_heartbeat("static benchmark: energies, eff"):
+        n_track = int(H_effective.shape[-1])
+        raw_E_eff = _raw_energies(H_effective, n_track=n_track, projector_track_single_excitation=True)
+        rel_E_eff = _relative_energies(H_effective, n_track=n_track, projector_track_single_excitation=True)
+        raw_E_duf = _raw_energies(H_duffing_eff, n_track=n_track, projector_track_single_excitation=True)
+        rel_E_duf = _relative_energies(H_duffing_eff, n_track=n_track, projector_track_single_excitation=True)
+        raw_E_cir = _raw_energies(H_circuit_eff, n_track=n_track, projector_track_single_excitation=True)
+        rel_E_cir = _relative_energies(H_circuit_eff, n_track=n_track, projector_track_single_excitation=True)
 
-    n_full_track = int(min(10, duffing.hamiltonian_stack.shape[1], circuit.hamiltonian_stack.shape[1]))
-    raw_E_duf_full = _raw_energies(duffing.hamiltonian_stack, n_track=n_full_track)
-    rel_E_duf_full = _relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
-    raw_E_cir_full = _raw_energies(circuit.hamiltonian_stack, n_track=n_full_track)
-    rel_E_cir_full = _relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
-    raw_E_duf_full_sorted = _sorted_raw_energies(duffing.hamiltonian_stack, n_track=n_full_track)
-    rel_E_duf_full_sorted = _sorted_relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
-    raw_E_cir_full_sorted = _sorted_raw_energies(circuit.hamiltonian_stack, n_track=n_full_track)
-    rel_E_cir_full_sorted = _sorted_relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
+    with progress_heartbeat("static benchmark: energies, full"):
+        n_full_track = int(min(10, duffing.hamiltonian_stack.shape[1], circuit.hamiltonian_stack.shape[1]))
+        raw_E_duf_full = _raw_energies(duffing.hamiltonian_stack, n_track=n_full_track)
+        rel_E_duf_full = _relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
+        raw_E_cir_full = _raw_energies(circuit.hamiltonian_stack, n_track=n_full_track)
+        rel_E_cir_full = _relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
+        raw_E_duf_full_sorted = _sorted_raw_energies(duffing.hamiltonian_stack, n_track=n_full_track)
+        rel_E_duf_full_sorted = _sorted_relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
+        raw_E_cir_full_sorted = _sorted_raw_energies(circuit.hamiltonian_stack, n_track=n_full_track)
+        rel_E_cir_full_sorted = _sorted_relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
 
     err_raw_E_eff = _per_flux_rmse(raw_E_eff, raw_E_cir)
     err_rel_E_eff = _per_flux_rmse(rel_E_eff, rel_E_cir)

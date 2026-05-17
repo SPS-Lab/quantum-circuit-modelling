@@ -73,7 +73,7 @@ def materialize_static_companion_artifacts(
                 "Re-run the truncation benchmark without --plot-only to regenerate the companion static results."
             ) from exc
     else:
-        result = run_static_benchmark(config)
+        result = run_static_benchmark(config, include_extra_sideplot_data=True)
         save_result_hdf5(result, paths.results_path, benchmark_name="static")
 
     title = (
