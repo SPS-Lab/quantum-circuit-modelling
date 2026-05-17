@@ -573,12 +573,14 @@ def test_duffing_symbolic_fitted_static_runs_and_exposes_symbolic_coefficients(t
     )
     out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
     assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
-    assert set(out.duffing_symbolic_coefficient_names) == {"w0", "w1", "alpha0", "alpha1", "g0c", "g1c"}
-    assert set(out.duffing_symbolic_coefficients) == {"w0", "w1", "alpha0", "alpha1", "g0c", "g1c"}
+    assert set(out.duffing_symbolic_coefficient_names) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
+    assert set(out.duffing_symbolic_coefficients) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
     assert all(np.all(np.isfinite(values)) for values in out.duffing_mode_parameters.values())
     assert all(np.all(np.isfinite(values)) for values in out.duffing_symbolic_coefficients.values())
     for key, values in out.duffing_symbolic_coefficients.items():
         assert values.shape == out.duffing_symbolic_coefficient_names[key].shape
+    assert out.duffing_symbolic_coefficient_names["wc"].shape == (1,)
+    assert out.duffing_symbolic_coefficient_names["wc"][0] == "c0"
 
 
 def test_duffing_symbolic_fitted_static_reuses_initial_mode_parameter_arrays(
@@ -657,7 +659,7 @@ def test_symbolic_duffing_evaluator_returns_symbolic_parameters_only(tmp_path: P
         coefficient_names=out.duffing_symbolic_coefficient_names,
         coefficients=out.duffing_symbolic_coefficients,
     )
-    assert set(symbolic_parameters) == {"w0", "w1", "alpha0", "alpha1", "g0c", "g1c"}
+    assert set(symbolic_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
 
     full_parameters = evaluate_symbolic_duffing_mode_parameters(
         out.flux_values,
@@ -667,7 +669,7 @@ def test_symbolic_duffing_evaluator_returns_symbolic_parameters_only(tmp_path: P
         coefficients=out.duffing_symbolic_coefficients,
     )
     assert set(full_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
-    assert np.allclose(full_parameters["wc"], cfg.system.c.E_osc)
+    assert np.allclose(full_parameters["wc"], out.duffing_mode_parameters["wc"])
 
 
 def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:

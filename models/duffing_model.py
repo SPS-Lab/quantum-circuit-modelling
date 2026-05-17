@@ -184,6 +184,7 @@ def _reference_calibration_designs(
             "w1": cosine_design,
             "alpha0": constant_design,
             "alpha1": cosine_design,
+            "wc": constant_design,
             "g0c": constant_design,
             "g1c": cosine_design,
         }
@@ -192,6 +193,7 @@ def _reference_calibration_designs(
             "w1": cosine_names,
             "alpha0": constant_names,
             "alpha1": cosine_names,
+            "wc": constant_names,
             "g0c": constant_names,
             "g1c": cosine_names,
         }
@@ -201,6 +203,7 @@ def _reference_calibration_designs(
             "w1": constant_design,
             "alpha0": cosine_design,
             "alpha1": constant_design,
+            "wc": constant_design,
             "g0c": cosine_design,
             "g1c": constant_design,
         }
@@ -209,13 +212,14 @@ def _reference_calibration_designs(
             "w1": constant_names,
             "alpha0": cosine_names,
             "alpha1": constant_names,
+            "wc": constant_names,
             "g0c": cosine_names,
             "g1c": constant_names,
         }
     else:
         raise ValueError(f"Unsupported sweep_target {sweep_target!r}")
 
-    parameter_order = ("w0", "w1", "alpha0", "alpha1", "g0c", "g1c")
+    parameter_order = ("w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c")
     return parameter_order, design_map, coefficient_names
 
 
@@ -226,7 +230,7 @@ def evaluate_symbolic_duffing_parameter_fit(
     coefficient_names: Mapping[str, np.ndarray],
     coefficients: Mapping[str, np.ndarray],
 ) -> dict[str, np.ndarray]:
-    """Evaluate the six symbolic Duffing parameter curves at flux points."""
+    """Evaluate the symbolic Duffing parameter curves at flux points."""
     flux_arr = np.asarray(flux_values, dtype=float).ravel()
     inferred_harmonics = 0
     for name, labels in coefficient_names.items():
@@ -245,13 +249,16 @@ def evaluate_symbolic_duffing_parameter_fit(
         sweep_target=sweep_target,
         n_harmonics=inferred_harmonics,
     )
+    available_order = tuple(
+        name for name in parameter_order if name in coefficient_names and name in coefficients
+    )
     return _evaluate_parameter_coefficients_from_designs(
         coefficient_map={
             name: np.asarray(coefficients[name], dtype=float).ravel()
-            for name in parameter_order
+            for name in available_order
         },
         design_map=design_map,
-        parameter_order=parameter_order,
+        parameter_order=available_order,
     )
 
 
@@ -270,7 +277,10 @@ def _assemble_fixed_bus_duffing_mode_parameters(
     reference_shape = next(iter(parameters.values())).shape
     if any(np.asarray(values, dtype=float).ravel().shape != reference_shape for values in parameters.values()):
         raise ValueError("All Duffing symbolic parameter arrays must share the same shape")
-    parameters["wc"] = np.full(reference_shape, float(system_params.c.E_osc), dtype=float)
+    if "wc" in parameters:
+        parameters["wc"] = np.asarray(parameters["wc"], dtype=float).ravel()
+    else:
+        parameters["wc"] = np.full(reference_shape, float(system_params.c.E_osc), dtype=float)
     return parameters
 
 

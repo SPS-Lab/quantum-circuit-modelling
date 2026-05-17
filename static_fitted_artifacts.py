@@ -168,7 +168,7 @@ def build_static_fitted_latex_table(
                 label="Duffing parameter",
                 coefficient_names=artifact.duffing_symbolic_coefficient_names,
                 coefficients=artifact.duffing_symbolic_coefficients,
-                parameter_order=("w0", "w1", "alpha0", "alpha1", "g0c", "g1c"),
+                parameter_order=("w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"),
                 provenance_lines=_build_provenance_comment_lines(
                     git_info=git_info,
                     experiment_folder_name=experiment_folder_name,
@@ -211,7 +211,7 @@ def build_static_fitted_markdown_table(
                 label="Duffing parameter",
                 coefficient_names=artifact.duffing_symbolic_coefficient_names,
                 coefficients=artifact.duffing_symbolic_coefficients,
-                parameter_order=("w0", "w1", "alpha0", "alpha1", "g0c", "g1c"),
+                parameter_order=("w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"),
                 provenance_lines=_build_provenance_comment_lines(
                     git_info=git_info,
                     experiment_folder_name=experiment_folder_name,

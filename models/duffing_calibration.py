@@ -417,6 +417,7 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         "w1": np.asarray(pointwise["w1"], dtype=float).ravel(),
         "alpha0": np.asarray(pointwise["alpha0"], dtype=float).ravel(),
         "alpha1": np.asarray(pointwise["alpha1"], dtype=float).ravel(),
+        "wc": np.asarray(initial["wc"], dtype=float).ravel(),
         "g0c": np.asarray(initial["g0c"], dtype=float).ravel(),
         "g1c": np.asarray(initial["g1c"], dtype=float).ravel(),
     }
@@ -451,6 +452,7 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         "w1": np.maximum(np.abs(np.asarray(pointwise_targets["w1"], dtype=float).ravel()), 1.0),
         "alpha0": np.maximum(np.abs(np.asarray(pointwise_targets["alpha0"], dtype=float).ravel()), 0.25),
         "alpha1": np.maximum(np.abs(np.asarray(pointwise_targets["alpha1"], dtype=float).ravel()), 0.25),
+        "wc": np.maximum(np.abs(np.asarray(pointwise_targets["wc"], dtype=float).ravel()), 1.0),
         "g0c": np.maximum(np.abs(np.asarray(pointwise_targets["g0c"], dtype=float).ravel()), 1e-3),
         "g1c": np.maximum(np.abs(np.asarray(pointwise_targets["g1c"], dtype=float).ravel()), 1e-3),
     }
@@ -503,6 +505,7 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
                 (np.asarray(full_mode_parameters["w1"], dtype=float).ravel() - np.asarray(pointwise_targets["w1"], dtype=float).ravel()) / latent_scale["w1"],
                 (np.asarray(full_mode_parameters["alpha0"], dtype=float).ravel() - np.asarray(pointwise_targets["alpha0"], dtype=float).ravel()) / latent_scale["alpha0"],
                 (np.asarray(full_mode_parameters["alpha1"], dtype=float).ravel() - np.asarray(pointwise_targets["alpha1"], dtype=float).ravel()) / latent_scale["alpha1"],
+                (np.asarray(full_mode_parameters["wc"], dtype=float).ravel() - np.asarray(pointwise_targets["wc"], dtype=float).ravel()) / latent_scale["wc"],
                 (np.asarray(full_mode_parameters["g0c"], dtype=float).ravel() - np.asarray(pointwise_targets["g0c"], dtype=float).ravel()) / latent_scale["g0c"],
                 (np.asarray(full_mode_parameters["g1c"], dtype=float).ravel() - np.asarray(pointwise_targets["g1c"], dtype=float).ravel()) / latent_scale["g1c"],
             ]
