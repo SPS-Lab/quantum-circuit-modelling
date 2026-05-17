@@ -254,50 +254,52 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         nlevels_q0=duffing_q_dim,
         nlevels_coupler=duffing_c_dim,
     )
-    circuit_comp_overlaps = tracked_subspace_bare_overlaps(
-        circuit.hamiltonian_stack,
-        subspace_indices=circuit_overlap_subspace_idx,
-        selection_mode=dressed_mode,
-        n_candidate_states=n_cand,
-        projector_blocks=((1, 2),),
-    )
-    circuit_comp_amplitudes = tracked_subspace_bare_amplitudes(
-        circuit.hamiltonian_stack,
-        subspace_indices=circuit_overlap_subspace_idx,
-        selection_mode=dressed_mode,
-        n_candidate_states=n_cand,
-        projector_blocks=((1, 2),),
-    )
-    circuit_branch_amplitudes = tracked_bare_state_amplitudes(
-        circuit.hamiltonian_stack,
-        tracked_state_indices=circuit_overlap_subspace_idx,
-        output_state_indices=circuit_state_order_idx,
-        selection_mode=dressed_mode,
-        n_candidate_states=n_cand,
-        projector_blocks=((1, 2),),
-    )
-    duffing_comp_overlaps = tracked_subspace_bare_overlaps(
-        duffing.hamiltonian_stack,
-        subspace_indices=duffing_overlap_subspace_idx,
-        selection_mode=dressed_mode,
-        n_candidate_states=n_cand,
-        projector_blocks=((1, 2),),
-    )
-    duffing_comp_amplitudes = tracked_subspace_bare_amplitudes(
-        duffing.hamiltonian_stack,
-        subspace_indices=duffing_overlap_subspace_idx,
-        selection_mode=dressed_mode,
-        n_candidate_states=n_cand,
-        projector_blocks=((1, 2),),
-    )
-    duffing_branch_amplitudes = tracked_bare_state_amplitudes(
-        duffing.hamiltonian_stack,
-        tracked_state_indices=duffing_overlap_subspace_idx,
-        output_state_indices=duffing_state_order_idx,
-        selection_mode=dressed_mode,
-        n_candidate_states=n_cand,
-        projector_blocks=((1, 2),),
-    )
+    with progress_heartbeat("static benchmark: tracking subspace bare overlaps and amplitudes, Circuit"):
+        circuit_comp_overlaps = tracked_subspace_bare_overlaps(
+            circuit.hamiltonian_stack,
+            subspace_indices=circuit_overlap_subspace_idx,
+            selection_mode=dressed_mode,
+            n_candidate_states=n_cand,
+            projector_blocks=((1, 2),),
+        )
+        circuit_comp_amplitudes = tracked_subspace_bare_amplitudes(
+            circuit.hamiltonian_stack,
+            subspace_indices=circuit_overlap_subspace_idx,
+            selection_mode=dressed_mode,
+            n_candidate_states=n_cand,
+            projector_blocks=((1, 2),),
+        )
+        circuit_branch_amplitudes = tracked_bare_state_amplitudes(
+            circuit.hamiltonian_stack,
+            tracked_state_indices=circuit_overlap_subspace_idx,
+            output_state_indices=circuit_state_order_idx,
+            selection_mode=dressed_mode,
+            n_candidate_states=n_cand,
+            projector_blocks=((1, 2),),
+        )
+    with progress_heartbeat("static benchmark: tracking subspace bare overlaps and amplitudes, Duffing"):
+        duffing_comp_overlaps = tracked_subspace_bare_overlaps(
+            duffing.hamiltonian_stack,
+            subspace_indices=duffing_overlap_subspace_idx,
+            selection_mode=dressed_mode,
+            n_candidate_states=n_cand,
+            projector_blocks=((1, 2),),
+        )
+        duffing_comp_amplitudes = tracked_subspace_bare_amplitudes(
+            duffing.hamiltonian_stack,
+            subspace_indices=duffing_overlap_subspace_idx,
+            selection_mode=dressed_mode,
+            n_candidate_states=n_cand,
+            projector_blocks=((1, 2),),
+        )
+        duffing_branch_amplitudes = tracked_bare_state_amplitudes(
+            duffing.hamiltonian_stack,
+            tracked_state_indices=duffing_overlap_subspace_idx,
+            output_state_indices=duffing_state_order_idx,
+            selection_mode=dressed_mode,
+            n_candidate_states=n_cand,
+            projector_blocks=((1, 2),),
+        )
 
     source = config.static_benchmark.effective_model.derivation_source
     if source == "duffing":
