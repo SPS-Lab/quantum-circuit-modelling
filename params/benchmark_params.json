@@ -64,8 +64,8 @@
           },
           "symbolic_fit": {
             "max_harmonics_w": 5,
-            "max_harmonics_alpha": 5,
-            "max_harmonics_g": 5,
+            "max_harmonics_alpha": 3,
+            "max_harmonics_g": 2,
             "pointwise_max_nfev": 80,
             "refinement_max_nfev": 30,
             "regularization_weight": 0.02
