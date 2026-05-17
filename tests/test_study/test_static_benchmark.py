@@ -453,6 +453,7 @@ def test_truncation_static_companion_materializes_artifacts(tmp_path: Path) -> N
     assert paths.results_path.exists()
     assert paths.figure_path.exists()
     assert paths.raw_figure_path.exists()
+    assert paths.overlap_figure_path.exists()
     assert paths.fitted_json_path.exists()
     assert paths.fitted_table_path.exists()
 

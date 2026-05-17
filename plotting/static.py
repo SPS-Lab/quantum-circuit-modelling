@@ -220,3 +220,51 @@ def plot_static_raw_energies(
         outfile.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(outfile, format="pdf")
         plt.close(fig)
+
+
+def plot_static_single_excitation_overlaps(
+    result: StaticBenchmarkResult,
+    outfile: Path,
+    title: str,
+    font_size: float = DEFAULT_PLOT_FONT_SIZE,
+) -> None:
+    flux = np.asarray(result.flux_values, dtype=float)
+
+    with benchmark_plot_style(font_size):
+        fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.6), sharex=True, sharey=True)
+        panels = (
+            ("circuit", axes[0], np.asarray(result.circuit_computational_bare_overlaps, dtype=float)),
+            ("duffing", axes[1], np.asarray(result.duffing_computational_bare_overlaps, dtype=float)),
+        )
+        bare_labels = (r"$|01\rangle$", r"$|10\rangle$")
+        branch_labels = (r"$E_{1}$ branch", r"$E_{2}$ branch")
+        colors = ("C0", "C1")
+        linestyles = ("-", "--")
+
+        for model_name, ax, overlaps in panels:
+            for bare_idx, bare_label in enumerate(bare_labels, start=1):
+                for branch_offset, branch_label in enumerate(branch_labels, start=1):
+                    ax.plot(
+                        flux,
+                        overlaps[:, bare_idx, branch_offset],
+                        color=colors[bare_idx - 1],
+                        linestyle=linestyles[branch_offset - 1],
+                        linewidth=1.8,
+                        label=f"{branch_label} vs {bare_label}",
+                    )
+            ax.set_title(model_name)
+            ax.set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
+            ax.set_ylim(-0.02, 1.02)
+            ax.grid(True, alpha=0.3)
+
+        axes[0].set_ylabel(r"Bare overlap $|\langle \mathrm{bare} | \mathrm{dressed} \rangle|^2$")
+        axes[1].legend(loc="upper center", bbox_to_anchor=(0.5, 1.02), ncol=2, framealpha=0.9)
+        fig.tight_layout(
+            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
+            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
+            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
+        )
+
+        outfile.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(outfile, format="pdf")
+        plt.close(fig)

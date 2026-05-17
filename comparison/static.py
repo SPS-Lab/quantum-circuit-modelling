@@ -18,6 +18,7 @@ from models import (
     fit_duffing_mode_parameters_to_reference,
     fit_symbolic_duffing_mode_parameters_to_reference,
     resolve_static_sweep_values,
+    tracked_subspace_bare_overlaps,
 )
 from study_config import StudyConfig, build_flux_values
 from runtime_utils import progress_heartbeat
@@ -47,6 +48,8 @@ class StaticBenchmarkResult:
     duffing_symbolic_coefficients: dict[str, np.ndarray]
     duffing_parameters: dict[str, np.ndarray]
     circuit_parameters: dict[str, np.ndarray]
+    duffing_computational_bare_overlaps: np.ndarray
+    circuit_computational_bare_overlaps: np.ndarray
     detuning_ratio: np.ndarray
     idle_mask: np.ndarray
     near_mask: np.ndarray
@@ -224,6 +227,26 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
             selection_mode=dressed_mode,
             n_candidate_states=n_cand,
         )
+    circuit_q0_dim = int(config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim)
+    circuit_c_dim = int(config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim)
+    circuit_overlap_subspace_idx = np.array([0, 1, circuit_c_dim * circuit_q0_dim + 0, circuit_c_dim * circuit_q0_dim + 1], dtype=int)
+    duffing_q_dim = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit)
+    duffing_c_dim = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler)
+    duffing_overlap_subspace_idx = np.array([0, 1, duffing_c_dim * duffing_q_dim + 0, duffing_c_dim * duffing_q_dim + 1], dtype=int)
+    circuit_comp_overlaps = tracked_subspace_bare_overlaps(
+        circuit.hamiltonian_stack,
+        subspace_indices=circuit_overlap_subspace_idx,
+        selection_mode=dressed_mode,
+        n_candidate_states=n_cand,
+        projector_blocks=((1, 2),),
+    )
+    duffing_comp_overlaps = tracked_subspace_bare_overlaps(
+        duffing.hamiltonian_stack,
+        subspace_indices=duffing_overlap_subspace_idx,
+        selection_mode=dressed_mode,
+        n_candidate_states=n_cand,
+        projector_blocks=((1, 2),),
+    )
 
     source = config.static_benchmark.effective_model.derivation_source
     if source == "duffing":
@@ -405,6 +428,8 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         },
         duffing_parameters=params_duffing,
         circuit_parameters=params_circuit,
+        duffing_computational_bare_overlaps=np.asarray(duffing_comp_overlaps, dtype=float),
+        circuit_computational_bare_overlaps=np.asarray(circuit_comp_overlaps, dtype=float),
         detuning_ratio=np.asarray(detuning_ratio, dtype=float),
         idle_mask=np.asarray(idle_mask, dtype=bool),
         near_mask=np.asarray(near_mask, dtype=bool),
