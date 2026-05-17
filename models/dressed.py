@@ -28,24 +28,24 @@ def _validate_projector_blocks(
     projector_blocks: tuple[tuple[int, ...], ...] | None,
     *,
     m: int,
-) -> tuple[tuple[int, ...], ...]:
+) -> None:
     if projector_blocks is None:
-        return tuple()
+        return
 
-    normalized: list[tuple[int, ...]] = []
     seen: set[int] = set()
     for block in projector_blocks:
         rows = tuple(int(r) for r in block)
         if len(rows) < 2:
-            continue
+            raise ValueError(
+                f"each projector block must contain at least two rows; got {len(rows)} rows"
+            )
         for r in rows:
             if r < 0 or r >= m:
                 raise ValueError(f"projector block row {r} out of bounds for m={m}")
             if r in seen:
                 raise ValueError(f"projector blocks must be disjoint; repeated row {r}")
             seen.add(r)
-        normalized.append(rows)
-    return tuple(normalized)
+    return
 
 
 def _assignment_with_projector_blocks(
@@ -130,7 +130,8 @@ def build_dressed_effective_stack(
         )
 
     n_cand = max(m, min(int(n_candidate_states), d))
-    projector_blocks = _validate_projector_blocks(projector_blocks, m=m)
+    _validate_projector_blocks(projector_blocks, m=m)
+    projector_blocks = tuple() if projector_blocks is None else projector_blocks
     H_eff = np.empty((n_flux, m, m), dtype=complex)
     prev_selected_full: np.ndarray | None = None
 
@@ -194,7 +195,8 @@ def tracked_subspace_bare_overlaps(
         )
 
     n_cand = max(m, min(int(n_candidate_states), d))
-    projector_blocks = _validate_projector_blocks(projector_blocks, m=m)
+    _validate_projector_blocks(projector_blocks, m=m)
+    projector_blocks = tuple() if projector_blocks is None else projector_blocks
     overlaps_out = np.empty((n_flux, m, m), dtype=float)
     prev_selected_full: np.ndarray | None = None
 

@@ -75,23 +75,23 @@ def _validate_projector_blocks(
     *,
     projector_blocks: tuple[tuple[int, ...], ...] | None,
     n_track: int,
-) -> tuple[tuple[int, ...], ...]:
+) -> None:
     if projector_blocks is None:
-        return tuple()
+        return
     seen: set[int] = set()
-    normalized: list[tuple[int, ...]] = []
     for block in projector_blocks:
         rows = tuple(int(r) for r in block)
         if len(rows) < 2:
-            continue
+            raise ValueError(
+                f"each projector block must contain at least two rows; got {len(rows)} rows"
+            )
         for r in rows:
             if r < 0 or r >= n_track:
                 raise ValueError(f"projector block row {r} out of bounds for n_track={n_track}")
             if r in seen:
                 raise ValueError(f"projector blocks must be disjoint; repeated row {r}")
             seen.add(r)
-        normalized.append(rows)
-    return tuple(normalized)
+    return
 
 
 def _assignment_with_projector_blocks(
@@ -169,7 +169,8 @@ def track_energy_levels_stack(
     n_track = int(n_track)
     if n_track < 1 or n_track > d:
         raise ValueError(f"n_track must be in [1, d], d={d}, got {n_track}")
-    projector_blocks = _validate_projector_blocks(projector_blocks=projector_blocks, n_track=n_track)
+    _validate_projector_blocks(projector_blocks=projector_blocks, n_track=n_track)
+    projector_blocks = tuple() if projector_blocks is None else projector_blocks
 
     # If every slice is the same (no parameter variation), overlap tracking is ill-defined:
     # `eigh` can rotate degenerate subspaces and the Hungarian step permutes labels vs index.
