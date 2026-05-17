@@ -25,6 +25,7 @@ from plotting.static import (
 )
 from static_fitted_artifacts import (
     build_static_fitted_latex_table,
+    build_static_fitted_markdown_table,
     build_static_fitted_models_artifact,
     save_static_fitted_models_artifact,
 )
@@ -136,10 +137,19 @@ def main() -> None:
     fitted_artifact = build_static_fitted_models_artifact(result, config=config)
     fitted_json_path = run_paths.run_dir / "static_fitted_parameters.json"
     fitted_table_path = run_paths.run_dir / "static_fitted_parameters_table.tex"
+    fitted_markdown_path = run_paths.run_dir / "static_fitted_parameters_table.md"
     git_info = get_git_info(repo_root)
     save_static_fitted_models_artifact(fitted_artifact, fitted_json_path)
     fitted_table_path.write_text(
         build_static_fitted_latex_table(
+            fitted_artifact,
+            git_info=git_info,
+            experiment_folder_name=run_paths.run_dir.name,
+        ),
+        encoding="utf-8",
+    )
+    fitted_markdown_path.write_text(
+        build_static_fitted_markdown_table(
             fitted_artifact,
             git_info=git_info,
             experiment_folder_name=run_paths.run_dir.name,
@@ -197,6 +207,7 @@ def main() -> None:
     reporter.line(f"Wrote computational-basis amplitude figure: {basis_amplitude_figure_path}")
     reporter.line(f"Wrote fitted-parameter artifact: {fitted_json_path}")
     reporter.line(f"Wrote LaTeX table: {fitted_table_path}")
+    reporter.line(f"Wrote Markdown table: {fitted_markdown_path}")
     if run_paths.git_head_path.exists():
         reporter.line(f"Wrote git head summary: {run_paths.git_head_path}")
     if run_paths.metadata_path.exists():

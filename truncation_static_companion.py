@@ -16,6 +16,7 @@ from plotting.static import (
 )
 from static_fitted_artifacts import (
     build_static_fitted_latex_table,
+    build_static_fitted_markdown_table,
     build_static_fitted_models_artifact,
     save_static_fitted_models_artifact,
 )
@@ -30,6 +31,7 @@ class StaticCompanionPaths:
     basis_amplitude_figure_path: Path
     fitted_json_path: Path
     fitted_table_path: Path
+    fitted_markdown_path: Path
 
 
 def static_companion_paths(*, run_dir: Path, config: object) -> StaticCompanionPaths:
@@ -43,6 +45,7 @@ def static_companion_paths(*, run_dir: Path, config: object) -> StaticCompanionP
         basis_amplitude_figure_path=figure_path.with_name(f"{figure_path.stem}_computational_basis_amplitudes.pdf"),
         fitted_json_path=Path(run_dir) / "static_fitted_parameters.json",
         fitted_table_path=Path(run_dir) / "static_fitted_parameters_table.tex",
+        fitted_markdown_path=Path(run_dir) / "static_fitted_parameters_table.md",
     )
 
 
@@ -89,6 +92,14 @@ def materialize_static_companion_artifacts(
     save_static_fitted_models_artifact(fitted_artifact, paths.fitted_json_path)
     paths.fitted_table_path.write_text(
         build_static_fitted_latex_table(
+            fitted_artifact,
+            git_info=get_git_info(repo_root),
+            experiment_folder_name=Path(run_dir).name,
+        ),
+        encoding="utf-8",
+    )
+    paths.fitted_markdown_path.write_text(
+        build_static_fitted_markdown_table(
             fitted_artifact,
             git_info=get_git_info(repo_root),
             experiment_folder_name=Path(run_dir).name,

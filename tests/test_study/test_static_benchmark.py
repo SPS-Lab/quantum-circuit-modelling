@@ -36,6 +36,7 @@ from plotting.rx import plot_rx_diagnostics_benchmark, plot_rx_populations_bench
 from benchmark_run_artifacts import get_git_info
 from static_fitted_artifacts import (
     build_static_fitted_latex_table,
+    build_static_fitted_markdown_table,
     build_static_fitted_models_artifact,
     load_static_fitted_models_artifact,
     save_static_fitted_models_artifact,
@@ -448,6 +449,17 @@ def test_static_fitted_models_artifact_roundtrip_and_latex(tmp_path: Path) -> No
     assert latex.count("% Git provenance: commit=") == 2
     assert latex.count("% Experiment folder: 20260513_123550_static_2b0daa0") == 2
 
+    markdown = build_static_fitted_markdown_table(
+        loaded_json,
+        git_info=get_git_info(_ROOT),
+        experiment_folder_name="20260513_123550_static_2b0daa0",
+    )
+    assert "## Effective fitted coefficients" in markdown
+    assert "| Effective parameter | Coefficient | Value (GHz) |" in markdown
+    assert "## Symbolic Duffing fitted coefficients" in markdown
+    assert markdown.count("<!-- Git provenance: commit=") == 2
+    assert markdown.count("<!-- Experiment folder: 20260513_123550_static_2b0daa0 -->") == 2
+
 
 def test_truncation_static_companion_materializes_artifacts(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
@@ -469,6 +481,7 @@ def test_truncation_static_companion_materializes_artifacts(tmp_path: Path) -> N
     assert paths.basis_amplitude_figure_path.exists()
     assert paths.fitted_json_path.exists()
     assert paths.fitted_table_path.exists()
+    assert paths.fitted_markdown_path.exists()
 
     loaded_paths = materialize_static_companion_artifacts(
         run_dir=run_dir,

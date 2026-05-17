@@ -180,6 +180,49 @@ def build_static_fitted_latex_table(
     return "\n".join(lines).rstrip() + "\n"
 
 
+def build_static_fitted_markdown_table(
+    artifact: StaticFittedModelsArtifact,
+    *,
+    git_info: dict[str, Any] | None = None,
+    experiment_folder_name: str | None = None,
+) -> str:
+    lines = [
+        "<!-- Auto-generated static fitted-parameter appendix tables. -->",
+        "<!-- Markdown companion to static_fitted_parameters_table.tex -->",
+    ]
+    lines.extend(
+        _build_markdown_table_block(
+            title="Effective fitted coefficients",
+            label="Effective parameter",
+            coefficient_names=artifact.effective_fit_coefficient_names,
+            coefficients=artifact.effective_fit_coefficients,
+            parameter_order=("w0", "w1", "J", "zeta"),
+            provenance_lines=_build_provenance_comment_lines(
+                git_info=git_info,
+                experiment_folder_name=experiment_folder_name,
+            ),
+        )
+    )
+    lines.append("")
+    if artifact.duffing_symbolic_coefficients:
+        lines.extend(
+            _build_markdown_table_block(
+                title="Symbolic Duffing fitted coefficients",
+                label="Duffing parameter",
+                coefficient_names=artifact.duffing_symbolic_coefficient_names,
+                coefficients=artifact.duffing_symbolic_coefficients,
+                parameter_order=("w0", "w1", "alpha0", "alpha1", "g0c", "g1c"),
+                provenance_lines=_build_provenance_comment_lines(
+                    git_info=git_info,
+                    experiment_folder_name=experiment_folder_name,
+                ),
+            )
+        )
+    else:
+        lines.append("<!-- No symbolic Duffing coefficients were available for this run. -->")
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def _build_provenance_comment_lines(
     *,
     git_info: dict[str, Any] | None,
@@ -235,6 +278,41 @@ def _build_table_block(
             )
         lines.append(r"\hline")
     lines.append(r"\end{tabular}")
+    return lines
+
+
+def _build_markdown_table_block(
+    *,
+    title: str,
+    label: str,
+    coefficient_names: dict[str, np.ndarray],
+    coefficients: dict[str, np.ndarray],
+    parameter_order: tuple[str, ...] | None = None,
+    provenance_lines: list[str] | None = None,
+) -> list[str]:
+    lines = [f"## {title}"]
+    for line in (provenance_lines or []):
+        if line.startswith("% "):
+            lines.append(f"<!-- {line[2:]} -->")
+        elif line.startswith("%"):
+            lines.append(f"<!-- {line[1:]} -->")
+        else:
+            lines.append(f"<!-- {line} -->")
+    lines.extend(
+        [
+            "",
+            f"| {label} | Coefficient | Value (GHz) |",
+            "| --- | --- | ---: |",
+        ]
+    )
+    ordered_parameter_names = _ordered_parameter_names(coefficients, parameter_order=parameter_order)
+    for parameter_name in ordered_parameter_names:
+        names = [str(value) for value in np.asarray(coefficient_names[parameter_name], dtype=str).ravel()]
+        values = [float(value) for value in np.asarray(coefficients[parameter_name], dtype=float).ravel()]
+        if len(names) != len(values):
+            raise ValueError(f"Coefficient name/value mismatch for {parameter_name!r}")
+        for coeff_name, coeff_value in zip(names, values):
+            lines.append(f"| {parameter_name} | {coeff_name} | {coeff_value:.6e} |")
     return lines
 
 
