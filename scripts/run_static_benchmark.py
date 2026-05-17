@@ -17,7 +17,7 @@ from benchmark_results_io import (
 from benchmark_run_artifacts import get_git_info, prepare_benchmark_run
 from benchmark_cli_reporting import CliReporter, build_common_truncation_lines
 from comparison.static import StaticBenchmarkResult, run_static_benchmark
-from plotting.static import plot_static_benchmark
+from plotting.static import plot_static_benchmark, plot_static_raw_energies
 from static_fitted_artifacts import (
     build_static_fitted_latex_table,
     build_static_fitted_models_artifact,
@@ -95,6 +95,7 @@ def main() -> None:
         },
     )
     figure_path = run_paths.figure_paths["figure"]
+    raw_figure_path = figure_path.with_name(f"{figure_path.stem}_raw_energies.pdf")
     results_path = run_paths.results_path
 
     if args.plot_only:
@@ -118,6 +119,7 @@ def main() -> None:
         f"(effective source={config.static_benchmark.effective_model.derivation_source})"
     )
     plot_static_benchmark(result, figure_path, title)
+    plot_static_raw_energies(result, raw_figure_path, f"{title} [raw energies]")
     fitted_artifact = build_static_fitted_models_artifact(result, config=config)
     fitted_json_path = run_paths.run_dir / "static_fitted_parameters.json"
     fitted_table_path = run_paths.run_dir / "static_fitted_parameters_table.tex"
@@ -177,6 +179,7 @@ def main() -> None:
     else:
         reporter.line(f"Wrote results: {results_path}")
     reporter.line(f"Wrote figure: {figure_path}")
+    reporter.line(f"Wrote raw-energy figure: {raw_figure_path}")
     reporter.line(f"Wrote fitted-parameter artifact: {fitted_json_path}")
     reporter.line(f"Wrote LaTeX table: {fitted_table_path}")
     if run_paths.git_head_path.exists():

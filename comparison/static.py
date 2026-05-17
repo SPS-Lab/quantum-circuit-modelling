@@ -27,10 +27,15 @@ from toolkit.spectrum import track_energy_levels_stack
 @dataclass(frozen=True)
 class StaticBenchmarkResult:
     flux_values: np.ndarray
+    effective_raw_energies: np.ndarray
     effective_relative_energies: np.ndarray
+    duffing_raw_energies: np.ndarray
     duffing_relative_energies: np.ndarray
+    circuit_raw_energies: np.ndarray
     circuit_relative_energies: np.ndarray
+    duffing_full_raw_energies: np.ndarray
     duffing_full_relative_energies: np.ndarray
+    circuit_full_raw_energies: np.ndarray
     circuit_full_relative_energies: np.ndarray
     effective_error_rmse: np.ndarray
     duffing_error_rmse: np.ndarray
@@ -49,6 +54,19 @@ class StaticBenchmarkResult:
     metric_notes: dict[str, str]
 
 
+def _raw_energies(
+    H_stack: np.ndarray,
+    *,
+    n_track: int,
+    projector_track_single_excitation: bool = False,
+) -> np.ndarray:
+    blocks = ((1, 2),) if projector_track_single_excitation and int(n_track) >= 3 else None
+    evals = track_energy_levels_stack(
+        np.asarray(H_stack, dtype=complex),
+        n_track=int(n_track),
+        projector_blocks=blocks,
+    )
+    return np.asarray(evals, dtype=float)
 
 def _relative_energies(
     H_stack: np.ndarray,
@@ -70,6 +88,10 @@ def _per_flux_rmse(pred: np.ndarray, ref: np.ndarray) -> np.ndarray:
     diff = np.asarray(pred, dtype=float)[:, 1:] - np.asarray(ref, dtype=float)[:, 1:]
     return np.sqrt(np.mean(diff * diff, axis=1))
 
+def _sorted_raw_energies(H_stack: np.ndarray, *, n_track: int) -> np.ndarray:
+    evals = np.linalg.eigvalsh(np.asarray(H_stack, dtype=complex))
+    rel_e = np.asarray(evals, dtype=float)
+    return np.asarray(rel_e[:, : int(n_track)], dtype=float)
 
 def _sorted_relative_energies(H_stack: np.ndarray, *, n_track: int) -> np.ndarray:
     evals = np.linalg.eigvalsh(np.asarray(H_stack, dtype=complex))
@@ -238,18 +260,27 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     H_effective = build_effective_hamiltonian_stack(effective_parameters)
 
     n_track = int(H_effective.shape[-1])
-    E_eff = _relative_energies(H_effective, n_track=n_track, projector_track_single_excitation=True)
-    E_duf = _relative_energies(H_duffing_eff, n_track=n_track, projector_track_single_excitation=True)
-    E_cir = _relative_energies(H_circuit_eff, n_track=n_track, projector_track_single_excitation=True)
+    raw_E_eff = _raw_energies(H_effective, n_track=n_track, projector_track_single_excitation=True)
+    rel_E_eff = _relative_energies(H_effective, n_track=n_track, projector_track_single_excitation=True)
+    raw_E_duf = _raw_energies(H_duffing_eff, n_track=n_track, projector_track_single_excitation=True)
+    rel_E_duf = _relative_energies(H_duffing_eff, n_track=n_track, projector_track_single_excitation=True)
+    raw_E_cir = _raw_energies(H_circuit_eff, n_track=n_track, projector_track_single_excitation=True)
+    rel_E_cir = _relative_energies(H_circuit_eff, n_track=n_track, projector_track_single_excitation=True)
 
     n_full_track = int(min(10, duffing.hamiltonian_stack.shape[1], circuit.hamiltonian_stack.shape[1]))
-    E_duf_full = _relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
-    E_cir_full = _relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
-    E_duf_full_sorted = _sorted_relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
-    E_cir_full_sorted = _sorted_relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
+    raw_E_duf_full = _raw_energies(duffing.hamiltonian_stack, n_track=n_full_track)
+    rel_E_duf_full = _relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
+    raw_E_cir_full = _raw_energies(circuit.hamiltonian_stack, n_track=n_full_track)
+    rel_E_cir_full = _relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
+    raw_E_duf_full_sorted = _sorted_raw_energies(duffing.hamiltonian_stack, n_track=n_full_track)
+    rel_E_duf_full_sorted = _sorted_relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
+    raw_E_cir_full_sorted = _sorted_raw_energies(circuit.hamiltonian_stack, n_track=n_full_track)
+    rel_E_cir_full_sorted = _sorted_relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
 
-    err_eff = _per_flux_rmse(E_eff, E_cir)
-    err_duf = _per_flux_rmse(E_duf, E_cir)
+    err_raw_E_eff = _per_flux_rmse(raw_E_eff, raw_E_cir)
+    err_rel_E_eff = _per_flux_rmse(rel_E_eff, rel_E_cir)
+    err_raw_E_duf_ = _per_flux_rmse(raw_E_duf, raw_E_cir)
+    err_rel_E_duf_ = _per_flux_rmse(rel_E_duf, rel_E_cir)
 
     params_duffing = extract_effective_model_parameters_from_4x4_stack(H_duffing_eff)
     params_circuit = extract_effective_model_parameters_from_4x4_stack(H_circuit_eff)
@@ -264,20 +295,20 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     idle_mask = detuning_ratio >= idle_thr
     near_mask = detuning_ratio <= near_thr
 
-    eff_idle = _masked_rmse_max(err_eff, idle_mask)
-    eff_near = _masked_rmse_max(err_eff, near_mask)
-    duf_idle = _masked_rmse_max(err_duf, idle_mask)
-    duf_near = _masked_rmse_max(err_duf, near_mask)
-    eff_comp_rmse = _aggregate_rmse(E_eff, E_cir)
-    duf_comp_rmse = _aggregate_rmse(E_duf, E_cir)
+    eff_idle = _masked_rmse_max(err_rel_E_eff, idle_mask)
+    eff_near = _masked_rmse_max(err_rel_E_eff, near_mask)
+    duf_idle = _masked_rmse_max(err_rel_E_duf_, idle_mask)
+    duf_near = _masked_rmse_max(err_rel_E_duf_, near_mask)
+    eff_comp_rmse = _aggregate_rmse(rel_E_eff, rel_E_cir)
+    duf_comp_rmse = _aggregate_rmse(rel_E_duf, rel_E_cir)
     duf_trunc_levels = min(
         int(config.duffing_truncation_benchmark.lowest_excited_levels_to_plot),
-        int(E_duf_full_sorted.shape[1]) - 1,
-        int(E_cir_full_sorted.shape[1]) - 1,
+        int(rel_E_duf_full_sorted.shape[1]) - 1,
+        int(rel_E_cir_full_sorted.shape[1]) - 1,
     )
     duf_trunc_style_rmse = _aggregate_rmse(
-        E_duf_full_sorted,
-        E_cir_full_sorted,
+        rel_E_duf_full_sorted,
+        rel_E_cir_full_sorted,
         n_excited=duf_trunc_levels,
     )
     eff_j_abs = _mean_abs_error(effective_parameters["J"], params_circuit["J"])
@@ -350,13 +381,18 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
 
     return StaticBenchmarkResult(
         flux_values=flux_values,
-        effective_relative_energies=E_eff,
-        duffing_relative_energies=E_duf,
-        circuit_relative_energies=E_cir,
-        duffing_full_relative_energies=E_duf_full,
-        circuit_full_relative_energies=E_cir_full,
-        effective_error_rmse=err_eff,
-        duffing_error_rmse=err_duf,
+        effective_raw_energies=raw_E_eff,
+        effective_relative_energies=rel_E_eff,
+        duffing_raw_energies=raw_E_duf,
+        duffing_relative_energies=rel_E_duf,
+        circuit_raw_energies=raw_E_cir,
+        circuit_relative_energies=rel_E_cir,
+        duffing_full_raw_energies=raw_E_duf_full,
+        duffing_full_relative_energies=rel_E_duf_full,
+        circuit_full_raw_energies=raw_E_cir_full,
+        circuit_full_relative_energies=rel_E_cir_full,
+        effective_error_rmse=err_rel_E_eff,
+        duffing_error_rmse=err_rel_E_duf_,
         effective_parameters={k: np.asarray(v, dtype=float) for k, v in effective_parameters.items()},
         effective_fit_coefficient_names=effective_fit_coefficient_names,
         effective_fit_coefficients=effective_fit_coefficients,
