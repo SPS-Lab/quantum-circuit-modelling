@@ -5,6 +5,7 @@ from models.dressed import (
     build_dressed_effective_computational_stack,
     build_dressed_effective_stack,
     extract_effective_model_parameters_from_4x4_stack,
+    tracked_bare_state_amplitudes,
     tracked_subspace_bare_amplitudes,
     tracked_subspace_bare_overlaps,
 )
@@ -33,6 +34,7 @@ from models.sweep import resolve_static_sweep_values
 from models.three_mode import (
     ThreeModeHamiltonianCommonKwargs,
     ThreeModeHamiltonianKwargs,
+    canonical_state_order_qcq,
     computational_state_indices,
     computational_subspace_block,
     three_mode_hamiltonian,
@@ -61,6 +63,7 @@ __all__ = [
     "build_dressed_effective_stack",
     "build_dressed_effective_computational_stack",
     "extract_effective_model_parameters_from_4x4_stack",
+    "tracked_bare_state_amplitudes",
     "tracked_subspace_bare_amplitudes",
     "tracked_subspace_bare_overlaps",
     "flux_dependent_EJ",
@@ -70,6 +73,7 @@ __all__ = [
     "three_mode_hamiltonian",
     "three_mode_hamiltonian_from_kwargs",
     "three_mode_hamiltonian_stack_vs_flux",
+    "canonical_state_order_qcq",
     "computational_state_indices",
     "computational_subspace_block",
     "is_reference_calibrated_duffing_mode",

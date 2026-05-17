@@ -30,6 +30,73 @@ from plotting.style import (
 )
 
 
+def _decode_labels(labels: np.ndarray) -> list[str]:
+    arr = np.asarray(labels).ravel()
+    out: list[str] = []
+    for x in arr:
+        if isinstance(x, (bytes, np.bytes_)):
+            out.append(bytes(x).decode("utf-8"))
+        else:
+            out.append(str(x))
+    return out
+
+
+def _state_label_math(label: str) -> str:
+    text = str(label).strip()
+    if text.startswith("|") and text.endswith(">"):
+        inner = text[1:-1].replace(",", "")
+        return rf"$\left|{inner}\right\rangle$"
+    return text
+
+
+def _parse_state_label(label: str) -> tuple[int, int, int]:
+    text = str(label).strip()
+    if not (text.startswith("|") and text.endswith(">")):
+        raise ValueError(f"Invalid state label {label!r}")
+    parts = text[1:-1].split(",")
+    if len(parts) != 3:
+        raise ValueError(f"Invalid state label {label!r}")
+    return int(parts[0]), int(parts[1]), int(parts[2])
+
+
+def _state_sort_key(label: str) -> tuple[int, int, int, int]:
+    q1, c, q0 = _parse_state_label(label)
+    return (q1 + c + q0, q1, c, q0)
+
+
+def _select_top_state_labels(
+    amplitudes: np.ndarray,
+    labels: np.ndarray,
+    *,
+    max_rows: int,
+) -> list[str]:
+    amp = np.asarray(amplitudes, dtype=complex)
+    text_labels = _decode_labels(labels)
+    if amp.ndim != 2 or amp.shape[1] != len(text_labels):
+        raise ValueError("amplitudes must have shape (n_flux, n_state) matching labels")
+    scores = np.max(np.abs(amp) ** 2, axis=0)
+    keep = np.argsort(-scores)[: max(1, int(max_rows))]
+    return sorted((text_labels[int(i)] for i in keep), key=_state_sort_key)
+
+
+def _align_amplitudes_by_labels(
+    target_labels: list[str],
+    source_labels: np.ndarray,
+    source_amplitudes: np.ndarray,
+) -> np.ndarray:
+    labels_src = _decode_labels(source_labels)
+    amp = np.asarray(source_amplitudes, dtype=complex)
+    if amp.ndim != 2 or amp.shape[1] != len(labels_src):
+        raise ValueError("source_amplitudes must have shape (n_flux, n_state) matching source_labels")
+    out = np.zeros((amp.shape[0], len(target_labels)), dtype=complex)
+    label_to_idx = {label: idx for idx, label in enumerate(labels_src)}
+    for j, label in enumerate(target_labels):
+        idx = label_to_idx.get(label)
+        if idx is not None:
+            out[:, j] = amp[:, idx]
+    return out
+
+
 def _plot_static_energy_panel(
     ax: plt.Axes,
     flux: np.ndarray,
@@ -278,53 +345,76 @@ def plot_static_computational_basis_amplitudes(
     font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
-    basis_labels = (
-        r"$|00\rangle$ component",
-        r"$|01\rangle$ component",
-        r"$|10\rangle$ component",
-        r"$|11\rangle$ component",
+    branch_labels = (
+        r"$|00\rangle$ branch",
+        r"$|01\rangle$ branch",
+        r"$|10\rangle$ branch",
+        r"$|11\rangle$ branch",
     )
-    branch_ticklabels = ("0", "1", "2", "3")
+    max_rows = 6
     panels = (
-        ("Circuit", np.asarray(result.circuit_computational_bare_amplitudes, dtype=complex)),
-        ("Duffing", np.asarray(result.duffing_computational_bare_amplitudes, dtype=complex)),
+        (
+            "Circuit",
+            np.asarray(result.circuit_tracked_branch_bare_amplitudes, dtype=complex),
+            np.asarray(result.circuit_bare_state_labels),
+        ),
+        (
+            "Duffing",
+            np.asarray(result.duffing_tracked_branch_bare_amplitudes, dtype=complex),
+            np.asarray(result.duffing_bare_state_labels),
+        ),
     )
 
     with benchmark_plot_style(font_size):
-        fig = plt.figure(figsize=(12.6, 10.2), constrained_layout=True)
+        fig = plt.figure(figsize=(12.6, 11.4), constrained_layout=True)
         gs = fig.add_gridspec(
             4,
             3,
             width_ratios=(1.0, 1.0, 0.06),
-            hspace=0.22,
+            hspace=0.28,
             wspace=0.18,
         )
         axes = np.empty((4, 2), dtype=object)
         for row in range(4):
             for col in range(2):
                 sharex = axes[0, col] if row > 0 else None
-                sharey = axes[row, 0] if col > 0 else None
-                axes[row, col] = fig.add_subplot(gs[row, col], sharex=sharex, sharey=sharey)
+                axes[row, col] = fig.add_subplot(gs[row, col], sharex=sharex)
 
         cax = fig.add_subplot(gs[:, 2])
 
-        for col, (model_name, amplitudes) in enumerate(panels):
-            for row, basis_label in enumerate(basis_labels):
+        for row, branch_label in enumerate(branch_labels):
+            circuit_labels = _select_top_state_labels(panels[0][1][:, :, row], panels[0][2], max_rows=max_rows)
+            duffing_labels = _select_top_state_labels(panels[1][1][:, :, row], panels[1][2], max_rows=max_rows)
+            union_labels = sorted(set(circuit_labels) | set(duffing_labels), key=_state_sort_key)
+            if len(union_labels) > max_rows:
+                label_scores: dict[str, float] = {}
+                for _, amplitudes, labels in panels:
+                    aligned = _align_amplitudes_by_labels(union_labels, labels, amplitudes[:, :, row])
+                    scores = np.max(np.abs(aligned) ** 2, axis=0)
+                    for idx, label in enumerate(union_labels):
+                        label_scores[label] = max(label_scores.get(label, 0.0), float(scores[idx]))
+                union_labels = sorted(
+                    sorted(union_labels, key=lambda label: (-label_scores[label], _state_sort_key(label)))[:max_rows],
+                    key=_state_sort_key,
+                )
+            for col, (model_name, amplitudes, labels) in enumerate(panels):
                 ax = axes[row, col]
-                rgb = _phase_population_rgb(amplitudes[:, row, :], [f"branch_{k}" for k in range(4)])
+                aligned = _align_amplitudes_by_labels(union_labels, labels, amplitudes[:, :, row])
+                rgb = _phase_population_rgb(aligned, union_labels)
                 ax.imshow(
                     rgb,
                     aspect="auto",
                     origin="lower",
                     interpolation="nearest",
-                    extent=(float(flux[0]), float(flux[-1]), -0.5, 3.5),
+                    extent=(float(flux[0]), float(flux[-1]), -0.5, len(union_labels) - 0.5),
                     zorder=2,
                 )
                 ax.grid(True, alpha=0.12)
-                ax.set_yticks(np.arange(4, dtype=int))
+                ax.set_yticks(np.arange(len(union_labels), dtype=int))
                 if col == 0:
-                    ax.set_yticklabels(branch_ticklabels)
-                    ax.set_ylabel(f"{basis_label}\nTracked branch")
+                    ax.set_yticklabels([_state_label_math(label) for label in union_labels])
+                    ax.set_ylabel(f"{branch_label}\nBare states")
+                    ax.tick_params(axis="y", pad=6)
                 else:
                     ax.tick_params(axis="y", labelleft=False)
                 if row == 0:

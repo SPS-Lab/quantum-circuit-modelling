@@ -242,6 +242,14 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.effective_relative_energies.shape == (9, 4)
     assert out.duffing_relative_energies.shape == (9, 4)
     assert out.circuit_relative_energies.shape == (9, 4)
+    assert out.circuit_tracked_branch_bare_amplitudes.ndim == 3
+    assert out.duffing_tracked_branch_bare_amplitudes.ndim == 3
+    assert out.circuit_tracked_branch_bare_amplitudes.shape[0] == 9
+    assert out.duffing_tracked_branch_bare_amplitudes.shape[0] == 9
+    assert out.circuit_tracked_branch_bare_amplitudes.shape[2] == 4
+    assert out.duffing_tracked_branch_bare_amplitudes.shape[2] == 4
+    assert out.circuit_bare_state_labels.shape[0] == out.circuit_tracked_branch_bare_amplitudes.shape[1]
+    assert out.duffing_bare_state_labels.shape[0] == out.duffing_tracked_branch_bare_amplitudes.shape[1]
     assert out.circuit_computational_bare_amplitudes.shape == (9, 4, 4)
     assert out.duffing_computational_bare_amplitudes.shape == (9, 4, 4)
     assert np.iscomplexobj(out.circuit_computational_bare_amplitudes)

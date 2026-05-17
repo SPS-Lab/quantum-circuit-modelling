@@ -228,26 +228,33 @@ def tracked_subspace_bare_overlaps(
     return overlaps_out
 
 
-def tracked_subspace_bare_amplitudes(
+def tracked_bare_state_amplitudes(
     H_stack: np.ndarray,
     *,
-    subspace_indices: np.ndarray,
+    tracked_state_indices: np.ndarray,
+    output_state_indices: np.ndarray | None = None,
     selection_mode: str,
     n_candidate_states: int,
     projector_blocks: tuple[tuple[int, ...], ...] | None = None,
 ) -> np.ndarray:
-    """Return bare-basis amplitudes of tracked dressed states within a chosen subspace."""
+    """Return bare-state amplitudes of tracked dressed states on chosen output rows."""
     H_stack = np.asarray(H_stack, dtype=complex)
     if H_stack.ndim != 3 or H_stack.shape[1] != H_stack.shape[2]:
         raise ValueError(f"H_stack must be (n, d, d), got {H_stack.shape}")
 
-    subspace_indices = np.asarray(subspace_indices, dtype=int).ravel()
+    tracked_state_indices = np.asarray(tracked_state_indices, dtype=int).ravel()
     n_flux, d, _ = H_stack.shape
-    m = subspace_indices.size
+    m = tracked_state_indices.size
     if m < 1:
-        raise ValueError("subspace_indices must be non-empty")
-    if np.any(subspace_indices < 0) or np.any(subspace_indices >= d):
-        raise ValueError(f"subspace_indices out of bounds for d={d}: {subspace_indices}")
+        raise ValueError("tracked_state_indices must be non-empty")
+    if np.any(tracked_state_indices < 0) or np.any(tracked_state_indices >= d):
+        raise ValueError(f"tracked_state_indices out of bounds for d={d}: {tracked_state_indices}")
+
+    if output_state_indices is None:
+        output_state_indices = np.arange(d, dtype=int)
+    output_state_indices = np.asarray(output_state_indices, dtype=int).ravel()
+    if np.any(output_state_indices < 0) or np.any(output_state_indices >= d):
+        raise ValueError(f"output_state_indices out of bounds for d={d}: {output_state_indices}")
 
     mode = str(selection_mode).strip().lower()
     if mode not in {"continuous", "bare"}:
@@ -259,7 +266,7 @@ def tracked_subspace_bare_amplitudes(
     n_cand = max(m, min(int(n_candidate_states), d))
     _validate_projector_blocks(projector_blocks, m=m)
     projector_blocks = tuple() if projector_blocks is None else projector_blocks
-    amplitudes_out = np.empty((n_flux, m, m), dtype=complex)
+    amplitudes_out = np.empty((n_flux, output_state_indices.size, m), dtype=complex)
     prev_selected_full: np.ndarray | None = None
 
     for k in range(n_flux):
@@ -267,7 +274,7 @@ def tracked_subspace_bare_amplitudes(
         evecs_cand = evecs_full[:, :n_cand]
 
         if mode == "bare" or prev_selected_full is None:
-            overlap = np.abs(evecs_cand[subspace_indices, :]) ** 2
+            overlap = np.abs(evecs_cand[tracked_state_indices, :]) ** 2
             col_ind = overlap_row_to_col_assignment(overlap)
         else:
             overlap = np.abs(prev_selected_full.conj().T @ evecs_cand) ** 2
@@ -285,9 +292,28 @@ def tracked_subspace_bare_amplitudes(
         if mode == "continuous":
             prev_selected_full = selected_full
 
-        amplitudes_out[k] = selected_full[subspace_indices, :]
+        amplitudes_out[k] = selected_full[output_state_indices, :]
 
     return amplitudes_out
+
+
+def tracked_subspace_bare_amplitudes(
+    H_stack: np.ndarray,
+    *,
+    subspace_indices: np.ndarray,
+    selection_mode: str,
+    n_candidate_states: int,
+    projector_blocks: tuple[tuple[int, ...], ...] | None = None,
+) -> np.ndarray:
+    """Return bare-basis amplitudes of tracked dressed states within a chosen subspace."""
+    return tracked_bare_state_amplitudes(
+        H_stack,
+        tracked_state_indices=subspace_indices,
+        output_state_indices=subspace_indices,
+        selection_mode=selection_mode,
+        n_candidate_states=n_candidate_states,
+        projector_blocks=projector_blocks,
+    )
 
 
 

@@ -13,11 +13,13 @@ from models import (
     build_duffing_model_stack_from_parameters,
     build_duffing_model_stack_from_scratch,
     build_effective_hamiltonian_stack,
+    canonical_state_order_qcq,
     derive_effective_model_from_dressed_stack,
     extract_effective_model_parameters_from_4x4_stack,
     fit_duffing_mode_parameters_to_reference,
     fit_symbolic_duffing_mode_parameters_to_reference,
     resolve_static_sweep_values,
+    tracked_bare_state_amplitudes,
     tracked_subspace_bare_amplitudes,
     tracked_subspace_bare_overlaps,
 )
@@ -49,8 +51,12 @@ class StaticBenchmarkResult:
     duffing_symbolic_coefficients: dict[str, np.ndarray]
     duffing_parameters: dict[str, np.ndarray]
     circuit_parameters: dict[str, np.ndarray]
+    duffing_bare_state_labels: np.ndarray
+    duffing_tracked_branch_bare_amplitudes: np.ndarray
     duffing_computational_bare_amplitudes: np.ndarray
     duffing_computational_bare_overlaps: np.ndarray
+    circuit_bare_state_labels: np.ndarray
+    circuit_tracked_branch_bare_amplitudes: np.ndarray
     circuit_computational_bare_amplitudes: np.ndarray
     circuit_computational_bare_overlaps: np.ndarray
     detuning_ratio: np.ndarray
@@ -231,11 +237,21 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
             n_candidate_states=n_cand,
         )
     circuit_q0_dim = int(config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim)
+    circuit_q1_dim = int(config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim)
     circuit_c_dim = int(config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim)
     circuit_overlap_subspace_idx = np.array([0, 1, circuit_c_dim * circuit_q0_dim + 0, circuit_c_dim * circuit_q0_dim + 1], dtype=int)
     duffing_q_dim = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit)
     duffing_c_dim = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler)
     duffing_overlap_subspace_idx = np.array([0, 1, duffing_c_dim * duffing_q_dim + 0, duffing_c_dim * duffing_q_dim + 1], dtype=int)
+    circuit_state_order_idx, circuit_state_labels = canonical_state_order_qcq(
+        nlevels_q0=circuit_q0_dim,
+        nlevels_coupler=circuit_c_dim,
+        nlevels_q1=circuit_q1_dim,
+    )
+    duffing_state_order_idx, duffing_state_labels = canonical_state_order_qcq(
+        nlevels_q0=duffing_q_dim,
+        nlevels_coupler=duffing_c_dim,
+    )
     circuit_comp_overlaps = tracked_subspace_bare_overlaps(
         circuit.hamiltonian_stack,
         subspace_indices=circuit_overlap_subspace_idx,
@@ -250,6 +266,14 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         n_candidate_states=n_cand,
         projector_blocks=((1, 2),),
     )
+    circuit_branch_amplitudes = tracked_bare_state_amplitudes(
+        circuit.hamiltonian_stack,
+        tracked_state_indices=circuit_overlap_subspace_idx,
+        output_state_indices=circuit_state_order_idx,
+        selection_mode=dressed_mode,
+        n_candidate_states=n_cand,
+        projector_blocks=((1, 2),),
+    )
     duffing_comp_overlaps = tracked_subspace_bare_overlaps(
         duffing.hamiltonian_stack,
         subspace_indices=duffing_overlap_subspace_idx,
@@ -260,6 +284,14 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
     duffing_comp_amplitudes = tracked_subspace_bare_amplitudes(
         duffing.hamiltonian_stack,
         subspace_indices=duffing_overlap_subspace_idx,
+        selection_mode=dressed_mode,
+        n_candidate_states=n_cand,
+        projector_blocks=((1, 2),),
+    )
+    duffing_branch_amplitudes = tracked_bare_state_amplitudes(
+        duffing.hamiltonian_stack,
+        tracked_state_indices=duffing_overlap_subspace_idx,
+        output_state_indices=duffing_state_order_idx,
         selection_mode=dressed_mode,
         n_candidate_states=n_cand,
         projector_blocks=((1, 2),),
@@ -445,8 +477,12 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         },
         duffing_parameters=params_duffing,
         circuit_parameters=params_circuit,
+        duffing_bare_state_labels=np.asarray(duffing_state_labels, dtype=str),
+        duffing_tracked_branch_bare_amplitudes=np.asarray(duffing_branch_amplitudes, dtype=complex),
         duffing_computational_bare_amplitudes=np.asarray(duffing_comp_amplitudes, dtype=complex),
         duffing_computational_bare_overlaps=np.asarray(duffing_comp_overlaps, dtype=float),
+        circuit_bare_state_labels=np.asarray(circuit_state_labels, dtype=str),
+        circuit_tracked_branch_bare_amplitudes=np.asarray(circuit_branch_amplitudes, dtype=complex),
         circuit_computational_bare_amplitudes=np.asarray(circuit_comp_amplitudes, dtype=complex),
         circuit_computational_bare_overlaps=np.asarray(circuit_comp_overlaps, dtype=float),
         detuning_ratio=np.asarray(detuning_ratio, dtype=float),

@@ -108,6 +108,28 @@ def computational_state_indices(
     return np.array([0, 1, q1_significance + 0, q1_significance + 1], dtype=int)
 
 
+def canonical_state_order_qcq(
+    *,
+    nlevels_q0: int,
+    nlevels_coupler: int,
+    nlevels_q1: int | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return flat indices and labels in canonical ``|q1,c,q0>`` display order."""
+    nq0 = int(nlevels_q0)
+    nc = int(nlevels_coupler)
+    nq1 = nq0 if nlevels_q1 is None else int(nlevels_q1)
+    triples: list[tuple[int, int, int]] = []
+    for q0 in range(nq0):
+        for c in range(nc):
+            for q1 in range(nq1):
+                triples.append((q1, c, q0))
+
+    triples_sorted = sorted(triples, key=lambda t: (t[0] + t[1] + t[2], t[0], t[1], t[2]))
+    flat_idx = np.array([(q1 * nc + c) * nq0 + q0 for (q1, c, q0) in triples_sorted], dtype=int)
+    labels = np.array([f"|{q1},{c},{q0}>" for (q1, c, q0) in triples_sorted], dtype=str)
+    return flat_idx, labels
+
+
 
 def three_mode_hamiltonian_from_kwargs(
     ham_kwargs: ThreeModeHamiltonianCommonKwargs,
