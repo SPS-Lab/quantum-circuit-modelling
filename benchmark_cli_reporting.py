@@ -7,9 +7,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 import time
 
+import numpy as np
+
 from benchmark_results_io import save_cli_report_hdf5
 from runtime_utils import format_elapsed_compact, log_progress
 from study_config import StudyConfig
+
+
+# CLI output is for human inspection; compact array reprs are easier to scan.
+np.set_printoptions(precision=2)
 
 
 @dataclass
