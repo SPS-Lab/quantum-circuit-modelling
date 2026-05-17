@@ -137,6 +137,7 @@ def build_dressed_effective_stack(
 
     for k in range(n_flux):
         evals_full, evecs_full = np.linalg.eigh(H_stack[k])
+        evals_cand = np.asarray(evals_full[:n_cand], dtype=float)
         evecs_cand = evecs_full[:, :n_cand]
 
         if mode == "bare" or prev_selected_full is None:
@@ -153,7 +154,7 @@ def build_dressed_effective_stack(
                 )
             else:
                 col_ind = overlap_row_to_col_assignment(overlap)
-        evals_sel = np.asarray(evals_full[col_ind], dtype=float)
+        evals_sel = np.asarray(evals_cand[col_ind], dtype=float)
         selected_full = np.asarray(evecs_cand[:, col_ind], dtype=complex)
         if mode == "continuous":
             prev_selected_full = selected_full
