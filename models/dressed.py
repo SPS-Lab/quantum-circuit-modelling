@@ -228,6 +228,68 @@ def tracked_subspace_bare_overlaps(
     return overlaps_out
 
 
+def tracked_subspace_bare_amplitudes(
+    H_stack: np.ndarray,
+    *,
+    subspace_indices: np.ndarray,
+    selection_mode: str,
+    n_candidate_states: int,
+    projector_blocks: tuple[tuple[int, ...], ...] | None = None,
+) -> np.ndarray:
+    """Return bare-basis amplitudes of tracked dressed states within a chosen subspace."""
+    H_stack = np.asarray(H_stack, dtype=complex)
+    if H_stack.ndim != 3 or H_stack.shape[1] != H_stack.shape[2]:
+        raise ValueError(f"H_stack must be (n, d, d), got {H_stack.shape}")
+
+    subspace_indices = np.asarray(subspace_indices, dtype=int).ravel()
+    n_flux, d, _ = H_stack.shape
+    m = subspace_indices.size
+    if m < 1:
+        raise ValueError("subspace_indices must be non-empty")
+    if np.any(subspace_indices < 0) or np.any(subspace_indices >= d):
+        raise ValueError(f"subspace_indices out of bounds for d={d}: {subspace_indices}")
+
+    mode = str(selection_mode).strip().lower()
+    if mode not in {"continuous", "bare"}:
+        raise ValueError(
+            "selection_mode must be one of {'continuous', 'bare'}, "
+            f"got {selection_mode!r}"
+        )
+
+    n_cand = max(m, min(int(n_candidate_states), d))
+    _validate_projector_blocks(projector_blocks, m=m)
+    projector_blocks = tuple() if projector_blocks is None else projector_blocks
+    amplitudes_out = np.empty((n_flux, m, m), dtype=complex)
+    prev_selected_full: np.ndarray | None = None
+
+    for k in range(n_flux):
+        _, evecs_full = np.linalg.eigh(H_stack[k])
+        evecs_cand = evecs_full[:, :n_cand]
+
+        if mode == "bare" or prev_selected_full is None:
+            overlap = np.abs(evecs_cand[subspace_indices, :]) ** 2
+            col_ind = overlap_row_to_col_assignment(overlap)
+        else:
+            overlap = np.abs(prev_selected_full.conj().T @ evecs_cand) ** 2
+            if projector_blocks:
+                col_ind = _assignment_with_projector_blocks(
+                    overlap,
+                    prev_selected_full=prev_selected_full,
+                    evecs_cand=evecs_cand,
+                    projector_blocks=projector_blocks,
+                )
+            else:
+                col_ind = overlap_row_to_col_assignment(overlap)
+
+        selected_full = np.asarray(evecs_cand[:, col_ind], dtype=complex)
+        if mode == "continuous":
+            prev_selected_full = selected_full
+
+        amplitudes_out[k] = selected_full[subspace_indices, :]
+
+    return amplitudes_out
+
+
 
 def build_dressed_effective_computational_stack(
     H_stack: np.ndarray,

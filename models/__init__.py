@@ -5,6 +5,7 @@ from models.dressed import (
     build_dressed_effective_computational_stack,
     build_dressed_effective_stack,
     extract_effective_model_parameters_from_4x4_stack,
+    tracked_subspace_bare_amplitudes,
     tracked_subspace_bare_overlaps,
 )
 from models.duffing import (
@@ -60,6 +61,7 @@ __all__ = [
     "build_dressed_effective_stack",
     "build_dressed_effective_computational_stack",
     "extract_effective_model_parameters_from_4x4_stack",
+    "tracked_subspace_bare_amplitudes",
     "tracked_subspace_bare_overlaps",
     "flux_dependent_EJ",
     "resolve_static_sweep_values",

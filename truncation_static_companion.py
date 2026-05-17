@@ -8,7 +8,12 @@ from pathlib import Path
 from benchmark_results_io import load_result_hdf5, save_result_hdf5
 from benchmark_run_artifacts import get_git_info
 from comparison.static import StaticBenchmarkResult, run_static_benchmark
-from plotting.static import plot_static_benchmark, plot_static_raw_energies, plot_static_single_excitation_overlaps
+from plotting.static import (
+    plot_static_benchmark,
+    plot_static_computational_basis_amplitudes,
+    plot_static_raw_energies,
+    plot_static_single_excitation_overlaps,
+)
 from static_fitted_artifacts import (
     build_static_fitted_latex_table,
     build_static_fitted_models_artifact,
@@ -22,6 +27,7 @@ class StaticCompanionPaths:
     figure_path: Path
     raw_figure_path: Path
     overlap_figure_path: Path
+    basis_amplitude_figure_path: Path
     fitted_json_path: Path
     fitted_table_path: Path
 
@@ -34,6 +40,7 @@ def static_companion_paths(*, run_dir: Path, config: object) -> StaticCompanionP
         figure_path=figure_path,
         raw_figure_path=figure_path.with_name(f"{figure_path.stem}_raw_energies.pdf"),
         overlap_figure_path=figure_path.with_name(f"{figure_path.stem}_single_excitation_overlaps.pdf"),
+        basis_amplitude_figure_path=figure_path.with_name(f"{figure_path.stem}_computational_basis_amplitudes.pdf"),
         fitted_json_path=Path(run_dir) / "static_fitted_parameters.json",
         fitted_table_path=Path(run_dir) / "static_fitted_parameters_table.tex",
     )
@@ -73,6 +80,11 @@ def materialize_static_companion_artifacts(
     plot_static_benchmark(result, paths.figure_path, title)
     plot_static_raw_energies(result, paths.raw_figure_path, f"{title} [raw energies]")
     plot_static_single_excitation_overlaps(result, paths.overlap_figure_path, f"{title} [single-excitation overlaps]")
+    plot_static_computational_basis_amplitudes(
+        result,
+        paths.basis_amplitude_figure_path,
+        f"{title} [computational basis amplitudes]",
+    )
     fitted_artifact = build_static_fitted_models_artifact(result, config=config)
     save_static_fitted_models_artifact(fitted_artifact, paths.fitted_json_path)
     paths.fitted_table_path.write_text(

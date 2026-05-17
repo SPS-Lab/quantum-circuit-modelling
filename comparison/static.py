@@ -18,6 +18,7 @@ from models import (
     fit_duffing_mode_parameters_to_reference,
     fit_symbolic_duffing_mode_parameters_to_reference,
     resolve_static_sweep_values,
+    tracked_subspace_bare_amplitudes,
     tracked_subspace_bare_overlaps,
 )
 from study_config import StudyConfig, build_flux_values
@@ -48,7 +49,9 @@ class StaticBenchmarkResult:
     duffing_symbolic_coefficients: dict[str, np.ndarray]
     duffing_parameters: dict[str, np.ndarray]
     circuit_parameters: dict[str, np.ndarray]
+    duffing_computational_bare_amplitudes: np.ndarray
     duffing_computational_bare_overlaps: np.ndarray
+    circuit_computational_bare_amplitudes: np.ndarray
     circuit_computational_bare_overlaps: np.ndarray
     detuning_ratio: np.ndarray
     idle_mask: np.ndarray
@@ -240,7 +243,21 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         n_candidate_states=n_cand,
         projector_blocks=((1, 2),),
     )
+    circuit_comp_amplitudes = tracked_subspace_bare_amplitudes(
+        circuit.hamiltonian_stack,
+        subspace_indices=circuit_overlap_subspace_idx,
+        selection_mode=dressed_mode,
+        n_candidate_states=n_cand,
+        projector_blocks=((1, 2),),
+    )
     duffing_comp_overlaps = tracked_subspace_bare_overlaps(
+        duffing.hamiltonian_stack,
+        subspace_indices=duffing_overlap_subspace_idx,
+        selection_mode=dressed_mode,
+        n_candidate_states=n_cand,
+        projector_blocks=((1, 2),),
+    )
+    duffing_comp_amplitudes = tracked_subspace_bare_amplitudes(
         duffing.hamiltonian_stack,
         subspace_indices=duffing_overlap_subspace_idx,
         selection_mode=dressed_mode,
@@ -428,7 +445,9 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         },
         duffing_parameters=params_duffing,
         circuit_parameters=params_circuit,
+        duffing_computational_bare_amplitudes=np.asarray(duffing_comp_amplitudes, dtype=complex),
         duffing_computational_bare_overlaps=np.asarray(duffing_comp_overlaps, dtype=float),
+        circuit_computational_bare_amplitudes=np.asarray(circuit_comp_amplitudes, dtype=complex),
         circuit_computational_bare_overlaps=np.asarray(circuit_comp_overlaps, dtype=float),
         detuning_ratio=np.asarray(detuning_ratio, dtype=float),
         idle_mask=np.asarray(idle_mask, dtype=bool),

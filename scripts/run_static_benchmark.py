@@ -17,7 +17,12 @@ from benchmark_results_io import (
 from benchmark_run_artifacts import get_git_info, prepare_benchmark_run
 from benchmark_cli_reporting import CliReporter, build_common_truncation_lines
 from comparison.static import StaticBenchmarkResult, run_static_benchmark
-from plotting.static import plot_static_benchmark, plot_static_raw_energies, plot_static_single_excitation_overlaps
+from plotting.static import (
+    plot_static_benchmark,
+    plot_static_computational_basis_amplitudes,
+    plot_static_raw_energies,
+    plot_static_single_excitation_overlaps,
+)
 from static_fitted_artifacts import (
     build_static_fitted_latex_table,
     build_static_fitted_models_artifact,
@@ -97,6 +102,7 @@ def main() -> None:
     figure_path = run_paths.figure_paths["figure"]
     raw_figure_path = figure_path.with_name(f"{figure_path.stem}_raw_energies.pdf")
     overlap_figure_path = figure_path.with_name(f"{figure_path.stem}_single_excitation_overlaps.pdf")
+    basis_amplitude_figure_path = figure_path.with_name(f"{figure_path.stem}_computational_basis_amplitudes.pdf")
     results_path = run_paths.results_path
 
     if args.plot_only:
@@ -122,6 +128,11 @@ def main() -> None:
     plot_static_benchmark(result, figure_path, title)
     plot_static_raw_energies(result, raw_figure_path, f"{title} [raw energies]")
     plot_static_single_excitation_overlaps(result, overlap_figure_path, f"{title} [single-excitation overlaps]")
+    plot_static_computational_basis_amplitudes(
+        result,
+        basis_amplitude_figure_path,
+        f"{title} [computational basis amplitudes]",
+    )
     fitted_artifact = build_static_fitted_models_artifact(result, config=config)
     fitted_json_path = run_paths.run_dir / "static_fitted_parameters.json"
     fitted_table_path = run_paths.run_dir / "static_fitted_parameters_table.tex"
@@ -183,6 +194,7 @@ def main() -> None:
     reporter.line(f"Wrote figure: {figure_path}")
     reporter.line(f"Wrote raw-energy figure: {raw_figure_path}")
     reporter.line(f"Wrote single-excitation overlap figure: {overlap_figure_path}")
+    reporter.line(f"Wrote computational-basis amplitude figure: {basis_amplitude_figure_path}")
     reporter.line(f"Wrote fitted-parameter artifact: {fitted_json_path}")
     reporter.line(f"Wrote LaTeX table: {fitted_table_path}")
     if run_paths.git_head_path.exists():

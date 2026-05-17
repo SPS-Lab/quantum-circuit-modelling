@@ -242,6 +242,10 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.effective_relative_energies.shape == (9, 4)
     assert out.duffing_relative_energies.shape == (9, 4)
     assert out.circuit_relative_energies.shape == (9, 4)
+    assert out.circuit_computational_bare_amplitudes.shape == (9, 4, 4)
+    assert out.duffing_computational_bare_amplitudes.shape == (9, 4, 4)
+    assert np.iscomplexobj(out.circuit_computational_bare_amplitudes)
+    assert np.iscomplexobj(out.duffing_computational_bare_amplitudes)
     assert np.isfinite(float(np.mean(out.effective_error_rmse)))
     assert np.isfinite(float(np.mean(out.duffing_error_rmse)))
     assert float(out.summary["computational_excited_levels_compared"]) == 3.0
@@ -454,6 +458,7 @@ def test_truncation_static_companion_materializes_artifacts(tmp_path: Path) -> N
     assert paths.figure_path.exists()
     assert paths.raw_figure_path.exists()
     assert paths.overlap_figure_path.exists()
+    assert paths.basis_amplitude_figure_path.exists()
     assert paths.fitted_json_path.exists()
     assert paths.fitted_table_path.exists()
 

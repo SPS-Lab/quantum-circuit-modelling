@@ -9,6 +9,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 from comparison.static import StaticBenchmarkResult
+from plotting.leakage_flow import _phase_population_rgb
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_RECT,
@@ -158,14 +159,10 @@ def plot_static_benchmark(
         axes[1, 0].set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
         axes[1, 1].set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
         fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
+        fig.subplots_adjust(left=0.1, right=0.93, bottom=0.06, top=0.96)
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
+        plt.savefig(outfile, format="pdf", bbox_inches="tight", pad_inches=0.04)
         plt.close(fig)
 
 
@@ -211,14 +208,10 @@ def plot_static_raw_energies(
             frameon=False,
             bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR,
         )
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
+        fig.subplots_adjust(left=0.1, right=0.93, bottom=0.06, top=0.96)
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
+        plt.savefig(outfile, format="pdf", bbox_inches="tight", pad_inches=0.04)
         plt.close(fig)
 
 
@@ -259,12 +252,83 @@ def plot_static_single_excitation_overlaps(
 
         axes[0].set_ylabel(r"Bare overlap $|\langle \mathrm{bare} | \mathrm{dressed} \rangle|^2$")
         axes[1].legend(loc="upper center", bbox_to_anchor=(0.5, 1.02), ncol=2, framealpha=0.9)
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
+        fig.subplots_adjust(left=0.1, right=0.93, bottom=0.06, top=0.96)
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
+        plt.savefig(outfile, format="pdf", bbox_inches="tight", pad_inches=0.04)
+        plt.close(fig)
+
+
+def plot_static_computational_basis_amplitudes(
+    result: StaticBenchmarkResult,
+    outfile: Path,
+    title: str,
+    font_size: float = DEFAULT_PLOT_FONT_SIZE,
+) -> None:
+    flux = np.asarray(result.flux_values, dtype=float)
+    basis_labels = (
+        r"$|00\rangle$ component",
+        r"$|01\rangle$ component",
+        r"$|10\rangle$ component",
+        r"$|11\rangle$ component",
+    )
+    branch_ticklabels = ("0", "1", "2", "3")
+    panels = (
+        ("Circuit", np.asarray(result.circuit_computational_bare_amplitudes, dtype=complex)),
+        ("Duffing", np.asarray(result.duffing_computational_bare_amplitudes, dtype=complex)),
+    )
+
+    with benchmark_plot_style(font_size):
+        fig = plt.figure(figsize=(12.6, 10.2))
+        gs = fig.add_gridspec(
+            4,
+            3,
+            width_ratios=(1.0, 1.0, 0.06),
+            hspace=0.22,
+            wspace=0.18,
+        )
+        axes = np.empty((4, 2), dtype=object)
+        for row in range(4):
+            for col in range(2):
+                sharex = axes[0, col] if row > 0 else None
+                sharey = axes[row, 0] if col > 0 else None
+                axes[row, col] = fig.add_subplot(gs[row, col], sharex=sharex, sharey=sharey)
+
+        cax = fig.add_subplot(gs[:, 2])
+
+        for col, (model_name, amplitudes) in enumerate(panels):
+            for row, basis_label in enumerate(basis_labels):
+                ax = axes[row, col]
+                rgb = _phase_population_rgb(amplitudes[:, row, :], [f"branch_{k}" for k in range(4)])
+                ax.imshow(
+                    rgb,
+                    aspect="auto",
+                    origin="lower",
+                    interpolation="nearest",
+                    extent=(float(flux[0]), float(flux[-1]), -0.5, 3.5),
+                    zorder=2,
+                )
+                ax.grid(True, alpha=0.12)
+                ax.set_yticks(np.arange(4, dtype=int))
+                if col == 0:
+                    ax.set_yticklabels(branch_ticklabels)
+                    ax.set_ylabel(f"{basis_label}\nTracked branch")
+                else:
+                    ax.tick_params(axis="y", labelleft=False)
+                if row == 0:
+                    ax.set_title(f"{model_name} population+phase")
+                if row == 3:
+                    ax.set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
+
+        phase_mappable = plt.cm.ScalarMappable(cmap="hsv", norm=plt.Normalize(vmin=-np.pi, vmax=np.pi))
+        phase_mappable.set_array([])
+        cbar = fig.colorbar(phase_mappable, cax=cax)
+        cbar.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
+        cbar.set_ticklabels(["$-\\pi$", "$-\\pi/2$", "$0$", "$\\pi/2$", "$\\pi$"])
+        cbar.set_label("Phase hue (rad)\nStrength ~ sqrt(population)")
+
+        fig.subplots_adjust(left=0.1, right=0.93, bottom=0.06, top=0.96)
+
+        outfile.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(outfile, format="pdf", bbox_inches="tight", pad_inches=0.04)
         plt.close(fig)
