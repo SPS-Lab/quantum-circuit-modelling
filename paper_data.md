@@ -56,3 +56,8 @@
 | g1c | cos3 | 2.631006e-02 |
 | g1c | cos4 | 2.256151e-02 |
 | g1c | cos5 | 1.736806e-02 |
+
+## Duffing model calibration details
+
+An initial physics informed guess of $\omega_j$ and $\alpha_j$ for j=0,1 is made using scqubits for single Transmons for each flux point, since $\alpha$ can not be taken from the $4\times4$ projection $E_{\text{circ},\text{proj}}$.
+
