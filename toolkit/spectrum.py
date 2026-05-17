@@ -28,6 +28,10 @@ def overlap_row_to_col_assignment(overlap: np.ndarray) -> np.ndarray:
             f"need at least as many columns as rows for assignment: {n_rows}>{n_cols}"
         )
 
+    row_to_col = np.argmax(overlap, axis=1).astype(int, copy=False)
+    if np.unique(row_to_col).size == n_rows:
+        return row_to_col.copy()
+
     row_ind, col_ind = linear_sum_assignment(-overlap)
     row_to_col = np.empty(n_rows, dtype=int)
     for k in range(len(row_ind)):
