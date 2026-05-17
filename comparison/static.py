@@ -254,7 +254,7 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
         nlevels_q0=duffing_q_dim,
         nlevels_coupler=duffing_c_dim,
     )
-    with progress_heartbeat("static benchmark: tracking subspace bare overlaps and amplitudes, Circuit"):
+    with progress_heartbeat("static benchmark: tracked_subspace_bare_overlaps, Circuit"):
         circuit_comp_overlaps = tracked_subspace_bare_overlaps(
             circuit.hamiltonian_stack,
             subspace_indices=circuit_overlap_subspace_idx,
@@ -262,6 +262,7 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
             n_candidate_states=n_cand,
             projector_blocks=((1, 2),),
         )
+    with progress_heartbeat("static benchmark: tracked_subspace_bare_amplitudes, Circuit"):
         circuit_comp_amplitudes = tracked_subspace_bare_amplitudes(
             circuit.hamiltonian_stack,
             subspace_indices=circuit_overlap_subspace_idx,
@@ -269,6 +270,7 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
             n_candidate_states=n_cand,
             projector_blocks=((1, 2),),
         )
+    with progress_heartbeat("static benchmark: tracked_bare_state_amplitudes, Circuit"):
         circuit_branch_amplitudes = tracked_bare_state_amplitudes(
             circuit.hamiltonian_stack,
             tracked_state_indices=circuit_overlap_subspace_idx,
@@ -277,7 +279,7 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
             n_candidate_states=n_cand,
             projector_blocks=((1, 2),),
         )
-    with progress_heartbeat("static benchmark: tracking subspace bare overlaps and amplitudes, Duffing"):
+    with progress_heartbeat("static benchmark: tracked_subspace_bare_overlaps, Duffing"):
         duffing_comp_overlaps = tracked_subspace_bare_overlaps(
             duffing.hamiltonian_stack,
             subspace_indices=duffing_overlap_subspace_idx,
@@ -285,6 +287,7 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
             n_candidate_states=n_cand,
             projector_blocks=((1, 2),),
         )
+    with progress_heartbeat("static benchmark: tracked_subspace_bare_amplitudes, Duffing"):
         duffing_comp_amplitudes = tracked_subspace_bare_amplitudes(
             duffing.hamiltonian_stack,
             subspace_indices=duffing_overlap_subspace_idx,
@@ -292,6 +295,7 @@ def run_static_benchmark(config: StudyConfig) -> StaticBenchmarkResult:
             n_candidate_states=n_cand,
             projector_blocks=((1, 2),),
         )
+    with progress_heartbeat("static benchmark: tracked_bare_state_amplitudes, Duffing"):
         duffing_branch_amplitudes = tracked_bare_state_amplitudes(
             duffing.hamiltonian_stack,
             tracked_state_indices=duffing_overlap_subspace_idx,
