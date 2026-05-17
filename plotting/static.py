@@ -159,10 +159,14 @@ def plot_static_benchmark(
         axes[1, 0].set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
         axes[1, 1].set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
         fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
-        fig.subplots_adjust(left=0.1, right=0.93, bottom=0.06, top=0.96)
+        fig.tight_layout(
+            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
+            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
+            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
+        )
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf", bbox_inches="tight", pad_inches=0.04)
+        plt.savefig(outfile, format="pdf")
         plt.close(fig)
 
 
@@ -208,10 +212,14 @@ def plot_static_raw_energies(
             frameon=False,
             bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR,
         )
-        fig.subplots_adjust(left=0.1, right=0.93, bottom=0.06, top=0.96)
+        fig.tight_layout(
+            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
+            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
+            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
+        )
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf", bbox_inches="tight", pad_inches=0.04)
+        plt.savefig(outfile, format="pdf")
         plt.close(fig)
 
 
@@ -252,10 +260,14 @@ def plot_static_single_excitation_overlaps(
 
         axes[0].set_ylabel(r"Bare overlap $|\langle \mathrm{bare} | \mathrm{dressed} \rangle|^2$")
         axes[1].legend(loc="upper center", bbox_to_anchor=(0.5, 1.02), ncol=2, framealpha=0.9)
-        fig.subplots_adjust(left=0.1, right=0.93, bottom=0.06, top=0.96)
+        fig.tight_layout(
+            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
+            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
+            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
+        )
 
         outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf", bbox_inches="tight", pad_inches=0.04)
+        plt.savefig(outfile, format="pdf")
         plt.close(fig)
 
 
@@ -279,7 +291,7 @@ def plot_static_computational_basis_amplitudes(
     )
 
     with benchmark_plot_style(font_size):
-        fig = plt.figure(figsize=(12.6, 10.2))
+        fig = plt.figure(figsize=(12.6, 10.2), constrained_layout=True)
         gs = fig.add_gridspec(
             4,
             3,
@@ -327,8 +339,6 @@ def plot_static_computational_basis_amplitudes(
         cbar.set_ticklabels(["$-\\pi$", "$-\\pi/2$", "$0$", "$\\pi/2$", "$\\pi$"])
         cbar.set_label("Phase hue (rad)\nStrength ~ sqrt(population)")
 
-        fig.subplots_adjust(left=0.1, right=0.93, bottom=0.06, top=0.96)
-
         outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf", bbox_inches="tight", pad_inches=0.04)
+        plt.savefig(outfile, format="pdf")
         plt.close(fig)
