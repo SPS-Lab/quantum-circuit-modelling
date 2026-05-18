@@ -546,9 +546,9 @@ def test_truncation_static_companion_materializes_artifacts(tmp_path: Path) -> N
     assert paths is not None
     assert paths.results_path.exists()
     assert paths.figure_path.exists()
-    assert paths.raw_figure_path.exists()
-    assert paths.overlap_figure_path.exists()
-    assert paths.basis_amplitude_figure_path.exists()
+    assert not paths.raw_figure_path.exists()
+    assert not paths.overlap_figure_path.exists()
+    assert not paths.basis_amplitude_figure_path.exists()
     assert paths.fitted_json_path.exists()
     assert paths.fitted_table_path.exists()
     assert paths.fitted_markdown_path.exists()
@@ -560,6 +560,31 @@ def test_truncation_static_companion_materializes_artifacts(tmp_path: Path) -> N
         plot_only=True,
     )
     assert loaded_paths == paths
+
+
+def test_truncation_static_companion_extra_sideplots_are_opt_in(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+
+    run_dir = tmp_path / "truncation_run_extra"
+    paths = materialize_static_companion_artifacts(
+        run_dir=run_dir,
+        config=cfg,
+        repo_root=_ROOT,
+        plot_only=False,
+        include_extra_sideplots=True,
+        include_truncation_style_metric=True,
+    )
+    assert paths is not None
+    assert paths.results_path.exists()
+    assert paths.figure_path.exists()
+    assert paths.raw_figure_path.exists()
+    assert paths.overlap_figure_path.exists()
+    assert paths.basis_amplitude_figure_path.exists()
+    assert paths.fitted_json_path.exists()
+    assert paths.fitted_table_path.exists()
+    assert paths.fitted_markdown_path.exists()
 
 
 def test_static_benchmark_uses_fixed_coupler_frequency_from_system_params(tmp_path: Path) -> None:

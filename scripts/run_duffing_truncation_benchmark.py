@@ -58,6 +58,22 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run or plot only the coupler Hilbert-dimension sweep subplot.",
     )
+    parser.add_argument(
+        "--extra-sideplots",
+        action="store_true",
+        help=(
+            "Also compute and write the companion static side-plot PDFs "
+            "(raw energies, single-excitation overlaps, computational-basis amplitudes)."
+        ),
+    )
+    parser.add_argument(
+        "--truncation-style-metric",
+        action="store_true",
+        help=(
+            "Also compute the companion static full-spectrum sorted-eigenvalue metric "
+            "duffing_truncation_style_energy_rmse."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -120,6 +136,8 @@ def main() -> None:
         config=static_config,
         repo_root=repo_root,
         plot_only=bool(args.plot_only),
+        include_extra_sideplots=bool(args.extra_sideplots),
+        include_truncation_style_metric=bool(args.truncation_style_metric),
     )
 
     for line in build_common_truncation_lines(config):
@@ -178,8 +196,16 @@ def main() -> None:
         else:
             reporter.line(f"Wrote companion static results: {static_paths.results_path}")
         reporter.line(f"Wrote companion static figure: {static_paths.figure_path}")
+        if args.extra_sideplots:
+            reporter.line(f"Wrote companion static raw-energy figure: {static_paths.raw_figure_path}")
+            reporter.line(f"Wrote companion static overlap figure: {static_paths.overlap_figure_path}")
+            reporter.line(
+                f"Wrote companion static computational-basis amplitude figure: "
+                f"{static_paths.basis_amplitude_figure_path}"
+            )
         reporter.line(f"Wrote companion static fitted-parameter artifact: {static_paths.fitted_json_path}")
         reporter.line(f"Wrote companion static LaTeX table: {static_paths.fitted_table_path}")
+        reporter.line(f"Wrote companion static Markdown table: {static_paths.fitted_markdown_path}")
     if run_paths.git_head_path.exists():
         reporter.line(f"Wrote git head summary: {run_paths.git_head_path}")
     if run_paths.metadata_path.exists():
