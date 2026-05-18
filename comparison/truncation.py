@@ -676,9 +676,11 @@ def _summary_for_sweep(
     return {
         f"{prefix}_points": float(values.shape[0]),
         f"{prefix}_best_value_index": float(idx),
+        f"{prefix}_best_value": float(values[idx]),
         f"{prefix}_best_energy_rmse": float(energy_rmse[idx]),
         f"{prefix}_best_spectrum_energy_rmse": best_spectrum_energy_rmse,
         f"{prefix}_best_spectrum_value_index": float(spectrum_idx),
+        f"{prefix}_best_spectrum_value": float(values[spectrum_idx]) if spectrum_idx >= 0 else float("nan"),
         f"{prefix}_best_j_abs_error": float(j_abs_error[idx]),
         f"{prefix}_best_zeta_abs_error": float(zeta_abs_error[idx]),
     }
@@ -967,6 +969,9 @@ def run_circuit_truncation_benchmark(
                 zeta_abs_error=circuit_ncut_zeta_abs_error,
             )
         )
+        best_idx = int(summary["circuit_ncut_best_value_index"])
+        summary["circuit_ncut_best_charge_basis_dim"] = float(2 * int(circuit_ncut_values[best_idx]) + 1)
+        summary["circuit_ncut_best_effective_qubit_truncated_dim"] = float(circuit_ncut_effective_qdim[best_idx])
     if circuit_qubit_dims.size > 0:
         summary.update(
             _summary_for_sweep(
@@ -1291,6 +1296,9 @@ def run_duffing_truncation_benchmark(
                 zeta_abs_error=duffing_ncut_zeta_abs_error,
             )
         )
+        best_idx = int(summary["duffing_ncut_best_value_index"])
+        summary["duffing_ncut_best_charge_basis_dim"] = float(2 * int(duffing_ncut_values[best_idx]) + 1)
+        summary["duffing_ncut_best_effective_truncated_dim"] = float(duffing_ncut_effective_trunc_dim[best_idx])
     if duffing_hilbert_qubit_dims.size > 0:
         summary.update(
             _summary_for_sweep(
