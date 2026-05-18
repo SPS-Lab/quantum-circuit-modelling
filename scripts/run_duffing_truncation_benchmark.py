@@ -61,11 +61,20 @@ def _parse_args() -> argparse.Namespace:
         help="Run or plot only the coupler Hilbert-dimension sweep subplot.",
     )
     parser.add_argument(
+        "--with-static-companion",
+        action="store_true",
+        help=(
+            "Also run and materialize the companion static benchmark artifacts "
+            "(static_results.h5, main static figure, fitted-parameter tables)."
+        ),
+    )
+    parser.add_argument(
         "--extra-sideplots",
         action="store_true",
         help=(
-            "Also compute and write the companion static side-plot PDFs "
-            "(raw energies, single-excitation overlaps, computational-basis amplitudes)."
+            "Also write companion static side-plot PDFs "
+            "(raw energies, single-excitation overlaps, computational-basis amplitudes). "
+            "Requires --with-static-companion."
         ),
     )
     parser.add_argument(
@@ -145,14 +154,16 @@ def main() -> None:
             ),
         ),
     )
-    static_paths = materialize_static_companion_artifacts(
-        run_dir=run_paths.run_dir,
-        config=static_config,
-        repo_root=repo_root,
-        plot_only=bool(args.plot_only),
-        include_extra_sideplots=bool(args.extra_sideplots),
-        include_truncation_style_metric=bool(args.truncation_style_metric),
-    )
+    static_paths = None
+    if args.with_static_companion:
+        static_paths = materialize_static_companion_artifacts(
+            run_dir=run_paths.run_dir,
+            config=static_config,
+            repo_root=repo_root,
+            plot_only=bool(args.plot_only),
+            include_extra_sideplots=bool(args.extra_sideplots),
+            include_truncation_style_metric=bool(args.truncation_style_metric),
+        )
 
     for line in build_common_truncation_lines(config):
         reporter.line(line)
