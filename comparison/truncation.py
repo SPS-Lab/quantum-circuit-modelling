@@ -1057,8 +1057,8 @@ def run_duffing_truncation_benchmark(
         )
     base_duf_qdim = int(cfg.duffing_reference_hilbert_qubit_dim)
     base_duf_cdim = int(cfg.duffing_reference_hilbert_coupler_dim)
-    base_extract_ncut = int(config.static_benchmark.duffing_model.transmon_spectral_extraction.ncut)
-    base_extract_trunc_dim = int(config.static_benchmark.duffing_model.transmon_spectral_extraction.truncated_dim)
+    base_extract_ncut = int(cfg.duffing_reference_extraction_ncut)
+    base_extract_trunc_dim = int(cfg.duffing_truncated_dim)
     if run_ncut:
         duffing_ncut_values = np.asarray(cfg.duffing_ncut_values, dtype=int)
         duffing_ncut_effective_trunc_dim = np.empty(duffing_ncut_values.shape[0], dtype=int)
@@ -1279,6 +1279,7 @@ def run_duffing_truncation_benchmark(
         "computational_excited_levels_compared": 3.0,
         "lowest_excited_levels_compared": float(cfg.lowest_excited_levels_to_plot),
         "spectrum_energy_metric_enabled": float(bool(include_spectrum_energy_metric)),
+        "duffing_reference_extraction_ncut_configured": float(cfg.duffing_reference_extraction_ncut),
         "duffing_extraction_truncated_dim_configured": float(cfg.duffing_truncated_dim),
     }
     summary["duffing_selected_sweep_count"] = float(len(sweep_selection))

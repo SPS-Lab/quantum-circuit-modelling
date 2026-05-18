@@ -125,6 +125,7 @@ def build_duffing_truncation_benchmark_extra_lines(config: StudyConfig) -> list[
         "Duffing truncation benchmark sweep settings:",
         f"  flux_values=[{flux_values}]",
         f"  duffing_ncut_values=[{duffing_ncut_values}]",
+        f"  duffing_reference_extraction_ncut={int(tb.duffing_reference_extraction_ncut)}",
         f"  duffing_truncated_dim={int(tb.duffing_truncated_dim)}",
         f"  duffing_hilbert_qubit_dim_values=[{duffing_hilbert_qubit_dims}]",
         f"  duffing_hilbert_coupler_dim_values=[{duffing_hilbert_coupler_dims}]",

@@ -182,6 +182,7 @@ class CircuitTruncationBenchmarkConfig:
 class DuffingTruncationBenchmarkConfig:
     flux_values: tuple[float, ...]
     duffing_ncut_values: tuple[int, ...]
+    duffing_reference_extraction_ncut: int
     duffing_truncated_dim: int
     duffing_hilbert_qubit_dim_values: tuple[int, ...]
     duffing_hilbert_coupler_dim_values: tuple[int, ...]
@@ -766,6 +767,15 @@ def _parse_duffing_truncation_benchmark(
         raise ValueError("study.duffing_truncation_benchmark.duffing_ncut_values must be non-empty")
     if any(v < 1 for v in ncuts):
         raise ValueError("study.duffing_truncation_benchmark.duffing_ncut_values must contain positive integers")
+    reference_extraction_ncut = _require_int(
+        tb,
+        "duffing_reference_extraction_ncut",
+        "study.duffing_truncation_benchmark",
+    )
+    if reference_extraction_ncut < 1:
+        raise ValueError(
+            "study.duffing_truncation_benchmark.duffing_reference_extraction_ncut must be >= 1"
+        )
     trunc_dim = _require_int(tb, "duffing_truncated_dim", "study.duffing_truncation_benchmark")
     if trunc_dim < 3:
         raise ValueError("study.duffing_truncation_benchmark.duffing_truncated_dim must be >= 3")
@@ -833,6 +843,7 @@ def _parse_duffing_truncation_benchmark(
     return DuffingTruncationBenchmarkConfig(
         flux_values=flux_values,
         duffing_ncut_values=ncuts,
+        duffing_reference_extraction_ncut=reference_extraction_ncut,
         duffing_truncated_dim=trunc_dim,
         duffing_hilbert_qubit_dim_values=duffing_hilbert_qubit_dims,
         duffing_hilbert_coupler_dim_values=duffing_hilbert_coupler_dims,

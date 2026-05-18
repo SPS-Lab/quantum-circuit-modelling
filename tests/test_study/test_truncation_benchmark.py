@@ -91,6 +91,7 @@ def _write_small_study_params(
     else:
         dtb.pop("flux_values", None)
     dtb["duffing_ncut_values"] = [3, 4, 6, 8] if duffing_ncut_values is None else list(duffing_ncut_values)
+    dtb["duffing_reference_extraction_ncut"] = 8
     dtb["duffing_truncated_dim"] = 12
     dtb["duffing_hilbert_qubit_dim_values"] = [2, 3]
     dtb["duffing_hilbert_coupler_dim_values"] = [2, 3]
