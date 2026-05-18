@@ -119,14 +119,20 @@ def test_circuit_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
     assert out.flux_values.shape == (9,)
     assert out.circuit_ncut_effective_qubit_truncated_dim_values.shape == (3,)
     assert out.circuit_ncut_energy_rmse.shape == (3,)
+    assert out.circuit_ncut_spectrum_energy_rmse.shape == (3,)
     assert out.circuit_qubit_truncated_dim_values.shape == (2,)
     assert out.circuit_qubit_truncation_energy_rmse.shape == (2,)
+    assert out.circuit_qubit_truncation_spectrum_energy_rmse.shape == (2,)
     assert out.circuit_coupler_truncated_dim_values.shape == (2,)
     assert out.circuit_coupler_truncation_energy_rmse.shape == (2,)
+    assert out.circuit_coupler_truncation_spectrum_energy_rmse.shape == (2,)
     assert np.all(np.isfinite(out.circuit_ncut_energy_rmse))
+    assert np.all(np.isfinite(out.circuit_ncut_spectrum_energy_rmse))
     assert np.all(out.circuit_ncut_effective_qubit_truncated_dim_values <= (2 * out.circuit_ncut_values + 1))
     assert np.all(np.isfinite(out.circuit_qubit_truncation_energy_rmse))
+    assert np.all(np.isfinite(out.circuit_qubit_truncation_spectrum_energy_rmse))
     assert np.all(np.isfinite(out.circuit_coupler_truncation_energy_rmse))
+    assert np.all(np.isfinite(out.circuit_coupler_truncation_spectrum_energy_rmse))
     assert out.reference_circuit_j_values.shape == (9,)
     assert out.reference_circuit_zeta_values.shape == (9,)
     assert np.all(np.isfinite(out.reference_circuit_j_values))
@@ -170,7 +176,7 @@ def test_strict_circuit_reference_builds_batched_stack_once(
         _wrapped_build_circuit_model_stack,
     )
 
-    ref_j_values, ref_zeta_values, ref_rel_e_values = truncation_module._extract_strict_circuit_reference(
+    ref_j_values, ref_zeta_values, ref_comp_rel_e_values, ref_spectrum_rel_e_values = truncation_module._extract_strict_circuit_reference(
         config=cfg,
         flux_values=np.asarray(flux_values, dtype=float),
         reference_ncut=int(cfg.circuit_truncation_benchmark.circuit_reference_ncut),
@@ -181,7 +187,8 @@ def test_strict_circuit_reference_builds_batched_stack_once(
     assert captured_flux_lengths == [len(flux_values)]
     assert ref_j_values.shape == (len(flux_values),)
     assert ref_zeta_values.shape == (len(flux_values),)
-    assert ref_rel_e_values.shape[0] == len(flux_values)
+    assert ref_comp_rel_e_values.shape == (len(flux_values), 4)
+    assert ref_spectrum_rel_e_values.shape[0] == len(flux_values)
 
 
 def test_duffing_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> None:
@@ -196,15 +203,21 @@ def test_duffing_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
     assert out.flux_values.shape == (9,)
     assert out.duffing_ncut_effective_truncated_dim_values.shape == (4,)
     assert out.duffing_ncut_energy_rmse.shape == (4,)
+    assert out.duffing_ncut_spectrum_energy_rmse.shape == (4,)
     assert out.duffing_hilbert_qubit_dim_values.shape == (2,)
     assert out.duffing_hilbert_qubit_energy_rmse.shape == (2,)
+    assert out.duffing_hilbert_qubit_spectrum_energy_rmse.shape == (2,)
     assert out.duffing_hilbert_coupler_dim_values.shape == (2,)
     assert out.duffing_hilbert_coupler_energy_rmse.shape == (2,)
+    assert out.duffing_hilbert_coupler_spectrum_energy_rmse.shape == (2,)
     assert np.all(out.duffing_ncut_effective_truncated_dim_values <= (2 * out.duffing_ncut_values + 1))
     assert np.all(out.duffing_ncut_effective_truncated_dim_values <= out.duffing_truncated_dim)
     assert np.all(np.isfinite(out.duffing_ncut_energy_rmse))
+    assert np.all(np.isfinite(out.duffing_ncut_spectrum_energy_rmse))
     assert np.all(np.isfinite(out.duffing_hilbert_qubit_energy_rmse))
+    assert np.all(np.isfinite(out.duffing_hilbert_qubit_spectrum_energy_rmse))
     assert np.all(np.isfinite(out.duffing_hilbert_coupler_energy_rmse))
+    assert np.all(np.isfinite(out.duffing_hilbert_coupler_spectrum_energy_rmse))
     assert out.reference_circuit_j_values.shape == (9,)
     assert out.reference_circuit_zeta_values.shape == (9,)
     assert np.all(np.isfinite(out.reference_circuit_j_values))
@@ -255,10 +268,13 @@ def test_circuit_truncation_benchmark_can_run_only_ncut_sweep(tmp_path: Path) ->
 
     assert out.circuit_ncut_values.shape == (3,)
     assert out.circuit_ncut_energy_rmse.shape == (3,)
+    assert out.circuit_ncut_spectrum_energy_rmse.shape == (3,)
     assert out.circuit_qubit_truncated_dim_values.shape == (0,)
     assert out.circuit_qubit_truncation_energy_rmse.shape == (0,)
+    assert out.circuit_qubit_truncation_spectrum_energy_rmse.shape == (0,)
     assert out.circuit_coupler_truncated_dim_values.shape == (0,)
     assert out.circuit_coupler_truncation_energy_rmse.shape == (0,)
+    assert out.circuit_coupler_truncation_spectrum_energy_rmse.shape == (0,)
 
 
 def test_circuit_truncation_plot_writes_pdf_for_single_sweep(tmp_path: Path) -> None:
@@ -301,8 +317,11 @@ def test_duffing_truncation_benchmark_runs_with_symbolic_fitted_static(tmp_path:
     assert out.duffing_calibration_mode == "symbolic-fitted-static"
     assert out.duffing_ncut_values.shape == (1,)
     assert np.all(np.isfinite(out.duffing_ncut_energy_rmse))
+    assert np.all(np.isfinite(out.duffing_ncut_spectrum_energy_rmse))
     assert np.all(np.isfinite(out.duffing_hilbert_qubit_energy_rmse))
+    assert np.all(np.isfinite(out.duffing_hilbert_qubit_spectrum_energy_rmse))
     assert np.all(np.isfinite(out.duffing_hilbert_coupler_energy_rmse))
+    assert np.all(np.isfinite(out.duffing_hilbert_coupler_spectrum_energy_rmse))
 
 
 def test_duffing_truncation_benchmark_uses_truncation_fluxes_for_reference_fit(
@@ -350,10 +369,13 @@ def test_duffing_truncation_benchmark_can_run_only_ncut_sweep(tmp_path: Path) ->
 
     assert out.duffing_ncut_values.shape == (4,)
     assert out.duffing_ncut_energy_rmse.shape == (4,)
+    assert out.duffing_ncut_spectrum_energy_rmse.shape == (4,)
     assert out.duffing_hilbert_qubit_dim_values.shape == (0,)
     assert out.duffing_hilbert_qubit_energy_rmse.shape == (0,)
+    assert out.duffing_hilbert_qubit_spectrum_energy_rmse.shape == (0,)
     assert out.duffing_hilbert_coupler_dim_values.shape == (0,)
     assert out.duffing_hilbert_coupler_energy_rmse.shape == (0,)
+    assert out.duffing_hilbert_coupler_spectrum_energy_rmse.shape == (0,)
 
 
 def test_duffing_truncation_plot_writes_pdf_for_single_sweep(tmp_path: Path) -> None:

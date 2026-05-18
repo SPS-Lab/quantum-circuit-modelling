@@ -36,7 +36,7 @@ def _plot_metric_sweeps(
     title: str,
     xticklabels: list[str] | None = None,
 ) -> None:
-    ax.plot(x, energy_rmse, marker="s", linewidth=1.6, label="$RMSE_E$")
+    ax.plot(x, energy_rmse, marker="s", linewidth=1.6, label=r"$RMSE_{E,\mathrm{comp}}$")
     ax.plot(x, j_abs_error, marker="^", linewidth=1.6, label=r"$|\Delta J|$")
     ax.plot(x, zeta_abs_error, marker="d", linewidth=1.6, label=r"$|\Delta \zeta|$")
     ax.set_xlabel(xlabel)
