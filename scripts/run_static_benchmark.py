@@ -71,6 +71,14 @@ def _parse_args() -> argparse.Namespace:
             "(raw energies, single-excitation overlaps, computational-basis amplitudes)."
         ),
     )
+    parser.add_argument(
+        "--truncation-style-metric",
+        action="store_true",
+        help=(
+            "Also compute the static full-spectrum sorted-eigenvalue metric "
+            "duffing_truncation_style_energy_rmse."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -87,7 +95,9 @@ def _format_fit_line(name: str, coeff_names: object, coeffs: object) -> str:
 
 def _has_extra_sideplot_data(result: StaticBenchmarkResult) -> bool:
     return (
-        np.asarray(result.circuit_computational_bare_overlaps).size > 0
+        np.asarray(result.circuit_full_raw_energies).size > 0
+        and np.asarray(result.duffing_full_raw_energies).size > 0
+        and np.asarray(result.circuit_computational_bare_overlaps).size > 0
         and np.asarray(result.duffing_computational_bare_overlaps).size > 0
         and np.asarray(result.circuit_tracked_branch_bare_amplitudes).size > 0
         and np.asarray(result.duffing_tracked_branch_bare_amplitudes).size > 0
@@ -138,7 +148,12 @@ def main() -> None:
                 "Re-run without --plot-only to regenerate the results file."
             ) from exc
     else:
-        result = run_static_benchmark(config, include_extra_sideplot_data=bool(args.extra_sideplots))
+        result = run_static_benchmark(
+            config,
+            include_extra_sideplot_data=bool(args.extra_sideplots),
+            include_full_spectrum_plot_data=bool(args.extra_sideplots),
+            include_truncation_style_metric=bool(args.truncation_style_metric),
+        )
         save_result_hdf5(result, results_path, benchmark_name="static")
 
     title = (

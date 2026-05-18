@@ -314,6 +314,26 @@ def test_static_benchmark_extra_sideplot_data_can_be_requested(tmp_path: Path) -
     assert set(out.effective_fit_coefficient_names) == {"w0", "w1", "J", "zeta"}
     assert set(out.effective_fit_coefficients) == {"w0", "w1", "J", "zeta"}
     assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
+
+
+def test_static_benchmark_can_skip_full_spectrum_context_and_truncation_style_metric(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+
+    out = run_static_benchmark(
+        cfg,
+        include_full_spectrum_plot_data=False,
+        include_truncation_style_metric=False,
+    )
+
+    assert out.duffing_full_raw_energies.size == 0
+    assert out.duffing_full_relative_energies.size == 0
+    assert out.circuit_full_raw_energies.size == 0
+    assert out.circuit_full_relative_energies.size == 0
+    assert "duffing_truncation_style_energy_rmse" not in out.summary
+    assert "duffing_truncation_style_excited_levels_compared" not in out.summary
+    assert "duffing_truncation_style_energy_rmse" not in out.metric_notes
     assert len(out.effective_fit_coefficient_names["w0"]) == out.effective_fit_coefficients["w0"].shape[0]
     assert len(out.effective_fit_coefficient_names["w1"]) == out.effective_fit_coefficients["w1"].shape[0]
     assert len(out.effective_fit_coefficient_names["J"]) == out.effective_fit_coefficients["J"].shape[0]
