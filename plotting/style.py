@@ -25,8 +25,10 @@ TRUNCATION_LEVEL_LEGEND_MAX_ITEMS: int = 5
 TRUNCATION_LEVEL_LEGEND_NCOL: int = 2
 TRUNCATION_LEVEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.02)
 TRUNCATION_LEVEL_LEGEND_FONT_SCALE: float = 0.68
-TRUNCATION_LEVEL_LEGEND_TITLE_FONT_SCALE: float = 0.78
+TRUNCATION_LEVEL_LEGEND_TITLE_FONT_SCALE: float = 0.98
 TRUNCATION_LEVEL_LEGEND_SHOW_ON_DIFF: bool = False
+TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.955)
+TRUNCATION_METRIC_LEGEND_NCOL: int = 3
 # Static-spectrum level legend (E1/E2/E3/lower levels) controls.
 STATIC_LEVEL_LEGEND_LOC: str = "lower center"
 STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.02)
@@ -110,6 +112,15 @@ def model_legend_handles() -> list[Line2D]:
         Line2D([0], [0], linewidth=2.2, label="circuit", **model_plot_kwargs("circuit")),
         Line2D([0], [0], linewidth=2.2, label="duffing", **model_plot_kwargs("duffing")),
         Line2D([0], [0], linewidth=2.2, label="effective", **model_plot_kwargs("effective")),
+    ]
+
+
+def truncation_metric_legend_handles() -> list[Line2D]:
+    """Legend handles for truncation benchmark metric traces."""
+    return [
+        Line2D([0], [0], color="C0", marker="s", linewidth=1.6, label=r"$RMSE_{E,\mathrm{comp}}$"),
+        Line2D([0], [0], color="C1", marker="^", linewidth=1.6, label=r"$|\Delta J|$"),
+        Line2D([0], [0], color="C2", marker="d", linewidth=1.6, label=r"$|\Delta \zeta|$"),
     ]
 
 

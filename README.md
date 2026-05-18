@@ -204,53 +204,36 @@ Reuse fitted static parameters from a previous static run:
 python scripts/run_leakage_flow_benchmark.py --from-fitted results/experiments/<static-run>/
 ```
 
-Run the circuit truncation benchmark:
+Run the combined truncation benchmark:
+
+```bash
+python scripts/run_truncation_benchmark.py
+```
+
+This reads settings from:
+- `params/benchmark_params.json` under both `circuit_truncation_benchmark` and `duffing_truncation_benchmark`
+
+This benchmark:
+- aggregates static RMSE over the full static flux sweep by default,
+- optionally accepts explicit truncation-only `flux_values` lists for the circuit and Duffing truncation studies,
+- runs six convergence sweeps in one figure:
+  - circuit `N_Q`, `N_{E,q}`, `N_{E,c}` on the left
+  - Duffing `N_Q`, `N_{E,q}`, `N_{E,c}` on the right
+- compares each sweep point to one strict circuit reference point,
+- reports `energy_rmse` together with `|dJ|` and `|dzeta|`,
+- and writes results to an `.h5` file next to the configured figure.
+
+Replot from saved combined truncation data only:
+
+```bash
+python scripts/run_truncation_benchmark.py --plot-only
+```
+
+The old standalone scripts still exist if you want a one-family-only run:
 
 ```bash
 python scripts/run_circuit_truncation_benchmark.py
-```
-
-This reads settings from:
-- `params/benchmark_params.json` under `circuit_truncation_benchmark`
-
-This benchmark:
-- aggregates static RMSE over the full static flux sweep by default,
-- optionally accepts an explicit truncation-only `flux_values` list in `circuit_truncation_benchmark`,
-- sweeps circuit charge-basis `ncut`,
-- sweeps circuit dressed-space truncated dimensions `{qubit, coupler}`,
-- compares each sweep point to one strict circuit reference point,
-- reports `energy_rmse` together with `|dJ|` and `|dzeta|`,
-- and writes results to an `.h5` file next to the configured figure.
-
-Replot from saved circuit truncation data only:
-
-```bash
-python scripts/run_circuit_truncation_benchmark.py --plot-only
-```
-
-Run the Duffing truncation benchmark:
-
-```bash
 python scripts/run_duffing_truncation_benchmark.py
-```
-
-This reads settings from:
-- `params/benchmark_params.json` under `duffing_truncation_benchmark`
-
-This benchmark:
-- aggregates static RMSE over the full static flux sweep by default,
-- optionally accepts an explicit truncation-only `flux_values` list in `duffing_truncation_benchmark`,
-- sweeps Duffing transmon calibration `ncut`,
-- always keeps the lowest 3 transmon levels when extracting `w01` and `alpha`,
-- sweeps Duffing Hilbert-space truncated dimensions `{qubit, coupler}`,
-- compares each sweep point to one strict circuit reference point,
-- reports `energy_rmse` together with `|dJ|` and `|dzeta|`,
-- and writes results to an `.h5` file next to the configured figure.
-
-Replot from saved Duffing truncation data only:
-
-```bash
-python scripts/run_duffing_truncation_benchmark.py --plot-only
 ```
 
 Run the CZ runtime benchmark (qubit truncation vs time for Duffing and circuit):

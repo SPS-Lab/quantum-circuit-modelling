@@ -16,8 +16,7 @@ if str(_REPO_ROOT) not in sys.path:
 from runtime_utils import log_progress, run_main_with_timing
 _BENCHMARK_SCRIPTS = (
     "run_static_benchmark.py",
-    "run_circuit_truncation_benchmark.py",
-    "run_duffing_truncation_benchmark.py",
+    "run_truncation_benchmark.py",
     "run_cz_benchmark.py",
     "run_rx_benchmark.py",
     "run_leakage_flow_benchmark.py",

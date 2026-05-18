@@ -13,6 +13,7 @@ from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
     DEFAULT_PLOT_FONT_SIZE,
     benchmark_plot_style,
+    model_legend_handles,
     model_plot_kwargs,
 )
 
@@ -56,11 +57,10 @@ def plot_runtime_benchmark(
             label="duffing",
             **model_plot_kwargs("duffing"),
         )
-        ax_build.set_xlabel("qubit truncation")
-        ax_build.set_ylabel("Build runtime (s)")
+        ax_build.set_xlabel(r"$N_{E,q}$")
+        ax_build.set_ylabel(r"Runtime ($s$)")
         ax_build.set_title("Build")
         ax_build.grid(True, alpha=0.3)
-        ax_build.legend(frameon=False)
         ax_build.set_xticks(x)
 
         ax_prop.errorbar(
@@ -83,16 +83,23 @@ def plot_runtime_benchmark(
             label="duffing",
             **model_plot_kwargs("duffing"),
         )
-        ax_prop.set_xlabel("qubit truncation")
-        ax_prop.set_ylabel("Propagation runtime (s)")
+        ax_prop.set_xlabel(r"$N_{E,q}$")
+        ax_prop.set_ylabel(r"Runtime ($s$)")
         ax_prop.set_title("Propagation")
         ax_prop.grid(True, alpha=0.3)
         ax_prop.set_xticks(x)
 
-        fig.suptitle(title)
+        fig.legend(
+            handles=model_legend_handles()[:2],
+            loc="upper center",
+            ncol=2,
+            frameon=False,
+            bbox_to_anchor=(0.5, 0.955),
+        )
+        fig.suptitle(title, y=0.985)
 
         fig.tight_layout(
-            rect=(0.0, 0.0, 1.0, 0.94),
+            rect=(0.0, 0.0, 1.0, 0.90),
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )
