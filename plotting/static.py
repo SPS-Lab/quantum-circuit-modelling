@@ -110,7 +110,7 @@ def _plot_static_energy_panel(
     if circuit_full_relative is not None and duffing_full_relative is not None:
         n_full = int(circuit_full_relative.shape[1])
         if n_full > 4:
-            for i in range(1, n_full):
+            for i in range(4, n_full):
                 level_alpha = energy_level_alpha(i - 1)
                 ax.plot(
                     flux,
