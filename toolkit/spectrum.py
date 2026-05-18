@@ -146,20 +146,25 @@ def track_energy_levels_stack(
     H_stack: np.ndarray,
     *,
     n_track: int,
+    tracking_mode: str = "continuous",
     projector_blocks: tuple[tuple[int, ...], ...] | None = None,
 ) -> np.ndarray:
-    """Lowest ``n_track`` energies at each step, matched for continuity along axis 0.
+    """Track ``n_track`` energy branches across the parameter axis.
 
     Parameters
     ----------
     H_stack
         ``(n_param, d, d)`` Hermitian matrices (e.g. flux slices).
     n_track
-        Number of levels to follow (≤ ``d``).
+        Number of levels/branches to follow (≤ ``d``).
+    tracking_mode
+        ``"continuous"`` for adiabatic overlap tracking from one slice to the next,
+        or ``"bare"`` for independent bare-basis overlap matching at each slice.
 
     projector_blocks
         Optional row-index blocks (within ``0..n_track-1``) tracked as transported
-        subspaces rather than strict one-by-one eigenstate labels.
+        subspaces rather than strict one-by-one eigenstate labels. Used only in
+        ``tracking_mode="continuous"``.
 
     Returns
     -------
@@ -173,6 +178,12 @@ def track_energy_levels_stack(
     n_track = int(n_track)
     if n_track < 1 or n_track > d:
         raise ValueError(f"n_track must be in [1, d], d={d}, got {n_track}")
+    mode = str(tracking_mode).strip().lower()
+    if mode not in {"continuous", "bare"}:
+        raise ValueError(
+            "tracking_mode must be one of {'continuous', 'bare'}, "
+            f"got {tracking_mode!r}"
+        )
     _validate_projector_blocks(projector_blocks=projector_blocks, n_track=n_track)
     projector_blocks = tuple() if projector_blocks is None else projector_blocks
 
@@ -183,36 +194,48 @@ def track_energy_levels_stack(
         return np.broadcast_to(w[:n_track], (n_flux, n_track)).copy()
 
     w, v = np.linalg.eigh(H_stack[0])
-    evecs_prev = v[:, :n_track].copy()
     evals_out = np.zeros((n_flux, n_track), dtype=float)
-    evals_out[0] = w[:n_track]
+    if mode == "continuous":
+        evecs_prev = v[:, :n_track].copy()
+        evals_out[0] = w[:n_track]
+    else:
+        overlap0 = np.abs(v[:n_track, :]) ** 2
+        col_idx0 = overlap_row_to_col_assignment(overlap0)
+        evals_out[0] = np.asarray(w[col_idx0], dtype=float)
+        evecs_prev = v[:, col_idx0].copy()
 
     for k in range(1, n_flux):
         w, v = np.linalg.eigh(H_stack[k])
-        overlap = np.abs(evecs_prev.conj().T @ v) ** 2
-        if projector_blocks:
-            col_idx = _assignment_with_projector_blocks(overlap, projector_blocks=projector_blocks)
-        else:
+        if mode == "bare":
+            overlap = np.abs(v[:n_track, :]) ** 2
             col_idx = overlap_row_to_col_assignment(overlap)
+            matched = v[:, col_idx]
+            evals_step = np.asarray(w[col_idx], dtype=float)
+        else:
+            overlap = np.abs(evecs_prev.conj().T @ v) ** 2
+            if projector_blocks:
+                col_idx = _assignment_with_projector_blocks(overlap, projector_blocks=projector_blocks)
+            else:
+                col_idx = overlap_row_to_col_assignment(overlap)
 
-        matched = v[:, col_idx]
-        evals_step = np.asarray(w[col_idx], dtype=float)
+            matched = v[:, col_idx]
+            evals_step = np.asarray(w[col_idx], dtype=float)
 
-        # Within each projector block, parallel-transport the basis and report
-        # block-diagonal expectation energies in that smooth transported basis.
-        for block in projector_blocks:
-            block_rows = np.asarray(block, dtype=int)
-            prev_block = evecs_prev[:, block_rows]
-            new_block = matched[:, block_rows]
-            ov_block = prev_block.conj().T @ new_block
-            u, _, vh = np.linalg.svd(ov_block, full_matrices=False)
-            q = vh.conj().T @ u.conj().T
+            # Within each projector block, parallel-transport the basis and report
+            # block-diagonal expectation energies in that smooth transported basis.
+            for block in projector_blocks:
+                block_rows = np.asarray(block, dtype=int)
+                prev_block = evecs_prev[:, block_rows]
+                new_block = matched[:, block_rows]
+                ov_block = prev_block.conj().T @ new_block
+                u, _, vh = np.linalg.svd(ov_block, full_matrices=False)
+                q = vh.conj().T @ u.conj().T
 
-            matched[:, block_rows] = new_block @ q
+                matched[:, block_rows] = new_block @ q
 
-            block_evals = evals_step[block_rows]
-            h_block = q.conj().T @ np.diag(block_evals) @ q
-            evals_step[block_rows] = np.real(np.diag(h_block))
+                block_evals = evals_step[block_rows]
+                h_block = q.conj().T @ np.diag(block_evals) @ q
+                evals_step[block_rows] = np.real(np.diag(h_block))
 
         evecs_prev = matched
         evals_out[k] = evals_step

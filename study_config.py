@@ -75,6 +75,7 @@ class FluxControlConfig:
 class DressedSubspaceConfig:
     n_candidate_states: int
     selection_mode: SelectionMode
+    energy_tracking_mode: SelectionMode
 
 
 @dataclass(frozen=True)
@@ -460,6 +461,16 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
     selection_mode = _require_str(dressed, "selection_mode", "study.static_benchmark.dressed_subspace")
     if selection_mode not in ("continuous", "bare"):
         raise ValueError("study.static_benchmark.dressed_subspace.selection_mode must be 'continuous' or 'bare'")
+    energy_tracking_mode = _require_str(
+        dressed,
+        "energy_tracking_mode",
+        "study.static_benchmark.dressed_subspace",
+    )
+    if energy_tracking_mode not in ("continuous", "bare"):
+        raise ValueError(
+            "study.static_benchmark.dressed_subspace.energy_tracking_mode must be "
+            "'continuous' or 'bare'"
+        )
 
     derivation_source = _require_str(effective, "derivation_source", "study.static_benchmark.effective_model")
     if derivation_source not in ("duffing", "circuit"):
@@ -590,6 +601,7 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
         dressed_subspace=DressedSubspaceConfig(
             n_candidate_states=_require_int(dressed, "n_candidate_states", "study.static_benchmark.dressed_subspace"),
             selection_mode=selection_mode,
+            energy_tracking_mode=energy_tracking_mode,
         ),
         duffing_model=DuffingModelConfig(
             transmon_spectral_extraction=TransmonSpectralExtractionConfig(

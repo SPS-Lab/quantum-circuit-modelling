@@ -48,6 +48,7 @@ from models.effective import (
     fit_magnitude_exchange_parameters,
     fit_single_harmonic_parameters,
 )
+from toolkit.spectrum import track_energy_levels_stack
 
 
 
@@ -128,6 +129,8 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.static_benchmark.effective_model.derivation_source in {"duffing", "circuit"}
     assert cfg.static_benchmark.effective_model.fit_basis in {"single-harmonic", "magnitude-exchange-like"}
     assert cfg.static_benchmark.flux_control.sweep_target in {"q0", "q1"}
+    assert cfg.static_benchmark.dressed_subspace.selection_mode in {"continuous", "bare"}
+    assert cfg.static_benchmark.dressed_subspace.energy_tracking_mode in {"continuous", "bare"}
     assert cfg.static_benchmark.duffing_model.calibration_mode in {
         "fixed",
         "analytic-per-flux",
@@ -232,6 +235,28 @@ def test_extract_effective_model_parameters_gauge_fixes_exchange_phase() -> None
     assert np.allclose(params_fixed["w0"], params_raw["w0"])
     assert np.allclose(params_fixed["w1"], params_raw["w1"])
     assert np.allclose(params_fixed["zeta"], params_raw["zeta"])
+
+
+def test_track_energy_levels_stack_supports_separate_bare_and_continuous_modes() -> None:
+    theta0 = 0.2
+    theta1 = 1.2
+    evals = np.diag([1.0, 2.0])
+    H_stack = []
+    for theta in np.linspace(theta0, theta1, 11):
+        rot = np.array(
+            [[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]],
+            dtype=float,
+        )
+        H_stack.append(rot @ evals @ rot.T)
+    H_stack = np.asarray(H_stack, dtype=float)
+
+    continuous = track_energy_levels_stack(H_stack, n_track=2, tracking_mode="continuous")
+    bare = track_energy_levels_stack(H_stack, n_track=2, tracking_mode="bare")
+
+    assert np.allclose(continuous[0], [1.0, 2.0])
+    assert np.allclose(continuous[-1], [1.0, 2.0])
+    assert np.allclose(bare[0], [1.0, 2.0])
+    assert np.allclose(bare[-1], [2.0, 1.0])
 
 
 

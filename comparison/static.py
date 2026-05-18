@@ -70,12 +70,14 @@ def _raw_energies(
     H_stack: np.ndarray,
     *,
     n_track: int,
+    tracking_mode: str = "continuous",
     projector_track_single_excitation: bool = False,
 ) -> np.ndarray:
     blocks = ((1, 2),) if projector_track_single_excitation and int(n_track) >= 3 else None
     evals = track_energy_levels_stack(
         np.asarray(H_stack, dtype=complex),
         n_track=int(n_track),
+        tracking_mode=tracking_mode,
         projector_blocks=blocks,
     )
     return np.asarray(evals, dtype=float)
@@ -84,12 +86,14 @@ def _relative_energies(
     H_stack: np.ndarray,
     *,
     n_track: int,
+    tracking_mode: str = "continuous",
     projector_track_single_excitation: bool = False,
 ) -> np.ndarray:
     blocks = ((1, 2),) if projector_track_single_excitation and int(n_track) >= 3 else None
     evals = track_energy_levels_stack(
         np.asarray(H_stack, dtype=complex),
         n_track=int(n_track),
+        tracking_mode=tracking_mode,
         projector_blocks=blocks,
     )
     return np.asarray(evals - evals[:, :1], dtype=float)
@@ -157,6 +161,7 @@ def run_static_benchmark(
         )
 
     dressed_mode = config.static_benchmark.dressed_subspace.selection_mode
+    energy_tracking_mode = config.static_benchmark.dressed_subspace.energy_tracking_mode
     n_cand = config.static_benchmark.dressed_subspace.n_candidate_states
 
     with progress_heartbeat("static benchmark: dress circuit stack"):
@@ -356,19 +361,66 @@ def run_static_benchmark(
 
     with progress_heartbeat("static benchmark: energies, eff"):
         n_track = int(H_effective.shape[-1])
-        raw_E_eff = _raw_energies(H_effective, n_track=n_track, projector_track_single_excitation=True)
-        rel_E_eff = _relative_energies(H_effective, n_track=n_track, projector_track_single_excitation=True)
-        raw_E_duf = _raw_energies(H_duffing_eff, n_track=n_track, projector_track_single_excitation=True)
-        rel_E_duf = _relative_energies(H_duffing_eff, n_track=n_track, projector_track_single_excitation=True)
-        raw_E_cir = _raw_energies(H_circuit_eff, n_track=n_track, projector_track_single_excitation=True)
-        rel_E_cir = _relative_energies(H_circuit_eff, n_track=n_track, projector_track_single_excitation=True)
+        raw_E_eff = _raw_energies(
+            H_effective,
+            n_track=n_track,
+            tracking_mode=energy_tracking_mode,
+            projector_track_single_excitation=True,
+        )
+        rel_E_eff = _relative_energies(
+            H_effective,
+            n_track=n_track,
+            tracking_mode=energy_tracking_mode,
+            projector_track_single_excitation=True,
+        )
+        raw_E_duf = _raw_energies(
+            H_duffing_eff,
+            n_track=n_track,
+            tracking_mode=energy_tracking_mode,
+            projector_track_single_excitation=True,
+        )
+        rel_E_duf = _relative_energies(
+            H_duffing_eff,
+            n_track=n_track,
+            tracking_mode=energy_tracking_mode,
+            projector_track_single_excitation=True,
+        )
+        raw_E_cir = _raw_energies(
+            H_circuit_eff,
+            n_track=n_track,
+            tracking_mode=energy_tracking_mode,
+            projector_track_single_excitation=True,
+        )
+        rel_E_cir = _relative_energies(
+            H_circuit_eff,
+            n_track=n_track,
+            tracking_mode=energy_tracking_mode,
+            projector_track_single_excitation=True,
+        )
 
-    with progress_heartbeat("static benchmark: energies, full"):
+    with progress_heartbeat("static benchmark: energies, full, not sorted"):
         n_full_track = int(min(10, duffing.hamiltonian_stack.shape[1], circuit.hamiltonian_stack.shape[1]))
-        raw_E_duf_full = _raw_energies(duffing.hamiltonian_stack, n_track=n_full_track)
-        rel_E_duf_full = _relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
-        raw_E_cir_full = _raw_energies(circuit.hamiltonian_stack, n_track=n_full_track)
-        rel_E_cir_full = _relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
+        raw_E_duf_full = _raw_energies(
+            duffing.hamiltonian_stack,
+            n_track=n_full_track,
+            tracking_mode=energy_tracking_mode,
+        )
+        rel_E_duf_full = _relative_energies(
+            duffing.hamiltonian_stack,
+            n_track=n_full_track,
+            tracking_mode=energy_tracking_mode,
+        )
+        raw_E_cir_full = _raw_energies(
+            circuit.hamiltonian_stack,
+            n_track=n_full_track,
+            tracking_mode=energy_tracking_mode,
+        )
+        rel_E_cir_full = _relative_energies(
+            circuit.hamiltonian_stack,
+            n_track=n_full_track,
+            tracking_mode=energy_tracking_mode,
+        )
+    with progress_heartbeat("static benchmark: energies, full, sorted"):
         raw_E_duf_full_sorted = _sorted_raw_energies(duffing.hamiltonian_stack, n_track=n_full_track)
         rel_E_duf_full_sorted = _sorted_relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
         raw_E_cir_full_sorted = _sorted_raw_energies(circuit.hamiltonian_stack, n_track=n_full_track)
