@@ -421,14 +421,10 @@ def run_static_benchmark(
             tracking_mode=energy_tracking_mode,
         )
     with progress_heartbeat("static benchmark: energies, full, sorted"):
-        raw_E_duf_full_sorted = _sorted_raw_energies(duffing.hamiltonian_stack, n_track=n_full_track)
         rel_E_duf_full_sorted = _sorted_relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
-        raw_E_cir_full_sorted = _sorted_raw_energies(circuit.hamiltonian_stack, n_track=n_full_track)
         rel_E_cir_full_sorted = _sorted_relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
 
-    err_raw_E_eff = _per_flux_rmse(raw_E_eff, raw_E_cir)
     err_rel_E_eff = _per_flux_rmse(rel_E_eff, rel_E_cir)
-    err_raw_E_duf_ = _per_flux_rmse(raw_E_duf, raw_E_cir)
     err_rel_E_duf_ = _per_flux_rmse(rel_E_duf, rel_E_cir)
 
     params_duffing = extract_effective_model_parameters_from_4x4_stack(H_duffing_eff)
