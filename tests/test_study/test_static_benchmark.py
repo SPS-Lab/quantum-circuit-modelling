@@ -26,6 +26,7 @@ import models.duffing as duffing_module
 import models.duffing_calibration as duffing_calibration_module
 from models import (
     build_circuit_model_stack,
+    build_dressed_effective_computational_stack,
     build_duffing_model_stack_from_scratch,
     evaluate_symbolic_duffing_mode_parameters,
 )
@@ -106,7 +107,7 @@ def _write_small_study_params(
     sb["flux_control"]["sweep_target"] = str(sweep_target)
     sb["duffing_model"]["calibration_mode"] = str(duffing_calibration_mode)
     rb = payload["rx_benchmark"]
-    rb["drive_frequency"] = 9.733
+    rb.pop("drive_frequency", None)
     rb["drive_amplitude"] = 0.05
     rb["drive_phase_rad"] = 0.0
     rb["total_time_ns"] = 6.0
@@ -191,7 +192,7 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.cz_benchmark.scan_max_hold_ns >= 0.0
     assert cfg.cz_benchmark.scan_leakage_penalty >= 0.0
     assert cfg.rx_benchmark.drive_qubit == "q0"
-    assert cfg.rx_benchmark.drive_frequency > 0.0
+    assert cfg.rx_benchmark.drive_frequency is None
     assert cfg.rx_benchmark.drive_amplitude >= 0.0
     assert cfg.rx_benchmark.total_time_ns > 0.0
     assert cfg.rx_benchmark.dt_ns > 0.0
@@ -843,7 +844,7 @@ def test_rx_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     out = run_rx_benchmark(
         cfg,
         drive_qubit=str(cfg.rx_benchmark.drive_qubit),
-        drive_frequency=float(cfg.rx_benchmark.drive_frequency),
+        drive_frequency=None if cfg.rx_benchmark.drive_frequency is None else float(cfg.rx_benchmark.drive_frequency),
         drive_amplitude=float(cfg.rx_benchmark.drive_amplitude),
         drive_phase_rad=float(cfg.rx_benchmark.drive_phase_rad),
         total_time_ns=float(cfg.rx_benchmark.total_time_ns),
@@ -864,6 +865,42 @@ def test_rx_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert np.all(np.isfinite(out.effective_leakage_from_10))
     assert np.all(np.isfinite(out.duffing_leakage_from_10))
     assert np.all(np.isfinite(out.circuit_leakage_from_10))
+    assert out.drive_frequency > 0.0
+
+
+def test_rx_benchmark_derives_drive_frequency_from_circuit_when_omitted(tmp_path: Path) -> None:
+    system_path = _write_small_system_params(tmp_path)
+    study_path = _write_small_study_params(tmp_path)
+    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+
+    out = run_rx_benchmark(
+        cfg,
+        drive_qubit=str(cfg.rx_benchmark.drive_qubit),
+        drive_frequency=None,
+        drive_amplitude=float(cfg.rx_benchmark.drive_amplitude),
+        drive_phase_rad=float(cfg.rx_benchmark.drive_phase_rad),
+        total_time_ns=float(cfg.rx_benchmark.total_time_ns),
+        dt_ns=float(cfg.rx_benchmark.dt_ns),
+        rise_time_ns=float(cfg.rx_benchmark.rise_time_ns),
+    )
+
+    circuit_stack = build_circuit_model_stack(
+        flux_values=np.array([float(cfg.system.q0.flux)], dtype=float),
+        system_params=cfg.system,
+        circuit_config=cfg.static_benchmark.circuit_model,
+        sweep_target="q0",
+    ).hamiltonian_stack
+    H_circuit_eff = build_dressed_effective_computational_stack(
+        circuit_stack,
+        nlevels_qubit=cfg.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
+        nlevels_coupler=cfg.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
+        n_candidate_states=cfg.static_benchmark.dressed_subspace.n_candidate_states,
+        selection_mode=cfg.static_benchmark.dressed_subspace.selection_mode,
+    )
+    params = extract_effective_model_parameters_from_4x4_stack(H_circuit_eff)
+
+    assert np.isclose(out.drive_frequency, float(np.asarray(params["w0"], dtype=float).ravel()[0]))
+    assert np.isclose(out.summary["drive_frequency"], out.drive_frequency)
 
 
 def test_cz_plot_writes_pdf(tmp_path: Path) -> None:
@@ -945,7 +982,7 @@ def test_rx_plots_write_pdf(tmp_path: Path) -> None:
     out = run_rx_benchmark(
         cfg,
         drive_qubit=str(cfg.rx_benchmark.drive_qubit),
-        drive_frequency=float(cfg.rx_benchmark.drive_frequency),
+        drive_frequency=None if cfg.rx_benchmark.drive_frequency is None else float(cfg.rx_benchmark.drive_frequency),
         drive_amplitude=float(cfg.rx_benchmark.drive_amplitude),
         drive_phase_rad=float(cfg.rx_benchmark.drive_phase_rad),
         total_time_ns=float(cfg.rx_benchmark.total_time_ns),

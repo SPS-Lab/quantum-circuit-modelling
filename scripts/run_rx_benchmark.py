@@ -93,7 +93,7 @@ def main() -> None:
         result = run_rx_benchmark(
             config,
             drive_qubit=str(rx_cfg.drive_qubit),
-            drive_frequency=float(rx_cfg.drive_frequency),
+            drive_frequency=None if rx_cfg.drive_frequency is None else float(rx_cfg.drive_frequency),
             drive_amplitude=float(rx_cfg.drive_amplitude),
             drive_phase_rad=float(rx_cfg.drive_phase_rad),
             total_time_ns=float(rx_cfg.total_time_ns),
