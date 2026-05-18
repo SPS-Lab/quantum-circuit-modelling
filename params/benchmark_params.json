@@ -9,6 +9,7 @@
     "static_benchmark.duffing_model.symbolic_fit.max_harmonics_g": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; controls the cosine basis size for the fitted g surrogate curves.",
     "static_benchmark.dressed_subspace.selection_mode": "How the dressed computational subspace is selected from candidate eigenstates at each flux point.",
     "static_benchmark.dressed_subspace.energy_tracking_mode": "How static-benchmark energy branches are labeled across flux: 'continuous' for adiabatic continuation or 'bare' for independent bare-overlap matching at each flux.",
+    "static_benchmark.other_levels_to_plot": "How many additional full-spectrum excited levels beyond E1, E2, and E3 to draw as faint 'other levels' in the static energy plots.",
     "static_benchmark.duffing_model.symbolic_fit.pointwise_max_nfev": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; maximum least-squares function evaluations per flux point in the seed fit.",
     "static_benchmark.duffing_model.symbolic_fit.refinement_max_nfev": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; maximum least-squares function evaluations for the global symbolic refinement.",
     "static_benchmark.duffing_model.symbolic_fit.regularization_weight": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; penalizes deviation from the pointwise seed fit during global refinement.",
@@ -60,6 +61,7 @@
           "selection_mode": "bare",
           "energy_tracking_mode": "continuous"
         },
+        "other_levels_to_plot": 10,
         "duffing_model": {
           "transmon_spectral_extraction": {
             "ncut": 60,

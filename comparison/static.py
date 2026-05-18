@@ -115,6 +115,27 @@ def _sorted_relative_energies(H_stack: np.ndarray, *, n_track: int) -> np.ndarra
     return np.asarray(rel_e[:, : int(n_track)], dtype=float)
 
 
+def _full_plot_level_count(
+    *,
+    other_levels_to_plot: int,
+    duffing_dim: int,
+    circuit_dim: int,
+) -> int:
+    return int(min(4 + int(other_levels_to_plot), int(duffing_dim), int(circuit_dim)))
+
+
+def _full_rmse_level_count(
+    *,
+    other_levels_to_plot: int,
+    lowest_excited_levels_to_plot: int,
+    duffing_dim: int,
+    circuit_dim: int,
+) -> int:
+    needed_for_rmse = 1 + int(lowest_excited_levels_to_plot)
+    needed_for_plot = 4 + int(other_levels_to_plot)
+    return int(min(max(needed_for_plot, needed_for_rmse), int(duffing_dim), int(circuit_dim)))
+
+
 def _aggregate_rmse(
     pred: np.ndarray,
     ref: np.ndarray,
@@ -399,7 +420,11 @@ def run_static_benchmark(
         )
 
     with progress_heartbeat("static benchmark: energies, full, not sorted"):
-        n_full_track = int(min(10, duffing.hamiltonian_stack.shape[1], circuit.hamiltonian_stack.shape[1]))
+        n_full_track = _full_plot_level_count(
+            other_levels_to_plot=config.static_benchmark.other_levels_to_plot,
+            duffing_dim=duffing.hamiltonian_stack.shape[1],
+            circuit_dim=circuit.hamiltonian_stack.shape[1],
+        )
         raw_E_duf_full = _raw_energies(
             duffing.hamiltonian_stack,
             n_track=n_full_track,
@@ -421,8 +446,20 @@ def run_static_benchmark(
             tracking_mode=energy_tracking_mode,
         )
     with progress_heartbeat("static benchmark: energies, full, sorted"):
-        rel_E_duf_full_sorted = _sorted_relative_energies(duffing.hamiltonian_stack, n_track=n_full_track)
-        rel_E_cir_full_sorted = _sorted_relative_energies(circuit.hamiltonian_stack, n_track=n_full_track)
+        n_full_rmse_track = _full_rmse_level_count(
+            other_levels_to_plot=config.static_benchmark.other_levels_to_plot,
+            lowest_excited_levels_to_plot=config.duffing_truncation_benchmark.lowest_excited_levels_to_plot,
+            duffing_dim=duffing.hamiltonian_stack.shape[1],
+            circuit_dim=circuit.hamiltonian_stack.shape[1],
+        )
+        rel_E_duf_full_sorted = _sorted_relative_energies(
+            duffing.hamiltonian_stack,
+            n_track=n_full_rmse_track,
+        )
+        rel_E_cir_full_sorted = _sorted_relative_energies(
+            circuit.hamiltonian_stack,
+            n_track=n_full_rmse_track,
+        )
 
     err_rel_E_eff = _per_flux_rmse(rel_E_eff, rel_E_cir)
     err_rel_E_duf_ = _per_flux_rmse(rel_E_duf, rel_E_cir)

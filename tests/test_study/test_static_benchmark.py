@@ -131,6 +131,7 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.static_benchmark.flux_control.sweep_target in {"q0", "q1"}
     assert cfg.static_benchmark.dressed_subspace.selection_mode in {"continuous", "bare"}
     assert cfg.static_benchmark.dressed_subspace.energy_tracking_mode in {"continuous", "bare"}
+    assert cfg.static_benchmark.other_levels_to_plot >= 0
     assert cfg.static_benchmark.duffing_model.calibration_mode in {
         "fixed",
         "analytic-per-flux",
@@ -364,7 +365,12 @@ def test_static_duffing_truncation_style_rmse_uses_sorted_full_spectra(tmp_path:
         duffing_config=cfg.static_benchmark.duffing_model,
         sweep_target=cfg.static_benchmark.flux_control.sweep_target,
     )
-    n_full_track = min(10, duffing.hamiltonian_stack.shape[1], circuit.hamiltonian_stack.shape[1])
+    n_full_track = static_module._full_rmse_level_count(
+        other_levels_to_plot=cfg.static_benchmark.other_levels_to_plot,
+        lowest_excited_levels_to_plot=cfg.duffing_truncation_benchmark.lowest_excited_levels_to_plot,
+        duffing_dim=duffing.hamiltonian_stack.shape[1],
+        circuit_dim=circuit.hamiltonian_stack.shape[1],
+    )
     circuit_sorted = static_module._sorted_relative_energies(
         circuit.hamiltonian_stack,
         n_track=n_full_track,

@@ -157,6 +157,7 @@ class StaticBenchmarkConfig:
     flux_sweep: FluxSweepConfig
     flux_control: FluxControlConfig
     dressed_subspace: DressedSubspaceConfig
+    other_levels_to_plot: int
     duffing_model: DuffingModelConfig
     circuit_model: CircuitModelConfig
     effective_model: EffectiveModelConfig
@@ -516,6 +517,9 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
             "study.static_benchmark.circuit_model.transmon_charge_basis requires "
             "positive q0_ncut and q1_ncut"
         )
+    other_levels_to_plot = _require_int(sb, "other_levels_to_plot", "study.static_benchmark")
+    if other_levels_to_plot < 0:
+        raise ValueError("study.static_benchmark.other_levels_to_plot must be >= 0")
 
     symbolic_fit: SymbolicDuffingFitConfig | None = None
     if symbolic_fit_payload is not None:
@@ -603,6 +607,7 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
             selection_mode=selection_mode,
             energy_tracking_mode=energy_tracking_mode,
         ),
+        other_levels_to_plot=other_levels_to_plot,
         duffing_model=DuffingModelConfig(
             transmon_spectral_extraction=TransmonSpectralExtractionConfig(
                 ncut=_require_int(d_spec, "ncut", "study.static_benchmark.duffing_model.transmon_spectral_extraction"),
