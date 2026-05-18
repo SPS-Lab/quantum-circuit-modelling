@@ -184,7 +184,7 @@ def plot_energy_levels_vs_flux(
     subtract_ground: bool = False,
     outfile: str = "energy_levels_vs_flux.pdf",
     title: Optional[str] = None,
-    xlabel: str = r"Flux bias ($\Phi / \Phi_0$)",
+    xlabel: str = r"Flux bias ($\phi$)",
     ylabel: Optional[str] = None,
     energy_unit: str = "GHz",
     figsize: tuple[float, float] = (8.0, 5.0),
@@ -211,7 +211,7 @@ def plot_energy_levels_vs_flux(
         :func:`toolkit.spectrum.reorder_by_overlap` so line colors follow continuous states.
         If False, energies are sorted independently at each flux (may look jagged near crossings).
     subtract_ground
-        If True, subtract ``E_0(\\Phi)`` at each flux so the ground manifold is a flat line.
+        If True, subtract ``E_0(\\phi)`` at each flux so the ground manifold is a flat line.
     outfile
         Output PDF path.
     title

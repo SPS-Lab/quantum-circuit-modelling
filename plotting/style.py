@@ -10,7 +10,7 @@ import numpy as np
 from matplotlib import colors as mcolors
 from matplotlib.lines import Line2D
 
-DEFAULT_PLOT_FONT_SIZE: float = 22.0 # Should be > 18 and < 25 w current style
+DEFAULT_PLOT_FONT_SIZE: float = 26.0 # Should be > 22 and < 25 w current style
 MODEL_ALPHA_CIRCUIT: float = 1.0
 MODEL_ALPHA_DUFFING: float = 0.98
 MODEL_ALPHA_EFFECTIVE: float = 0.98
@@ -20,13 +20,6 @@ BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0,
 # Controls spacing between subplot panels for all benchmark figures.
 BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 1.2
 BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.9
-# Truncation level-legend controls.
-TRUNCATION_LEVEL_LEGEND_MAX_ITEMS: int = 5
-TRUNCATION_LEVEL_LEGEND_NCOL: int = 2
-TRUNCATION_LEVEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.02)
-TRUNCATION_LEVEL_LEGEND_FONT_SCALE: float = 0.68
-TRUNCATION_LEVEL_LEGEND_TITLE_FONT_SCALE: float = 0.98
-TRUNCATION_LEVEL_LEGEND_SHOW_ON_DIFF: bool = False
 TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.955)
 TRUNCATION_METRIC_LEGEND_NCOL: int = 3
 # Static-spectrum level legend (E1/E2/E3/lower levels) controls.

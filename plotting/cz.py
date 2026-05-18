@@ -87,7 +87,7 @@ def plot_cz_benchmark(
             label="pulse flux",
             **pulse_schedule_plot_kwargs(),
         )[0]
-        ax_flux.set_ylabel(r"Flux bias ($\Phi/\Phi_0$)")
+        ax_flux.set_ylabel(r"Flux bias ($\phi$)")
         ax_flux.grid(False)
         ax_flux.legend(
             handles=[flux_line],

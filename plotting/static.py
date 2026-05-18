@@ -199,7 +199,7 @@ def plot_static_benchmark(
             effective_relative=result.effective_relative_energies,
             include_other_levels=False,
         )
-        axE.set_ylabel("Energy rel. ground")
+        axE.set_ylabel("Rel. energies")
         axE.grid(True, alpha=0.3)
         axE.legend(
             handles=_static_level_legend(
@@ -243,8 +243,8 @@ def plot_static_benchmark(
         axZeta.set_ylabel(r"Residual ZZ $\zeta$")
         axZeta.grid(True, alpha=0.3)
 
-        axes[1, 0].set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
-        axes[1, 1].set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
+        axes[1, 0].set_xlabel(r"Flux bias ($\phi$)")
+        axes[1, 1].set_xlabel(r"Flux bias ($\phi$)")
         fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
         fig.tight_layout(
             rect=BENCHMARK_TIGHT_LAYOUT_RECT,
@@ -277,7 +277,7 @@ def plot_static_raw_energies(
             duffing_full_relative=result.duffing_full_raw_energies,
         )
         ax.set_ylabel("Raw energy")
-        ax.set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
+        ax.set_xlabel(r"Flux bias ($\phi$)")
         ax.grid(True, alpha=0.3)
         ax.legend(
             handles=_static_level_legend(font_size),
@@ -341,7 +341,7 @@ def plot_static_single_excitation_overlaps(
                         label=f"{branch_label} vs {bare_label}",
                     )
             ax.set_title(model_name)
-            ax.set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
+            ax.set_xlabel(r"Flux bias ($\phi$)")
             ax.set_ylim(-0.02, 1.02)
             ax.grid(True, alpha=0.3)
 
@@ -440,7 +440,7 @@ def plot_static_computational_basis_amplitudes(
                 if row == 0:
                     ax.set_title(f"{model_name} population+phase")
                 if row == 3:
-                    ax.set_xlabel(r"Flux bias ($\Phi / \Phi_0$)")
+                    ax.set_xlabel(r"Flux bias ($\phi$)")
 
         phase_mappable = plt.cm.ScalarMappable(cmap="hsv", norm=plt.Normalize(vmin=-np.pi, vmax=np.pi))
         phase_mappable.set_array([])
