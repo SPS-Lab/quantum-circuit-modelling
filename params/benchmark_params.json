@@ -131,7 +131,7 @@
         }
       },
       "duffing_truncation_benchmark": {
-        "duffing_ncut_values": [2, 3, 4, 5, 10],
+        "duffing_ncut_values": [1,2, 3, 4, 5],
         "duffing_reference_extraction_ncut": 10,
         "duffing_truncated_dim": 12,
         "duffing_hilbert_qubit_dim_values": [2, 3, 4,5],
