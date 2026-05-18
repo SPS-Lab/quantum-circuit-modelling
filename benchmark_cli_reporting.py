@@ -84,7 +84,7 @@ def build_common_truncation_lines(config: StudyConfig) -> list[str]:
             (
                 "    transmon_spectral_extraction: "
                 f"ncut={int(sb.duffing_model.transmon_spectral_extraction.ncut)}, "
-                f"truncated_dim={int(sb.duffing_model.transmon_spectral_extraction.truncated_dim)}"
+                "truncated_dim=3"
             ),
         )
     return lines
@@ -126,7 +126,7 @@ def build_duffing_truncation_benchmark_extra_lines(config: StudyConfig) -> list[
         f"  flux_values=[{flux_values}]",
         f"  duffing_ncut_values=[{duffing_ncut_values}]",
         f"  duffing_reference_extraction_ncut={int(tb.duffing_reference_extraction_ncut)}",
-        f"  duffing_truncated_dim={int(tb.duffing_truncated_dim)}",
+        "  duffing_extraction_truncated_dim=3",
         f"  duffing_hilbert_qubit_dim_values=[{duffing_hilbert_qubit_dims}]",
         f"  duffing_hilbert_coupler_dim_values=[{duffing_hilbert_coupler_dims}]",
         (

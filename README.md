@@ -241,7 +241,7 @@ This benchmark:
 - aggregates static RMSE over the full static flux sweep by default,
 - optionally accepts an explicit truncation-only `flux_values` list in `duffing_truncation_benchmark`,
 - sweeps Duffing transmon calibration `ncut`,
-- clips the extraction basis per point to `min(duffing_truncated_dim, 2*ncut+1)`,
+- always keeps the lowest 3 transmon levels when extracting `w01` and `alpha`,
 - sweeps Duffing Hilbert-space truncated dimensions `{qubit, coupler}`,
 - compares each sweep point to one strict circuit reference point,
 - reports `energy_rmse` together with `|dJ|` and `|dzeta|`,

@@ -2,8 +2,7 @@
   "parameter_notes": {
     "static_benchmark.circuit_model.transmon_charge_basis.q0_ncut": "Charge-basis cutoff used when constructing the scqubits q0 TunableTransmon for circuit-model benchmarks and helpers.",
     "static_benchmark.circuit_model.transmon_charge_basis.q1_ncut": "Charge-basis cutoff used when constructing the scqubits q1 TunableTransmon for circuit-model benchmarks and helpers.",
-    "static_benchmark.duffing_model.transmon_spectral_extraction.ncut": "Used when static_benchmark.duffing_model.calibration_mode is 'fixed', 'per-flux', 'fitted-static', or 'symbolic-fitted-static'. Ignored for 'analytic-per-flux'.",
-    "static_benchmark.duffing_model.transmon_spectral_extraction.truncated_dim": "Used when static_benchmark.duffing_model.calibration_mode is 'fixed', 'per-flux', 'fitted-static', or 'symbolic-fitted-static'. Ignored for 'analytic-per-flux'.",
+    "static_benchmark.duffing_model.transmon_spectral_extraction.ncut": "Used when static_benchmark.duffing_model.calibration_mode is 'fixed', 'per-flux', 'fitted-static', or 'symbolic-fitted-static'. The scqubits-backed extraction always keeps exactly the lowest 3 transmon levels for extracting w01 and alpha. Ignored for 'analytic-per-flux'.",
     "static_benchmark.duffing_model.symbolic_fit.max_harmonics_w": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; controls the cosine basis size for the fitted w surrogate curves.",
     "static_benchmark.duffing_model.symbolic_fit.max_harmonics_alpha": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; controls the cosine basis size for the fitted alpha surrogate curves.",
     "static_benchmark.duffing_model.symbolic_fit.max_harmonics_g": "Used only when static_benchmark.duffing_model.calibration_mode is 'symbolic-fitted-static'; controls the cosine basis size for the fitted g surrogate curves.",
@@ -21,8 +20,7 @@
     "circuit_truncation_benchmark.circuit_reference_coupler_truncated_dim": "Circuit-model coupler truncated dimension used in the strict static reference point.",
     "duffing_truncation_benchmark.flux_values": "Configured flux points over which Duffing truncation RMSE is aggregated; include the most sensitive operating regions.",
     "duffing_truncation_benchmark.duffing_ncut_values": "Used for all truncation Duffing calibration modes; controls the transmon charge-basis cutoff sweep. For reference-driven modes ('fitted-static' and 'symbolic-fitted-static'), a separate reference fit is run for each swept ncut.",
-    "duffing_truncation_benchmark.duffing_reference_extraction_ncut": "Fixed transmon charge-basis cutoff used during duffing_hilbert_qubit_dim_values and duffing_hilbert_coupler_dim_values sweeps.",
-    "duffing_truncation_benchmark.duffing_truncated_dim": "Used for all truncation Duffing calibration modes except 'analytic-per-flux'; clipped per point to min(duffing_truncated_dim, 2*ncut+1).",
+    "duffing_truncation_benchmark.duffing_reference_extraction_ncut": "Fixed transmon charge-basis cutoff used during the Duffing extraction step. The truncation benchmark always keeps exactly the lowest 3 transmon levels for extracting w01 and alpha.",
     "duffing_truncation_benchmark.duffing_hilbert_qubit_dim_values": "Duffing-model qubit Hilbert dimensions swept with the coupler Hilbert dimension fixed at duffing_truncation_benchmark.duffing_reference_hilbert_coupler_dim.",
     "duffing_truncation_benchmark.duffing_hilbert_coupler_dim_values": "Duffing-model coupler Hilbert dimensions swept with the qubit Hilbert dimension fixed at duffing_truncation_benchmark.duffing_reference_hilbert_qubit_dim.",
     "duffing_truncation_benchmark.duffing_reference_hilbert_qubit_dim": "Benchmark-local fixed Duffing qubit Hilbert dimension used while sweeping duffing_hilbert_coupler_dim_values.",
@@ -65,8 +63,7 @@
         "other_levels_to_plot": 10,
         "duffing_model": {
           "transmon_spectral_extraction": {
-            "ncut": 60,
-            "truncated_dim": 12
+            "ncut": 60
           },
           "symbolic_fit": {
             "max_harmonics_w": 5,
@@ -133,7 +130,6 @@
       "duffing_truncation_benchmark": {
         "duffing_ncut_values": [1,2, 3, 4, 5],
         "duffing_reference_extraction_ncut": 10,
-        "duffing_truncated_dim": 12,
         "duffing_hilbert_qubit_dim_values": [2, 3, 4,5],
         "duffing_hilbert_coupler_dim_values": [2, 3,4,5],
         "duffing_reference_hilbert_qubit_dim": 4,

@@ -41,6 +41,7 @@ def _transmon_w01_alpha(
     ncut: int,
     truncated_dim: int,
 ) -> tuple[float, float]:
+    """Extract w01 and alpha from exactly the lowest 3 scqubits transmon levels."""
     try:
         import scqubits as scq
     except Exception as exc:  # pragma: no cover - import guard only
@@ -92,7 +93,6 @@ def _build_mode_parameter_arrays(
     )
 
     ncut = int(duffing_config.transmon_spectral_extraction.ncut)
-    trunc_dim = int(duffing_config.transmon_spectral_extraction.truncated_dim)
     calibration_mode = str(duffing_config.calibration_mode).strip().lower()
 
     if calibration_mode in {"per-flux", "fitted-static", "symbolic-fitted-static"}:
@@ -108,7 +108,7 @@ def _build_mode_parameter_arrays(
                 flux=float(q0_flux_arr[k]),
                 ng=system_params.q0.ng,
                 ncut=ncut,
-                truncated_dim=trunc_dim,
+                truncated_dim=3,
             )
             w1_arr[k], alpha1_arr[k] = _transmon_w01_alpha(
                 EJmax=system_params.q1.EJmax,
@@ -117,7 +117,7 @@ def _build_mode_parameter_arrays(
                 flux=float(q1_flux_arr[k]),
                 ng=system_params.q1.ng,
                 ncut=ncut,
-                truncated_dim=trunc_dim,
+                truncated_dim=3,
             )
     elif calibration_mode == "analytic-per-flux":
         EJ0_arr = np.asarray(
@@ -146,7 +146,7 @@ def _build_mode_parameter_arrays(
             flux=system_params.q0.flux,
             ng=system_params.q0.ng,
             ncut=ncut,
-            truncated_dim=trunc_dim,
+            truncated_dim=3,
         )
         w1_ref, alpha1_ref = _transmon_w01_alpha(
             EJmax=system_params.q1.EJmax,
@@ -155,7 +155,7 @@ def _build_mode_parameter_arrays(
             flux=system_params.q1.flux,
             ng=system_params.q1.ng,
             ncut=ncut,
-            truncated_dim=trunc_dim,
+            truncated_dim=3,
         )
         w0_arr = np.full_like(flux_arr, float(w0_ref), dtype=float)
         w1_arr = np.full_like(flux_arr, float(w1_ref), dtype=float)

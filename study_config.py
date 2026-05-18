@@ -81,7 +81,6 @@ class DressedSubspaceConfig:
 @dataclass(frozen=True)
 class TransmonSpectralExtractionConfig:
     ncut: int
-    truncated_dim: int
 
 
 @dataclass(frozen=True)
@@ -183,7 +182,6 @@ class DuffingTruncationBenchmarkConfig:
     flux_values: tuple[float, ...]
     duffing_ncut_values: tuple[int, ...]
     duffing_reference_extraction_ncut: int
-    duffing_truncated_dim: int
     duffing_hilbert_qubit_dim_values: tuple[int, ...]
     duffing_hilbert_coupler_dim_values: tuple[int, ...]
     duffing_reference_hilbert_qubit_dim: int
@@ -612,11 +610,6 @@ def _parse_static_benchmark(study_payload: dict[str, Any]) -> StaticBenchmarkCon
         duffing_model=DuffingModelConfig(
             transmon_spectral_extraction=TransmonSpectralExtractionConfig(
                 ncut=_require_int(d_spec, "ncut", "study.static_benchmark.duffing_model.transmon_spectral_extraction"),
-                truncated_dim=_require_int(
-                    d_spec,
-                    "truncated_dim",
-                    "study.static_benchmark.duffing_model.transmon_spectral_extraction",
-                ),
             ),
             hilbert_truncation=DuffingHilbertTruncationConfig(
                 nlevels_qubit=_require_int(d_hilbert, "nlevels_qubit", "study.static_benchmark.duffing_model.hilbert_truncation"),
@@ -776,9 +769,6 @@ def _parse_duffing_truncation_benchmark(
         raise ValueError(
             "study.duffing_truncation_benchmark.duffing_reference_extraction_ncut must be >= 1"
         )
-    trunc_dim = _require_int(tb, "duffing_truncated_dim", "study.duffing_truncation_benchmark")
-    if trunc_dim < 3:
-        raise ValueError("study.duffing_truncation_benchmark.duffing_truncated_dim must be >= 3")
     duffing_hilbert_qubit_dims_raw = _require_list(
         tb,
         "duffing_hilbert_qubit_dim_values",
@@ -844,7 +834,6 @@ def _parse_duffing_truncation_benchmark(
         flux_values=flux_values,
         duffing_ncut_values=ncuts,
         duffing_reference_extraction_ncut=reference_extraction_ncut,
-        duffing_truncated_dim=trunc_dim,
         duffing_hilbert_qubit_dim_values=duffing_hilbert_qubit_dims,
         duffing_hilbert_coupler_dim_values=duffing_hilbert_coupler_dims,
         duffing_reference_hilbert_qubit_dim=duffing_reference_hilbert_qubit_dim,

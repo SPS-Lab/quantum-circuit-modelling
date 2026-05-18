@@ -59,7 +59,6 @@ class DuffingTruncationBenchmarkResult:
     flux_values: np.ndarray
     sweep_target: str
     duffing_calibration_mode: str
-    duffing_truncated_dim: int
     lowest_excited_levels_compared: int
     reference_circuit_ncut: int
     reference_circuit_qubit_truncated_dim: int
@@ -187,7 +186,6 @@ def _duffing_config_with_truncation(
         transmon_spectral_extraction=replace(
             config.static_benchmark.duffing_model.transmon_spectral_extraction,
             ncut=int(extraction_ncut),
-            truncated_dim=int(extraction_truncated_dim),
         ),
         hilbert_truncation=replace(
             config.static_benchmark.duffing_model.hilbert_truncation,
@@ -357,9 +355,7 @@ def _extract_duffing_metrics(
     precomputed_mode_parameters: dict[str, np.ndarray] | None = None,
     include_spectrum_energy_metric: bool = False,
 ) -> tuple[float, float, np.ndarray, np.ndarray, int]:
-    trunc_dim_eff = int(min(int(extraction_truncated_dim), 2 * int(extraction_ncut) + 1))
-    if trunc_dim_eff < 3:
-        raise ValueError("Effective Duffing transmon truncated_dim must be >= 3")
+    trunc_dim_eff = 3
     dcfg = _duffing_config_with_truncation(
         config,
         extraction_ncut=int(extraction_ncut),
@@ -1058,7 +1054,7 @@ def run_duffing_truncation_benchmark(
     base_duf_qdim = int(cfg.duffing_reference_hilbert_qubit_dim)
     base_duf_cdim = int(cfg.duffing_reference_hilbert_coupler_dim)
     base_extract_ncut = int(cfg.duffing_reference_extraction_ncut)
-    base_extract_trunc_dim = int(cfg.duffing_truncated_dim)
+    base_extract_trunc_dim = 3
     if run_ncut:
         duffing_ncut_values = np.asarray(cfg.duffing_ncut_values, dtype=int)
         duffing_ncut_effective_trunc_dim = np.empty(duffing_ncut_values.shape[0], dtype=int)
@@ -1081,7 +1077,7 @@ def run_duffing_truncation_benchmark(
                     config=config,
                     flux_values=flux_values,
                     extraction_ncut=int(ncut),
-                    extraction_truncated_dim=int(cfg.duffing_truncated_dim),
+                    extraction_truncated_dim=3,
                     hilbert_qubit_dim=base_duf_qdim,
                     hilbert_coupler_dim=base_duf_cdim,
                     duffing_calibration_mode=str(cfg.duffing_calibration_mode),
@@ -1280,7 +1276,7 @@ def run_duffing_truncation_benchmark(
         "lowest_excited_levels_compared": float(cfg.lowest_excited_levels_to_plot),
         "spectrum_energy_metric_enabled": float(bool(include_spectrum_energy_metric)),
         "duffing_reference_extraction_ncut_configured": float(cfg.duffing_reference_extraction_ncut),
-        "duffing_extraction_truncated_dim_configured": float(cfg.duffing_truncated_dim),
+        "duffing_extraction_truncated_dim": 3.0,
     }
     summary["duffing_selected_sweep_count"] = float(len(sweep_selection))
     summary["duffing_selected_ncut"] = float(run_ncut)
@@ -1326,7 +1322,6 @@ def run_duffing_truncation_benchmark(
         flux_values=np.asarray(flux_values, dtype=float),
         sweep_target=str(config.static_benchmark.flux_control.sweep_target),
         duffing_calibration_mode=str(cfg.duffing_calibration_mode),
-        duffing_truncated_dim=int(cfg.duffing_truncated_dim),
         lowest_excited_levels_compared=int(cfg.lowest_excited_levels_to_plot),
         reference_circuit_ncut=int(cfg.circuit_reference_ncut),
         reference_circuit_qubit_truncated_dim=int(cfg.circuit_reference_qubit_truncated_dim),

@@ -62,7 +62,6 @@ def _write_small_study_params(
     sb["flux_sweep"]["num_points"] = int(flux_num_points)
     sb["dressed_subspace"]["n_candidate_states"] = 12
     sb["duffing_model"]["transmon_spectral_extraction"]["ncut"] = 20
-    sb["duffing_model"]["transmon_spectral_extraction"]["truncated_dim"] = 10
     sb["duffing_model"]["hilbert_truncation"]["nlevels_qubit"] = 3
     sb["duffing_model"]["hilbert_truncation"]["nlevels_coupler"] = 3
     sb["circuit_model"]["transmon_charge_basis"]["q0_ncut"] = 25
@@ -92,7 +91,6 @@ def _write_small_study_params(
         dtb.pop("flux_values", None)
     dtb["duffing_ncut_values"] = [3, 4, 6, 8] if duffing_ncut_values is None else list(duffing_ncut_values)
     dtb["duffing_reference_extraction_ncut"] = 8
-    dtb["duffing_truncated_dim"] = 12
     dtb["duffing_hilbert_qubit_dim_values"] = [2, 3]
     dtb["duffing_hilbert_coupler_dim_values"] = [2, 3]
     dtb["duffing_reference_hilbert_qubit_dim"] = 3
@@ -227,7 +225,7 @@ def test_duffing_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
     assert out.duffing_hilbert_coupler_energy_rmse.shape == (2,)
     assert out.duffing_hilbert_coupler_spectrum_energy_rmse.shape == (2,)
     assert np.all(out.duffing_ncut_effective_truncated_dim_values <= (2 * out.duffing_ncut_values + 1))
-    assert np.all(out.duffing_ncut_effective_truncated_dim_values <= out.duffing_truncated_dim)
+    assert np.all(out.duffing_ncut_effective_truncated_dim_values == 3)
     assert np.all(np.isfinite(out.duffing_ncut_energy_rmse))
     assert np.all(np.isfinite(out.duffing_ncut_spectrum_energy_rmse))
     assert np.all(np.isfinite(out.duffing_hilbert_qubit_energy_rmse))
