@@ -219,7 +219,7 @@ class CzBenchmarkConfig:
 @dataclass(frozen=True)
 class RxBenchmarkConfig:
     drive_qubit: DriveQubit
-    drive_frequency: float
+    drive_frequency: float | None
     drive_amplitude: float
     drive_phase_rad: float
     total_time_ns: float
@@ -344,6 +344,12 @@ def _require_float(parent: dict[str, Any], key: str, path: str) -> float:
         raise KeyError(f"Missing required key {path}.{key}")
     return float(parent[key])
 
+
+
+def _optional_float(parent: dict[str, Any], key: str) -> float | None:
+    if key not in parent or parent[key] is None:
+        return None
+    return float(parent[key])
 
 
 def _require_int(parent: dict[str, Any], key: str, path: str) -> int:
@@ -1028,14 +1034,14 @@ def _parse_rx_benchmark(study_payload: dict[str, Any]) -> RxBenchmarkConfig:
         raise ValueError("study.rx_benchmark.drive_qubit must be 'q0'")
     drive_qubit_lit: DriveQubit = drive_qubit
 
-    drive_frequency = _require_float(rx, "drive_frequency", "study.rx_benchmark")
+    drive_frequency = _optional_float(rx, "drive_frequency")
     drive_amplitude = _require_float(rx, "drive_amplitude", "study.rx_benchmark")
     drive_phase_rad = _require_float(rx, "drive_phase_rad", "study.rx_benchmark")
     total_time_ns = _require_float(rx, "total_time_ns", "study.rx_benchmark")
     dt_ns = _require_float(rx, "dt_ns", "study.rx_benchmark")
     rise_time_ns = _require_float(rx, "rise_time_ns", "study.rx_benchmark")
 
-    if drive_frequency <= 0.0:
+    if drive_frequency is not None and drive_frequency <= 0.0:
         raise ValueError("study.rx_benchmark.drive_frequency must be positive")
     if drive_amplitude < 0.0:
         raise ValueError("study.rx_benchmark.drive_amplitude must be >= 0")
@@ -1050,7 +1056,7 @@ def _parse_rx_benchmark(study_payload: dict[str, Any]) -> RxBenchmarkConfig:
 
     return RxBenchmarkConfig(
         drive_qubit=drive_qubit_lit,
-        drive_frequency=float(drive_frequency),
+        drive_frequency=None if drive_frequency is None else float(drive_frequency),
         drive_amplitude=float(drive_amplitude),
         drive_phase_rad=float(drive_phase_rad),
         total_time_ns=float(total_time_ns),

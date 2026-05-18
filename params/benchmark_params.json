@@ -37,7 +37,7 @@
     "runtime_benchmark.repeats": "How many times to rerun each qubit-truncation point before aggregating median/std runtimes.",
     "runtime_benchmark.hold_time_ns": "Optional fixed CZ hold time in ns used for every qubit-truncation point in the runtime benchmark. If omitted, a single reference hold time is resolved once and then reused across the sweep.",
     "rx_benchmark.drive_qubit": "Currently this benchmark supports only 'q0'.",
-    "rx_benchmark.drive_frequency": "Drive frequency in GHz used in the rotating-frame/RWA benchmark Hamiltonian.",
+    "rx_benchmark.drive_frequency": "Optional drive frequency in GHz for the rotating-frame/RWA benchmark Hamiltonian. When omitted, the benchmark derives the idle dressed q0 transition frequency from the circuit reference model and uses that shared carrier for all models.",
     "rx_benchmark.drive_amplitude": "On-resonance drive amplitude in GHz for the shared microwave envelope.",
     "rx_benchmark.drive_phase_rad": "Krantz et al. 2019 quadrature convention: phase 0 gives X, phase pi/2 gives Y.",
     "rx_benchmark.total_time_ns": "Total pulse duration in ns.",
@@ -170,7 +170,6 @@
     "rx_only": {
       "rx_benchmark": {
         "drive_qubit": "q0",
-        "drive_frequency": 9.733,
         "drive_amplitude": 0.05,
         "drive_phase_rad": 0.0,
         "total_time_ns": 24.0,

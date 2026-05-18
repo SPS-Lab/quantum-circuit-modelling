@@ -315,12 +315,9 @@ def _single_point_effective_hamiltonian(config: StudyConfig) -> np.ndarray:
         n_candidate_states=n_candidate_states,
         selection_mode=selection_mode,
     )
-    H_circuit_eff = build_dressed_effective_computational_stack(
-        circuit_stack,
-        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
-        nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
-        n_candidate_states=n_candidate_states,
-        selection_mode=selection_mode,
+    H_circuit_eff = _single_point_circuit_computational_hamiltonian_from_stack(
+        config,
+        circuit_stack=circuit_stack,
     )
 
     source = str(config.static_benchmark.effective_model.derivation_source)
@@ -334,6 +331,36 @@ def _single_point_effective_hamiltonian(config: StudyConfig) -> np.ndarray:
     params = extract_effective_model_parameters_from_4x4_stack(source_stack)
     effective_stack = build_effective_hamiltonian_stack(params)
     return np.asarray(effective_stack[0], dtype=complex)
+
+
+def _single_point_circuit_computational_hamiltonian_from_stack(
+    config: StudyConfig,
+    *,
+    circuit_stack: np.ndarray,
+) -> np.ndarray:
+    return build_dressed_effective_computational_stack(
+        circuit_stack,
+        nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
+        nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
+        n_candidate_states=config.static_benchmark.dressed_subspace.n_candidate_states,
+        selection_mode=config.static_benchmark.dressed_subspace.selection_mode,
+    )
+
+
+def _derive_drive_frequency_from_circuit(config: StudyConfig) -> float:
+    flux_value = np.array([float(config.system.q0.flux)], dtype=float)
+    circuit_stack = build_circuit_model_stack(
+        flux_values=flux_value,
+        system_params=config.system,
+        circuit_config=config.static_benchmark.circuit_model,
+        sweep_target="q0",
+    ).hamiltonian_stack
+    H_circuit_eff = _single_point_circuit_computational_hamiltonian_from_stack(
+        config,
+        circuit_stack=circuit_stack,
+    )
+    params = extract_effective_model_parameters_from_4x4_stack(H_circuit_eff)
+    return float(np.asarray(params["w0"], dtype=float).ravel()[0])
 
 
 def _drive_hamiltonian(*, amplitude: float, phase_rad: float, envelope: np.ndarray, lowering_operator: np.ndarray) -> np.ndarray:
@@ -355,7 +382,7 @@ def run_rx_benchmark(
     config: StudyConfig,
     *,
     drive_qubit: str,
-    drive_frequency: float,
+    drive_frequency: float | None,
     drive_amplitude: float,
     drive_phase_rad: float,
     total_time_ns: float,
@@ -364,6 +391,13 @@ def run_rx_benchmark(
 ) -> RxBenchmarkResult:
     if str(drive_qubit) != "q0":
         raise ValueError("RX benchmark currently supports drive_qubit='q0' only")
+    resolved_drive_frequency = (
+        _derive_drive_frequency_from_circuit(config)
+        if drive_frequency is None
+        else float(drive_frequency)
+    )
+    if resolved_drive_frequency <= 0.0:
+        raise ValueError("drive_frequency must be positive")
 
     times_ns, envelope = _cosine_edge_envelope(
         total_time_ns=float(total_time_ns),
@@ -392,7 +426,7 @@ def run_rx_benchmark(
 
     H_effective = _rotation_stack(
         drift_hamiltonian=H_effective_lab,
-        drive_frequency=float(drive_frequency),
+        drive_frequency=float(resolved_drive_frequency),
         total_excitation_operator=N_effective,
         drive_hamiltonian=_drive_hamiltonian(
             amplitude=float(drive_amplitude),
@@ -403,7 +437,7 @@ def run_rx_benchmark(
     )
     H_duffing = _rotation_stack(
         drift_hamiltonian=H_duffing_lab,
-        drive_frequency=float(drive_frequency),
+        drive_frequency=float(resolved_drive_frequency),
         total_excitation_operator=N_duffing,
         drive_hamiltonian=_drive_hamiltonian(
             amplitude=float(drive_amplitude),
@@ -414,7 +448,7 @@ def run_rx_benchmark(
     )
     H_circuit = _rotation_stack(
         drift_hamiltonian=H_circuit_lab,
-        drive_frequency=float(drive_frequency),
+        drive_frequency=float(resolved_drive_frequency),
         total_excitation_operator=N_circuit,
         drive_hamiltonian=_drive_hamiltonian(
             amplitude=float(drive_amplitude),
@@ -472,7 +506,7 @@ def run_rx_benchmark(
         "effective_final_spectator_population_delta": float(eff_delta[-1]),
         "duffing_final_spectator_population_delta": float(duf_delta[-1]),
         "circuit_final_spectator_population_delta": float(cir_delta[-1]),
-        "drive_frequency": float(drive_frequency),
+        "drive_frequency": float(resolved_drive_frequency),
         "drive_amplitude": float(drive_amplitude),
         "drive_phase_rad": float(drive_phase_rad),
         "total_time_ns": float(total_time_ns),
@@ -484,7 +518,7 @@ def run_rx_benchmark(
         times_ns=np.asarray(times_ns, dtype=float),
         pulse_envelope=np.asarray(envelope, dtype=float),
         drive_qubit=str(drive_qubit),
-        drive_frequency=float(drive_frequency),
+        drive_frequency=float(resolved_drive_frequency),
         drive_amplitude=float(drive_amplitude),
         drive_phase_rad=float(drive_phase_rad),
         total_time_ns=float(total_time_ns),
