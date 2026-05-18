@@ -262,12 +262,7 @@ def fit_duffing_mode_parameters_to_reference(
         log_progress(f"{progress_label}: fitting {fitted['w0'].shape[0]} flux points")
 
     for k in range(fitted["w0"].shape[0]):
-        point_started = time.perf_counter()
-        point_last_progress = point_started
         residual_calls = 0
-        point_label = None if progress_label is None else f"{progress_label}: point {k + 1}/{fitted['w0'].shape[0]}"
-        if point_label is not None:
-            log_progress(point_label)
         x0_raw = np.array(
             [
                 float(initial["w0"][k]),
@@ -309,7 +304,7 @@ def fit_duffing_mode_parameters_to_reference(
         )
 
         def residual(x: np.ndarray) -> np.ndarray:
-            nonlocal residual_calls, point_last_progress
+            nonlocal residual_calls
             residual_calls += 1
             candidate = build_duffing_model_stack_from_parameters(
                 {
@@ -342,10 +337,6 @@ def fit_duffing_mode_parameters_to_reference(
             obs_res = (obs - target) / obs_scale
             reg_res = float(regularization_weight) * (x - x0) / latent_scale
             now = time.perf_counter()
-            if point_label is not None and (now - point_last_progress) >= interval:
-                elapsed = format_elapsed_compact(now - point_started)
-                log_progress(f"{point_label} still optimizing after {elapsed} (residual evals={residual_calls})")
-                point_last_progress = now
             return np.concatenate([obs_res, reg_res])
 
         result = least_squares(
@@ -359,12 +350,6 @@ def fit_duffing_mode_parameters_to_reference(
         fitted["w1"][k] = float(x_best[1])
         fitted["alpha0"][k] = float(x_best[2])
         fitted["alpha1"][k] = float(x_best[3])
-        if point_label is not None:
-            point_elapsed = format_elapsed_compact(time.perf_counter() - point_started)
-            status = "converged" if result.success else "stopped"
-            log_progress(
-                f"{point_label} {status} in {point_elapsed} (nfev={int(getattr(result, 'nfev', residual_calls))})"
-            )
 
     if progress_label is not None:
         total_elapsed = format_elapsed_compact(time.perf_counter() - fit_started)
