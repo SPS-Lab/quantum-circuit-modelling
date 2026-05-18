@@ -12,8 +12,18 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import comparison.truncation as truncation_module
-from comparison.truncation import run_circuit_truncation_benchmark, run_duffing_truncation_benchmark
-from plotting.truncation import plot_circuit_truncation_benchmark, plot_duffing_truncation_benchmark
+from comparison.truncation import (
+    CircuitTruncationBenchmarkResult,
+    DuffingTruncationBenchmarkResult,
+    run_circuit_truncation_benchmark,
+    run_duffing_truncation_benchmark,
+    run_truncation_benchmark,
+)
+from plotting.truncation import (
+    plot_circuit_truncation_benchmark,
+    plot_duffing_truncation_benchmark,
+    plot_truncation_benchmark,
+)
 from study_config import _flatten_run_all_benchmark_params, load_study_config
 
 
@@ -418,3 +428,33 @@ def test_duffing_truncation_plot_writes_pdf_for_single_sweep(tmp_path: Path) -> 
     outfile = tmp_path / "duffing_truncation_qubit_only.pdf"
     plot_duffing_truncation_benchmark(out, outfile)
     assert outfile.exists()
+    assert outfile.stat().st_size > 0
+
+
+def test_combined_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> None:
+    cfg = load_study_config(
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(tmp_path),
+    )
+
+    out = run_truncation_benchmark(cfg)
+
+    assert tuple(out.selected_sweeps.tolist()) == ("ncut", "qubit", "coupler")
+    assert out.summary["selected_sweep_count"] == 3.0
+    circuit_result = CircuitTruncationBenchmarkResult(**out.circuit)
+    duffing_result = DuffingTruncationBenchmarkResult(**out.duffing)
+    assert circuit_result.circuit_ncut_values.shape == (3,)
+    assert duffing_result.duffing_ncut_values.shape == (4,)
+
+
+def test_combined_truncation_plot_writes_pdf(tmp_path: Path) -> None:
+    cfg = load_study_config(
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(tmp_path),
+    )
+    out = run_truncation_benchmark(cfg, selected_sweeps=("ncut", "qubit"))
+
+    outfile = tmp_path / "combined_truncation_benchmark.pdf"
+    plot_truncation_benchmark(out, outfile)
+    assert outfile.exists()
+    assert outfile.stat().st_size > 0

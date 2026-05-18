@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 import time
 from typing import TypeVar
 
@@ -81,6 +81,14 @@ class DuffingTruncationBenchmarkResult:
     duffing_hilbert_coupler_spectrum_energy_rmse: np.ndarray
     duffing_hilbert_coupler_j_abs_error: np.ndarray
     duffing_hilbert_coupler_zeta_abs_error: np.ndarray
+    summary: dict[str, float]
+
+
+@dataclass(frozen=True)
+class TruncationBenchmarkResult:
+    selected_sweeps: np.ndarray
+    circuit: dict[str, object]
+    duffing: dict[str, object]
     summary: dict[str, float]
 
 
@@ -720,6 +728,12 @@ def _normalize_circuit_truncation_sweeps(selected_sweeps: tuple[str, ...] | list
     return tuple(deduped)
 
 
+def _normalize_combined_truncation_sweeps(
+    selected_sweeps: tuple[str, ...] | list[str] | None,
+) -> tuple[str, ...]:
+    return _normalize_duffing_truncation_sweeps(selected_sweeps)
+
+
 def run_circuit_truncation_benchmark(
     config: StudyConfig,
     *,
@@ -1344,5 +1358,39 @@ def run_duffing_truncation_benchmark(
         duffing_hilbert_coupler_spectrum_energy_rmse=np.asarray(duffing_hilbert_coupler_spectrum_energy_rmse, dtype=float),
         duffing_hilbert_coupler_j_abs_error=np.asarray(duffing_hilbert_coupler_j_abs_error, dtype=float),
         duffing_hilbert_coupler_zeta_abs_error=np.asarray(duffing_hilbert_coupler_zeta_abs_error, dtype=float),
+        summary=summary,
+    )
+
+
+def run_truncation_benchmark(
+    config: StudyConfig,
+    *,
+    selected_sweeps: tuple[str, ...] | list[str] | None = None,
+    include_spectrum_energy_metric: bool = False,
+) -> TruncationBenchmarkResult:
+    sweep_selection = _normalize_combined_truncation_sweeps(selected_sweeps)
+    circuit_result = run_circuit_truncation_benchmark(
+        config,
+        selected_sweeps=sweep_selection,
+        include_spectrum_energy_metric=bool(include_spectrum_energy_metric),
+    )
+    duffing_result = run_duffing_truncation_benchmark(
+        config,
+        selected_sweeps=sweep_selection,
+        include_spectrum_energy_metric=bool(include_spectrum_energy_metric),
+    )
+    summary: dict[str, float] = {
+        "selected_sweep_count": float(len(sweep_selection)),
+        "selected_ncut": float("ncut" in sweep_selection),
+        "selected_qubit": float("qubit" in sweep_selection),
+        "selected_coupler": float("coupler" in sweep_selection),
+        "spectrum_energy_metric_enabled": float(bool(include_spectrum_energy_metric)),
+        "circuit_flux_count": float(np.asarray(circuit_result.flux_values, dtype=float).size),
+        "duffing_flux_count": float(np.asarray(duffing_result.flux_values, dtype=float).size),
+    }
+    return TruncationBenchmarkResult(
+        selected_sweeps=np.asarray(sweep_selection, dtype=str),
+        circuit=asdict(circuit_result),
+        duffing=asdict(duffing_result),
         summary=summary,
     )

@@ -6,7 +6,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from comparison.truncation import CircuitTruncationBenchmarkResult, DuffingTruncationBenchmarkResult
+from comparison.truncation import (
+    CircuitTruncationBenchmarkResult,
+    DuffingTruncationBenchmarkResult,
+    TruncationBenchmarkResult,
+)
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
@@ -49,50 +53,89 @@ def _plot_metric_sweeps(
         ax.set_xticklabels(xticklabels, rotation=25, ha="right")
 
 
+def _circuit_subplot_specs(
+    result: CircuitTruncationBenchmarkResult,
+) -> dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None]]:
+    specs: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None]] = {}
+    if np.asarray(result.circuit_ncut_values).size > 0:
+        n_q_values = _charge_basis_dim_from_ncut(result.circuit_ncut_values)
+        specs["ncut"] = (
+            n_q_values,
+            np.asarray(result.circuit_ncut_energy_rmse, dtype=float),
+            np.asarray(result.circuit_ncut_j_abs_error, dtype=float),
+            np.asarray(result.circuit_ncut_zeta_abs_error, dtype=float),
+            r"$N_Q$",
+            "Circuit: qubit charge basis",
+            _integer_ticklabels(n_q_values),
+        )
+    if np.asarray(result.circuit_qubit_truncated_dim_values).size > 0:
+        specs["qubit"] = (
+            np.asarray(result.circuit_qubit_truncated_dim_values, dtype=float),
+            np.asarray(result.circuit_qubit_truncation_energy_rmse, dtype=float),
+            np.asarray(result.circuit_qubit_truncation_j_abs_error, dtype=float),
+            np.asarray(result.circuit_qubit_truncation_zeta_abs_error, dtype=float),
+            "$N_{E,q}$",
+            "Circuit: qubit energy basis",
+            None,
+        )
+    if np.asarray(result.circuit_coupler_truncated_dim_values).size > 0:
+        specs["coupler"] = (
+            np.asarray(result.circuit_coupler_truncated_dim_values, dtype=float),
+            np.asarray(result.circuit_coupler_truncation_energy_rmse, dtype=float),
+            np.asarray(result.circuit_coupler_truncation_j_abs_error, dtype=float),
+            np.asarray(result.circuit_coupler_truncation_zeta_abs_error, dtype=float),
+            "$N_{E,c}$",
+            "Circuit: coupler energy basis",
+            None,
+        )
+    return specs
+
+
+def _duffing_subplot_specs(
+    result: DuffingTruncationBenchmarkResult,
+) -> dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None]]:
+    specs: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None]] = {}
+    if np.asarray(result.duffing_ncut_values).size > 0:
+        n_q_values = _charge_basis_dim_from_ncut(result.duffing_ncut_values)
+        specs["ncut"] = (
+            n_q_values,
+            np.asarray(result.duffing_ncut_energy_rmse, dtype=float),
+            np.asarray(result.duffing_ncut_j_abs_error, dtype=float),
+            np.asarray(result.duffing_ncut_zeta_abs_error, dtype=float),
+            r"$N_Q$",
+            r"Duffing: extraction $N_Q$",
+            _integer_ticklabels(n_q_values),
+        )
+    if np.asarray(result.duffing_hilbert_qubit_dim_values).size > 0:
+        specs["qubit"] = (
+            np.asarray(result.duffing_hilbert_qubit_dim_values, dtype=float),
+            np.asarray(result.duffing_hilbert_qubit_energy_rmse, dtype=float),
+            np.asarray(result.duffing_hilbert_qubit_j_abs_error, dtype=float),
+            np.asarray(result.duffing_hilbert_qubit_zeta_abs_error, dtype=float),
+            "qubit Hilbert dim",
+            "Duffing: qubit Hilbert dim",
+            None,
+        )
+    if np.asarray(result.duffing_hilbert_coupler_dim_values).size > 0:
+        specs["coupler"] = (
+            np.asarray(result.duffing_hilbert_coupler_dim_values, dtype=float),
+            np.asarray(result.duffing_hilbert_coupler_energy_rmse, dtype=float),
+            np.asarray(result.duffing_hilbert_coupler_j_abs_error, dtype=float),
+            np.asarray(result.duffing_hilbert_coupler_zeta_abs_error, dtype=float),
+            "coupler Hilbert dim",
+            "Duffing: coupler Hilbert dim",
+            None,
+        )
+    return specs
+
+
 def plot_circuit_truncation_benchmark(
     result: CircuitTruncationBenchmarkResult,
     outfile: Path,
     *,
     font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
-    subplot_specs: list[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None]] = []
-    if np.asarray(result.circuit_ncut_values).size > 0:
-        n_q_values = _charge_basis_dim_from_ncut(result.circuit_ncut_values)
-        subplot_specs.append(
-            (
-                n_q_values,
-                np.asarray(result.circuit_ncut_energy_rmse, dtype=float),
-                np.asarray(result.circuit_ncut_j_abs_error, dtype=float),
-                np.asarray(result.circuit_ncut_zeta_abs_error, dtype=float),
-                r"$N_Q$",
-                "Qubit charge basis",
-                _integer_ticklabels(n_q_values),
-            )
-        )
-    if np.asarray(result.circuit_qubit_truncated_dim_values).size > 0:
-        subplot_specs.append(
-            (
-                np.asarray(result.circuit_qubit_truncated_dim_values, dtype=float),
-                np.asarray(result.circuit_qubit_truncation_energy_rmse, dtype=float),
-                np.asarray(result.circuit_qubit_truncation_j_abs_error, dtype=float),
-                np.asarray(result.circuit_qubit_truncation_zeta_abs_error, dtype=float),
-                "$N_{E,q}$",
-                "Qubit energy basis",
-                None,
-            )
-        )
-    if np.asarray(result.circuit_coupler_truncated_dim_values).size > 0:
-        subplot_specs.append(
-            (
-                np.asarray(result.circuit_coupler_truncated_dim_values, dtype=float),
-                np.asarray(result.circuit_coupler_truncation_energy_rmse, dtype=float),
-                np.asarray(result.circuit_coupler_truncation_j_abs_error, dtype=float),
-                np.asarray(result.circuit_coupler_truncation_zeta_abs_error, dtype=float),
-                "$N_{E,c}$",
-                "Coupler energy basis",
-                None,
-            )
-        )
+    subplot_specs = list(_circuit_subplot_specs(result).values())
     if not subplot_specs:
         raise ValueError("Circuit truncation plot requires at least one populated sweep")
 
@@ -125,44 +168,7 @@ def plot_duffing_truncation_benchmark(
     *,
     font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
-    subplot_specs: list[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None]] = []
-    if np.asarray(result.duffing_ncut_values).size > 0:
-        n_q_values = _charge_basis_dim_from_ncut(result.duffing_ncut_values)
-        subplot_specs.append(
-            (
-                n_q_values,
-                np.asarray(result.duffing_ncut_energy_rmse, dtype=float),
-                np.asarray(result.duffing_ncut_j_abs_error, dtype=float),
-                np.asarray(result.duffing_ncut_zeta_abs_error, dtype=float),
-                r"$N_Q$",
-                r"Extraction $N_Q$",
-                _integer_ticklabels(n_q_values),
-            )
-        )
-    if np.asarray(result.duffing_hilbert_qubit_dim_values).size > 0:
-        subplot_specs.append(
-            (
-                np.asarray(result.duffing_hilbert_qubit_dim_values, dtype=float),
-                np.asarray(result.duffing_hilbert_qubit_energy_rmse, dtype=float),
-                np.asarray(result.duffing_hilbert_qubit_j_abs_error, dtype=float),
-                np.asarray(result.duffing_hilbert_qubit_zeta_abs_error, dtype=float),
-                "qubit Hilbert dim",
-                "Q-Dim",
-                None,
-            )
-        )
-    if np.asarray(result.duffing_hilbert_coupler_dim_values).size > 0:
-        subplot_specs.append(
-            (
-                np.asarray(result.duffing_hilbert_coupler_dim_values, dtype=float),
-                np.asarray(result.duffing_hilbert_coupler_energy_rmse, dtype=float),
-                np.asarray(result.duffing_hilbert_coupler_j_abs_error, dtype=float),
-                np.asarray(result.duffing_hilbert_coupler_zeta_abs_error, dtype=float),
-                "coupler Hilbert dim",
-                "C-Dim",
-                None,
-            )
-        )
+    subplot_specs = list(_duffing_subplot_specs(result).values())
     if not subplot_specs:
         raise ValueError("Duffing truncation plot requires at least one populated sweep")
 
@@ -184,6 +190,65 @@ def plot_duffing_truncation_benchmark(
             )
         fig.suptitle("Duffing static truncation convergence")
         fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.94), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
+        outfile.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(outfile, format="pdf")
+        plt.close(fig)
+
+
+def plot_truncation_benchmark(
+    result: TruncationBenchmarkResult,
+    outfile: Path,
+    *,
+    font_size: float = DEFAULT_PLOT_FONT_SIZE,
+) -> None:
+    circuit_result = CircuitTruncationBenchmarkResult(**result.circuit)
+    duffing_result = DuffingTruncationBenchmarkResult(**result.duffing)
+    circuit_specs = _circuit_subplot_specs(circuit_result)
+    duffing_specs = _duffing_subplot_specs(duffing_result)
+    row_order = [name for name in ("ncut", "qubit", "coupler") if name in circuit_specs or name in duffing_specs]
+    if not row_order:
+        raise ValueError("Combined truncation plot requires at least one populated sweep")
+
+    with benchmark_plot_style(font_size):
+        fig_height = max(4.8, 3.9 * len(row_order))
+        fig, axes = plt.subplots(len(row_order), 2, figsize=(13.5, fig_height), squeeze=False)
+        for row_index, sweep_name in enumerate(row_order):
+            left_ax = axes[row_index, 0]
+            right_ax = axes[row_index, 1]
+            if sweep_name in circuit_specs:
+                x, energy_rmse, j_abs_error, zeta_abs_error, xlabel, title, xticklabels = circuit_specs[sweep_name]
+                _plot_metric_sweeps(
+                    left_ax,
+                    x=x,
+                    energy_rmse=energy_rmse,
+                    j_abs_error=j_abs_error,
+                    zeta_abs_error=zeta_abs_error,
+                    xlabel=xlabel,
+                    title=title,
+                    xticklabels=xticklabels,
+                )
+            else:
+                left_ax.axis("off")
+            if sweep_name in duffing_specs:
+                x, energy_rmse, j_abs_error, zeta_abs_error, xlabel, title, xticklabels = duffing_specs[sweep_name]
+                _plot_metric_sweeps(
+                    right_ax,
+                    x=x,
+                    energy_rmse=energy_rmse,
+                    j_abs_error=j_abs_error,
+                    zeta_abs_error=zeta_abs_error,
+                    xlabel=xlabel,
+                    title=title,
+                    xticklabels=xticklabels,
+                )
+            else:
+                right_ax.axis("off")
+        fig.suptitle("Static truncation convergence")
+        fig.tight_layout(
+            rect=(0.0, 0.0, 1.0, 0.96),
+            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
+            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
+        )
         outfile.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(outfile, format="pdf")
         plt.close(fig)
