@@ -6,6 +6,8 @@ import argparse
 from pathlib import Path
 import sys
 
+import numpy as np
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
@@ -73,6 +75,14 @@ def _parse_args() -> argparse.Namespace:
             "duffing_truncation_style_energy_rmse."
         ),
     )
+    parser.add_argument(
+        "--spectrum-metric",
+        action="store_true",
+        help=(
+            "Also compute the broader low-energy full-spectrum RMSE for each truncation point. "
+            "By default only the computational-manifold RMSE is computed."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -116,7 +126,11 @@ def main() -> None:
                 "Re-run without --plot-only to regenerate the results file."
             ) from exc
     else:
-        result = run_circuit_truncation_benchmark(config, selected_sweeps=selected_sweeps)
+        result = run_circuit_truncation_benchmark(
+            config,
+            selected_sweeps=selected_sweeps,
+            include_spectrum_energy_metric=bool(args.spectrum_metric),
+        )
         save_result_hdf5(result, results_path, benchmark_name="circuit_truncation")
 
     plot_circuit_truncation_benchmark(result, figure_path)
@@ -138,7 +152,7 @@ def main() -> None:
     for key, value in result.summary.items():
         reporter.line(f"  {key}: {value:.6e}")
     if result.circuit_ncut_values.size > 0:
-        reporter.line("Circuit ncut sweep (computational RMSE in GHz; spectrum RMSE secondary):")
+        reporter.line("Circuit ncut sweep (computational RMSE in GHz):")
         for ncut, qdim_eff, energy_rmse, spectrum_energy_rmse, j_err, zeta_err in zip(
             result.circuit_ncut_values,
             result.circuit_ncut_effective_qubit_truncated_dim_values,
@@ -147,9 +161,14 @@ def main() -> None:
             result.circuit_ncut_j_abs_error,
             result.circuit_ncut_zeta_abs_error,
         ):
+            spectrum_text = (
+                f", spectrum_energy_rmse={float(spectrum_energy_rmse):.6e}"
+                if not np.isnan(float(spectrum_energy_rmse))
+                else ""
+            )
             reporter.line(
                 f"  ncut={int(ncut):4d}, qdim_eff={int(qdim_eff):3d}: "
-                f"energy_rmse={float(energy_rmse):.6e}, spectrum_energy_rmse={float(spectrum_energy_rmse):.6e}, "
+                f"energy_rmse={float(energy_rmse):.6e}{spectrum_text}, "
                 f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
             )
     if result.circuit_qubit_truncated_dim_values.size > 0:
@@ -164,9 +183,14 @@ def main() -> None:
             result.circuit_qubit_truncation_j_abs_error,
             result.circuit_qubit_truncation_zeta_abs_error,
         ):
+            spectrum_text = (
+                f", spectrum_energy_rmse={float(spectrum_energy_rmse):.6e}"
+                if not np.isnan(float(spectrum_energy_rmse))
+                else ""
+            )
             reporter.line(
-                f"  q={int(qdim):2d}: energy_rmse={float(energy_rmse):.6e}, "
-                f"spectrum_energy_rmse={float(spectrum_energy_rmse):.6e}, "
+                f"  q={int(qdim):2d}: energy_rmse={float(energy_rmse):.6e}"
+                f"{spectrum_text}, "
                 f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
             )
     if result.circuit_coupler_truncated_dim_values.size > 0:
@@ -181,9 +205,14 @@ def main() -> None:
             result.circuit_coupler_truncation_j_abs_error,
             result.circuit_coupler_truncation_zeta_abs_error,
         ):
+            spectrum_text = (
+                f", spectrum_energy_rmse={float(spectrum_energy_rmse):.6e}"
+                if not np.isnan(float(spectrum_energy_rmse))
+                else ""
+            )
             reporter.line(
-                f"  c={int(cdim):2d}: energy_rmse={float(energy_rmse):.6e}, "
-                f"spectrum_energy_rmse={float(spectrum_energy_rmse):.6e}, "
+                f"  c={int(cdim):2d}: energy_rmse={float(energy_rmse):.6e}"
+                f"{spectrum_text}, "
                 f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
             )
     if args.plot_only:

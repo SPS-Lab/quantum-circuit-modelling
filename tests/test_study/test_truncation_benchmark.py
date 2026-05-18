@@ -113,7 +113,7 @@ def test_circuit_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
         study_params_path=_write_small_study_params(tmp_path),
     )
 
-    out = run_circuit_truncation_benchmark(cfg)
+    out = run_circuit_truncation_benchmark(cfg, include_spectrum_energy_metric=True)
 
     assert out.circuit_ncut_values.shape == (3,)
     assert out.flux_values.shape == (9,)
@@ -153,6 +153,20 @@ def test_circuit_truncation_benchmark_accepts_more_than_five_flux_points(tmp_pat
     assert out.reference_circuit_zeta_values.shape == (7,)
 
 
+def test_circuit_truncation_benchmark_skips_spectrum_metric_by_default(tmp_path: Path) -> None:
+    cfg = load_study_config(
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(tmp_path),
+    )
+
+    out = run_circuit_truncation_benchmark(cfg)
+
+    assert np.all(np.isnan(out.circuit_ncut_spectrum_energy_rmse))
+    assert np.all(np.isnan(out.circuit_qubit_truncation_spectrum_energy_rmse))
+    assert np.all(np.isnan(out.circuit_coupler_truncation_spectrum_energy_rmse))
+    assert float(out.summary["spectrum_energy_metric_enabled"]) == 0.0
+
+
 def test_strict_circuit_reference_builds_batched_stack_once(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -182,6 +196,7 @@ def test_strict_circuit_reference_builds_batched_stack_once(
         reference_ncut=int(cfg.circuit_truncation_benchmark.circuit_reference_ncut),
         reference_qdim=int(cfg.circuit_truncation_benchmark.circuit_reference_qubit_truncated_dim),
         reference_cdim=int(cfg.circuit_truncation_benchmark.circuit_reference_coupler_truncated_dim),
+        include_spectrum_energy_metric=True,
     )
 
     assert captured_flux_lengths == [len(flux_values)]
@@ -197,7 +212,7 @@ def test_duffing_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
         study_params_path=_write_small_study_params(tmp_path),
     )
 
-    out = run_duffing_truncation_benchmark(cfg)
+    out = run_duffing_truncation_benchmark(cfg, include_spectrum_energy_metric=True)
 
     assert out.duffing_ncut_values.shape == (4,)
     assert out.flux_values.shape == (9,)
@@ -231,11 +246,27 @@ def test_duffing_truncation_benchmark_accepts_more_than_five_flux_points(tmp_pat
         study_params_path=_write_small_study_params(tmp_path, truncation_flux_values=flux_values),
     )
 
-    out = run_duffing_truncation_benchmark(cfg)
+    out = run_duffing_truncation_benchmark(
+        cfg, include_spectrum_energy_metric=True
+    )
 
     assert out.flux_values.shape == (7,)
     assert out.reference_circuit_j_values.shape == (7,)
     assert out.reference_circuit_zeta_values.shape == (7,)
+
+
+def test_duffing_truncation_benchmark_skips_spectrum_metric_by_default(tmp_path: Path) -> None:
+    cfg = load_study_config(
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(tmp_path),
+    )
+
+    out = run_duffing_truncation_benchmark(cfg)
+
+    assert np.all(np.isnan(out.duffing_ncut_spectrum_energy_rmse))
+    assert np.all(np.isnan(out.duffing_hilbert_qubit_spectrum_energy_rmse))
+    assert np.all(np.isnan(out.duffing_hilbert_coupler_spectrum_energy_rmse))
+    assert float(out.summary["spectrum_energy_metric_enabled"]) == 0.0
 
 
 def test_duffing_truncation_benchmark_rejects_nonpositive_ncut(tmp_path: Path) -> None:
@@ -312,7 +343,7 @@ def test_duffing_truncation_benchmark_runs_with_symbolic_fitted_static(tmp_path:
         ),
     )
 
-    out = run_duffing_truncation_benchmark(cfg)
+    out = run_duffing_truncation_benchmark(cfg, include_spectrum_energy_metric=True)
 
     assert out.duffing_calibration_mode == "symbolic-fitted-static"
     assert out.duffing_ncut_values.shape == (1,)

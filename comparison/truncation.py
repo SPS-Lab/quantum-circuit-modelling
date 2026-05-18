@@ -241,6 +241,7 @@ def _extract_circuit_metrics_over_fluxes(
     circuit_ncut: int,
     qubit_truncated_dim: int,
     coupler_truncated_dim: int,
+    include_spectrum_energy_metric: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int]:
     flux_values_arr = np.asarray(flux_values, dtype=float)
     if flux_values_arr.size == 0:
@@ -272,8 +273,11 @@ def _extract_circuit_metrics_over_fluxes(
         H_cir_eff,
         tracking_mode=config.static_benchmark.dressed_subspace.energy_tracking_mode,
     )
-    evals = np.linalg.eigvalsh(np.asarray(H_cir, dtype=complex))
-    spectrum_rel_e_values = np.asarray(evals - evals[:, :1], dtype=float)
+    if include_spectrum_energy_metric:
+        evals = np.linalg.eigvalsh(np.asarray(H_cir, dtype=complex))
+        spectrum_rel_e_values = np.asarray(evals - evals[:, :1], dtype=float)
+    else:
+        spectrum_rel_e_values = np.empty((0,), dtype=float)
     return (
         np.asarray(params["J"], dtype=float),
         np.asarray(params["zeta"], dtype=float),
@@ -290,6 +294,7 @@ def _extract_strict_circuit_reference(
     reference_ncut: int,
     reference_qdim: int,
     reference_cdim: int,
+    include_spectrum_energy_metric: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     with progress_heartbeat("truncation benchmark: build strict circuit reference points"):
         ref_j_values, ref_zeta_values, ref_comp_rel_e_values, ref_spectrum_rel_e_values, _ = _extract_circuit_metrics_over_fluxes(
@@ -298,6 +303,7 @@ def _extract_strict_circuit_reference(
             circuit_ncut=int(reference_ncut),
             qubit_truncated_dim=int(reference_qdim),
             coupler_truncated_dim=int(reference_cdim),
+            include_spectrum_energy_metric=bool(include_spectrum_energy_metric),
         )
     return ref_j_values, ref_zeta_values, ref_comp_rel_e_values, ref_spectrum_rel_e_values
 
@@ -349,6 +355,7 @@ def _extract_duffing_metrics(
     reference_flux_values: np.ndarray | None = None,
     reference_dressed_stack: np.ndarray | None = None,
     precomputed_mode_parameters: dict[str, np.ndarray] | None = None,
+    include_spectrum_energy_metric: bool = False,
 ) -> tuple[float, float, np.ndarray, np.ndarray, int]:
     trunc_dim_eff = int(min(int(extraction_truncated_dim), 2 * int(extraction_ncut) + 1))
     if trunc_dim_eff < 3:
@@ -441,8 +448,11 @@ def _extract_duffing_metrics(
         H_duf_eff,
         tracking_mode=config.static_benchmark.dressed_subspace.energy_tracking_mode,
     )
-    evals = np.linalg.eigvalsh(np.asarray(H_duf[0], dtype=complex))
-    spectrum_rel_e = np.asarray(evals - evals[0], dtype=float)
+    if include_spectrum_energy_metric:
+        evals = np.linalg.eigvalsh(np.asarray(H_duf[0], dtype=complex))
+        spectrum_rel_e = np.asarray(evals - evals[0], dtype=float)
+    else:
+        spectrum_rel_e = np.empty((0,), dtype=float)
     return float(params["J"][0]), float(params["zeta"][0]), comp_rel_e[0], spectrum_rel_e, trunc_dim_eff
 
 
@@ -458,6 +468,7 @@ def _extract_duffing_metrics_over_fluxes(
     reference_flux_values: np.ndarray | None = None,
     reference_dressed_stack: np.ndarray | None = None,
     progress_label: str | None = None,
+    include_spectrum_energy_metric: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int]:
     j_values = np.empty(flux_values.shape[0], dtype=float)
     zeta_values = np.empty(flux_values.shape[0], dtype=float)
@@ -573,6 +584,7 @@ def _extract_duffing_metrics_over_fluxes(
             reference_flux_values=reference_flux_values,
             reference_dressed_stack=reference_dressed_stack,
             precomputed_mode_parameters=precomputed_mode_parameters,
+            include_spectrum_energy_metric=bool(include_spectrum_energy_metric),
         )
         j_values[i] = float(cand_j)
         zeta_values[i] = float(cand_zeta)
@@ -620,21 +632,24 @@ def _static_error_metrics(
         computational_energy_rmse = 0.0
     candidate_spectrum_rel_e_arr = np.asarray(candidate_spectrum_rel_e, dtype=float)
     reference_spectrum_rel_e_arr = np.asarray(reference_spectrum_rel_e, dtype=float)
-    n_excited = int(
-        min(
-            max(0, int(lowest_excited_levels_to_compare)),
-            max(0, int(candidate_spectrum_rel_e_arr.shape[-1]) - 1),
-            max(0, int(reference_spectrum_rel_e_arr.shape[-1]) - 1),
+    if candidate_spectrum_rel_e_arr.size > 0 and reference_spectrum_rel_e_arr.size > 0:
+        n_excited = int(
+            min(
+                max(0, int(lowest_excited_levels_to_compare)),
+                max(0, int(candidate_spectrum_rel_e_arr.shape[-1]) - 1),
+                max(0, int(reference_spectrum_rel_e_arr.shape[-1]) - 1),
+            )
         )
-    )
-    if n_excited > 0:
-        spectrum_energy_diff = (
-            candidate_spectrum_rel_e_arr[..., 1 : 1 + n_excited]
-            - reference_spectrum_rel_e_arr[..., 1 : 1 + n_excited]
-        )
-        spectrum_energy_rmse = _rmse(spectrum_energy_diff.ravel())
+        if n_excited > 0:
+            spectrum_energy_diff = (
+                candidate_spectrum_rel_e_arr[..., 1 : 1 + n_excited]
+                - reference_spectrum_rel_e_arr[..., 1 : 1 + n_excited]
+            )
+            spectrum_energy_rmse = _rmse(spectrum_energy_diff.ravel())
+        else:
+            spectrum_energy_rmse = 0.0
     else:
-        spectrum_energy_rmse = 0.0
+        spectrum_energy_rmse = float("nan")
     j_abs_diff = np.abs(np.asarray(candidate_j, dtype=float) - np.asarray(reference_j, dtype=float))
     zeta_abs_diff = np.abs(np.asarray(candidate_zeta, dtype=float) - np.asarray(reference_zeta, dtype=float))
     j_abs_error = float(np.mean(j_abs_diff))
@@ -652,12 +667,17 @@ def _summary_for_sweep(
     zeta_abs_error: np.ndarray,
 ) -> dict[str, float]:
     idx = int(np.argmin(energy_rmse))
-    spectrum_idx = int(np.argmin(spectrum_energy_rmse))
+    if np.all(np.isnan(spectrum_energy_rmse)):
+        spectrum_idx = -1
+        best_spectrum_energy_rmse = float("nan")
+    else:
+        spectrum_idx = int(np.nanargmin(spectrum_energy_rmse))
+        best_spectrum_energy_rmse = float(spectrum_energy_rmse[spectrum_idx])
     return {
         f"{prefix}_points": float(values.shape[0]),
         f"{prefix}_best_value_index": float(idx),
         f"{prefix}_best_energy_rmse": float(energy_rmse[idx]),
-        f"{prefix}_best_spectrum_energy_rmse": float(spectrum_energy_rmse[spectrum_idx]),
+        f"{prefix}_best_spectrum_energy_rmse": best_spectrum_energy_rmse,
         f"{prefix}_best_spectrum_value_index": float(spectrum_idx),
         f"{prefix}_best_j_abs_error": float(j_abs_error[idx]),
         f"{prefix}_best_zeta_abs_error": float(zeta_abs_error[idx]),
@@ -706,6 +726,7 @@ def run_circuit_truncation_benchmark(
     config: StudyConfig,
     *,
     selected_sweeps: tuple[str, ...] | list[str] | None = None,
+    include_spectrum_energy_metric: bool = False,
 ) -> CircuitTruncationBenchmarkResult:
     cfg = config.circuit_truncation_benchmark
     sweep_selection = _normalize_circuit_truncation_sweeps(selected_sweeps)
@@ -723,6 +744,7 @@ def run_circuit_truncation_benchmark(
         reference_ncut=int(cfg.circuit_reference_ncut),
         reference_qdim=int(cfg.circuit_reference_qubit_truncated_dim),
         reference_cdim=int(cfg.circuit_reference_coupler_truncated_dim),
+        include_spectrum_energy_metric=bool(include_spectrum_energy_metric),
     )
     if run_ncut:
         circuit_ncut_values = np.asarray(cfg.circuit_ncut_values, dtype=int)
@@ -748,6 +770,7 @@ def run_circuit_truncation_benchmark(
                     circuit_ncut=int(ncut),
                     qubit_truncated_dim=int(cfg.circuit_reference_qubit_truncated_dim),
                     coupler_truncated_dim=int(cfg.circuit_reference_coupler_truncated_dim),
+                    include_spectrum_energy_metric=bool(include_spectrum_energy_metric),
                 ),
             )
             circuit_ncut_effective_qdim[i] = int(qdim_eff)
@@ -812,6 +835,7 @@ def run_circuit_truncation_benchmark(
                     circuit_ncut=int(cfg.circuit_reference_ncut),
                     qubit_truncated_dim=int(qdim),
                     coupler_truncated_dim=int(cfg.circuit_reference_coupler_truncated_dim),
+                    include_spectrum_energy_metric=bool(include_spectrum_energy_metric),
                 ),
             )
             (
@@ -875,6 +899,7 @@ def run_circuit_truncation_benchmark(
                     circuit_ncut=int(cfg.circuit_reference_ncut),
                     qubit_truncated_dim=int(cfg.circuit_reference_qubit_truncated_dim),
                     coupler_truncated_dim=int(cdim),
+                    include_spectrum_energy_metric=bool(include_spectrum_energy_metric),
                 ),
             )
             (
@@ -922,6 +947,7 @@ def run_circuit_truncation_benchmark(
         "reference_circuit_zeta_mean": float(np.mean(ref_zeta_values)),
         "computational_excited_levels_compared": 3.0,
         "lowest_excited_levels_compared": float(cfg.lowest_excited_levels_to_plot),
+        "spectrum_energy_metric_enabled": float(bool(include_spectrum_energy_metric)),
         "circuit_selected_sweep_count": float(len(sweep_selection)),
         "circuit_selected_ncut": float(run_ncut),
         "circuit_selected_qubit": float(run_qubit),
@@ -996,6 +1022,7 @@ def run_duffing_truncation_benchmark(
     config: StudyConfig,
     *,
     selected_sweeps: tuple[str, ...] | list[str] | None = None,
+    include_spectrum_energy_metric: bool = False,
 ) -> DuffingTruncationBenchmarkResult:
     cfg = config.duffing_truncation_benchmark
     sweep_selection = _normalize_duffing_truncation_sweeps(selected_sweeps)
@@ -1013,6 +1040,7 @@ def run_duffing_truncation_benchmark(
         reference_ncut=int(cfg.circuit_reference_ncut),
         reference_qdim=int(cfg.circuit_reference_qubit_truncated_dim),
         reference_cdim=int(cfg.circuit_reference_coupler_truncated_dim),
+        include_spectrum_energy_metric=bool(include_spectrum_energy_metric),
     )
     with progress_heartbeat("duffing truncation benchmark: build strict circuit reference flux stack"):
         reference_flux_values, reference_dressed_stack = _build_reference_dressed_stack(
@@ -1055,6 +1083,7 @@ def run_duffing_truncation_benchmark(
                     reference_flux_values=reference_flux_values,
                     reference_dressed_stack=reference_dressed_stack,
                     progress_label=point_label,
+                    include_spectrum_energy_metric=bool(include_spectrum_energy_metric),
                 ),
             )
             duffing_ncut_effective_trunc_dim[i] = int(trunc_dim_eff)
@@ -1126,6 +1155,7 @@ def run_duffing_truncation_benchmark(
                     reference_flux_values=reference_flux_values,
                     reference_dressed_stack=reference_dressed_stack,
                     progress_label=point_label,
+                    include_spectrum_energy_metric=bool(include_spectrum_energy_metric),
                 ),
             )
             (
@@ -1195,6 +1225,7 @@ def run_duffing_truncation_benchmark(
                     reference_flux_values=reference_flux_values,
                     reference_dressed_stack=reference_dressed_stack,
                     progress_label=point_label,
+                    include_spectrum_energy_metric=bool(include_spectrum_energy_metric),
                 ),
             )
             (
@@ -1242,6 +1273,7 @@ def run_duffing_truncation_benchmark(
         "reference_circuit_zeta_mean": float(np.mean(ref_zeta_values)),
         "computational_excited_levels_compared": 3.0,
         "lowest_excited_levels_compared": float(cfg.lowest_excited_levels_to_plot),
+        "spectrum_energy_metric_enabled": float(bool(include_spectrum_energy_metric)),
         "duffing_extraction_truncated_dim_configured": float(cfg.duffing_truncated_dim),
     }
     summary["duffing_selected_sweep_count"] = float(len(sweep_selection))
