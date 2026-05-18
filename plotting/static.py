@@ -106,8 +106,9 @@ def _plot_static_energy_panel(
     effective_relative: np.ndarray | None = None,
     circuit_full_relative: np.ndarray | None = None,
     duffing_full_relative: np.ndarray | None = None,
+    include_other_levels: bool = True,
 ) -> None:
-    if circuit_full_relative is not None and duffing_full_relative is not None:
+    if include_other_levels and circuit_full_relative is not None and duffing_full_relative is not None:
         n_full = int(circuit_full_relative.shape[1])
         if n_full > 4:
             for i in range(4, n_full):
@@ -153,13 +154,29 @@ def _plot_static_energy_panel(
             )
 
 
-def _static_level_legend(font_size: float) -> list[Line2D]:
-    return [
-        Line2D([0], [0], color="0.15", linewidth=1.8, alpha=energy_level_alpha(0), label=r"$E_{1}$"),
-        Line2D([0], [0], color="0.15", linewidth=1.8, alpha=energy_level_alpha(1), label=r"$E_{2}$"),
-        Line2D([0], [0], color="0.15", linewidth=1.8, alpha=energy_level_alpha(2), label=r"$E_{3}$"),
-        Line2D([0], [0], color="0.15", linewidth=1.1, alpha=energy_level_alpha(3) * 0.7, label="other levels"),
+def _static_level_legend(
+    font_size: float,
+    *,
+    labels: tuple[str, str, str] = (r"$E_{1}$", r"$E_{2}$", r"$E_{3}$"),
+    include_other_levels: bool = True,
+) -> list[Line2D]:
+    handles = [
+        Line2D([0], [0], color="0.15", linewidth=1.8, alpha=energy_level_alpha(0), label=labels[0]),
+        Line2D([0], [0], color="0.15", linewidth=1.8, alpha=energy_level_alpha(1), label=labels[1]),
+        Line2D([0], [0], color="0.15", linewidth=1.8, alpha=energy_level_alpha(2), label=labels[2]),
     ]
+    if include_other_levels:
+        handles.append(
+            Line2D(
+                [0],
+                [0],
+                color="0.15",
+                linewidth=1.1,
+                alpha=energy_level_alpha(3) * 0.7,
+                label="other levels",
+            )
+        )
+    return handles
 
 
 def plot_static_benchmark(
@@ -180,13 +197,16 @@ def plot_static_benchmark(
             circuit_relative=result.circuit_relative_energies,
             duffing_relative=result.duffing_relative_energies,
             effective_relative=result.effective_relative_energies,
-            circuit_full_relative=result.circuit_full_relative_energies,
-            duffing_full_relative=result.duffing_full_relative_energies,
+            include_other_levels=False,
         )
         axE.set_ylabel("Energy rel. ground")
         axE.grid(True, alpha=0.3)
         axE.legend(
-            handles=_static_level_legend(font_size),
+            handles=_static_level_legend(
+                font_size,
+                labels=(r"$E_{01}$", r"$E_{10}$", r"$E_{11}$"),
+                include_other_levels=False,
+            ),
             loc=STATIC_LEVEL_LEGEND_LOC,
             bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
             ncol=STATIC_LEVEL_LEGEND_NCOL,
@@ -196,7 +216,7 @@ def plot_static_benchmark(
             labelspacing=0.25,
             handlelength=1.4,
             columnspacing=0.9,
-            title="Levels (alpha)",
+            title="Computational branches",
         )
 
         axErr.plot(flux, result.effective_error_rmse, linewidth=1.8, **model_plot_kwargs("effective"))

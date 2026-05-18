@@ -59,7 +59,7 @@
         "dressed_subspace": {
           "n_candidate_states": 12,
           "selection_mode": "bare",
-          "energy_tracking_mode": "continuous"
+          "energy_tracking_mode": "bare"
         },
         "other_levels_to_plot": 10,
         "duffing_model": {
