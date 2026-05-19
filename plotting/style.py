@@ -1,17 +1,21 @@
-"""Shared Matplotlib styling for benchmark plots."""
+"""Shared Matplotlib styling and figure geometry for benchmark plots."""
 
 from __future__ import annotations
 
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Iterator
 
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors as mcolors
 from matplotlib.lines import Line2D
 
-DEFAULT_PLOT_FONT_SIZE: float = 26.0 # Should be > 25 w current style
-BENCHMARK_GRID_ALPHA: float = 0.3
+ACTIVE_BENCHMARK_STYLE: str = "paper"
+ACM_SIGCONF_COLUMN_WIDTH_PT: float = 241.14749
+ACM_SIGCONF_TEXT_WIDTH_PT: float = 506.295
+TEX_POINTS_PER_INCH: float = 72.27
 MODEL_ALPHA_CIRCUIT: float = 1.0
 MODEL_ALPHA_DUFFING: float = 0.98
 MODEL_ALPHA_EFFECTIVE: float = 0.98
@@ -27,14 +31,13 @@ TRUNCATION_METRIC_LEGEND_NCOL: int = 3
 STATIC_LEVEL_LEGEND_LOC: str = "lower center"
 STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.02)
 STATIC_LEVEL_LEGEND_NCOL: int = 2
-STATIC_LEVEL_LEGEND_FONT_SCALE: float = 1
+STATIC_LEVEL_LEGEND_FONT_SCALE: float = 0.95
 PULSE_SCHEDULE_COLOR: str = "C4"
-PULSE_SCHEDULE_LINEWIDTH: float = 1.8
 PULSE_SCHEDULE_ALPHA: float = 0.75
 TRUNCATION_METRIC_STYLES: dict[str, dict[str, object]] = {
-    "energy_rmse": {"color": "C0", "marker": "s", "linewidth": 1.6},
-    "j_abs_error": {"color": "C1", "marker": "^", "linewidth": 1.6},
-    "zeta_abs_error": {"color": "C2", "marker": "d", "linewidth": 1.6},
+    "energy_rmse": {"color": "C0", "marker": "s"},
+    "j_abs_error": {"color": "C1", "marker": "^"},
+    "zeta_abs_error": {"color": "C2", "marker": "d"},
 }
 
 MODEL_ALPHAS: dict[str, float] = {
@@ -54,6 +57,91 @@ MODEL_LINESTYLES: dict[str, str] = {
 }
 ENERGY_LEVEL_ALPHAS: tuple[float, ...] = (1.0, 0.72, 0.48, 0.32, 0.22, 0.16)
 FALLBACK_LEVEL_ALPHA: float = 0.12
+
+_STYLE_DIR = Path(__file__).with_name("styles")
+_STYLE_STACKS: dict[str, tuple[str, ...]] = {
+    "paper": ("benchmark-base", "benchmark-paper"),
+    "presentation": ("benchmark-base", "benchmark-presentation"),
+}
+
+
+def tex_pt_to_inches(points: float) -> float:
+    """Convert TeX points to inches."""
+    return float(points) / TEX_POINTS_PER_INCH
+
+
+def single_column_width_inches() -> float:
+    """Return the ACM sigconf single-column width in inches."""
+    return tex_pt_to_inches(ACM_SIGCONF_COLUMN_WIDTH_PT)
+
+
+def text_width_inches() -> float:
+    """Return the ACM sigconf full text width in inches."""
+    return tex_pt_to_inches(ACM_SIGCONF_TEXT_WIDTH_PT)
+
+
+def single_column_figure_size(height_inches: float) -> tuple[float, float]:
+    """Build a single-column figure size in inches."""
+    return (single_column_width_inches(), float(height_inches))
+
+
+def text_width_figure_size(height_inches: float) -> tuple[float, float]:
+    """Build a full-text-width figure size in inches."""
+    return (text_width_inches(), float(height_inches))
+
+
+def stacked_figure_size(
+    row_count: int,
+    *,
+    column_span: int = 1,
+    row_height_inches: float,
+    extra_height_inches: float = 0.0,
+) -> tuple[float, float]:
+    """Build a stacked-panel figure size from a semantic row count."""
+    if row_count <= 0:
+        raise ValueError(f"row_count must be positive, got {row_count}")
+    if column_span == 1:
+        width_inches = single_column_width_inches()
+    elif column_span == 2:
+        width_inches = text_width_inches()
+    else:
+        raise ValueError(f"column_span must be 1 or 2, got {column_span}")
+    height_inches = float(extra_height_inches) + float(row_count) * float(row_height_inches)
+    return (width_inches, height_inches)
+
+
+def benchmark_style_paths() -> list[str]:
+    """Return the active repo-owned mplstyle files."""
+    style_names = _STYLE_STACKS[ACTIVE_BENCHMARK_STYLE]
+    return [str(_STYLE_DIR / f"{style_name}.mplstyle") for style_name in style_names]
+
+
+def active_font_size() -> float:
+    """Return the active Matplotlib base font size."""
+    return float(mpl.rcParams["font.size"])
+
+
+def scaled_font_size(scale: float, *, minimum: float | None = None) -> float:
+    """Scale the active Matplotlib base font size with an optional floor."""
+    size = active_font_size() * float(scale)
+    if minimum is not None:
+        size = max(size, float(minimum))
+    return float(size)
+
+
+def model_linewidth() -> float:
+    """Return the active line width for model traces."""
+    return float(mpl.rcParams["lines.linewidth"])
+
+
+def truncation_metric_linewidth() -> float:
+    """Return the active line width for truncation metric traces."""
+    return 0.9 * model_linewidth()
+
+
+def pulse_schedule_linewidth() -> float:
+    """Return the active line width for pulse schedules and flux tracks."""
+    return 0.95 * model_linewidth()
 
 
 def blend_colors(color_a: str | tuple[float, float, float], color_b: str | tuple[float, float, float], weight_b: float) -> tuple[float, float, float]:
@@ -102,15 +190,16 @@ def model_plot_kwargs(
         "alpha": MODEL_ALPHAS[model],
         "linestyle": MODEL_LINESTYLES[model],
         "color": resolved_color,
+        "linewidth": model_linewidth(),
     }
 
 
 def model_legend_handles() -> list[Line2D]:
     """Legend handles that encode model identity consistently across plots."""
     return [
-        Line2D([0], [0], linewidth=2.2, label="circuit", **model_plot_kwargs("circuit")),
-        Line2D([0], [0], linewidth=2.2, label="duffing", **model_plot_kwargs("duffing")),
-        Line2D([0], [0], linewidth=2.2, label="effective", **model_plot_kwargs("effective")),
+        Line2D([0], [0], label="circuit", **model_plot_kwargs("circuit")),
+        Line2D([0], [0], label="duffing", **model_plot_kwargs("duffing")),
+        Line2D([0], [0], label="effective", **model_plot_kwargs("effective")),
     ]
 
 
@@ -127,34 +216,26 @@ def pulse_schedule_plot_kwargs(*, alpha: float | None = None) -> dict[str, objec
     """Shared style for plotted pulse schedules/flux tracks."""
     return {
         "color": PULSE_SCHEDULE_COLOR,
-        "linewidth": PULSE_SCHEDULE_LINEWIDTH,
+        "linewidth": pulse_schedule_linewidth(),
         "alpha": PULSE_SCHEDULE_ALPHA if alpha is None else float(alpha),
     }
 
 
 def truncation_metric_plot_kwargs(metric: str) -> dict[str, object]:
     """Shared style for truncation benchmark metric traces."""
-    return dict(TRUNCATION_METRIC_STYLES[metric])
+    return {
+        **TRUNCATION_METRIC_STYLES[metric],
+        "linewidth": truncation_metric_linewidth(),
+    }
 
 
 def apply_benchmark_grid(ax, *, visible: bool = True) -> None:
     """Apply the shared benchmark grid treatment to an axes."""
-    ax.grid(visible, alpha=BENCHMARK_GRID_ALPHA)
+    ax.grid(visible)
 
 
 @contextmanager
 def benchmark_plot_style() -> Iterator[None]:
-    """Temporarily apply the shared font sizing across benchmark plots."""
-    size = DEFAULT_PLOT_FONT_SIZE
-    with mpl.rc_context(
-        rc={
-            "font.size": size,
-            "axes.titlesize": size,
-            "axes.labelsize": size,
-            "xtick.labelsize": size * 0.9,
-            "ytick.labelsize": size * 0.9,
-            "legend.fontsize": size * 0.9,
-            "figure.titlesize": size * 1.1,
-        }
-    ):
+    """Apply the active repo-owned benchmark style stack."""
+    with plt.style.context(benchmark_style_paths()):
         yield

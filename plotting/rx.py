@@ -17,6 +17,7 @@ from plotting.style import (
     model_legend_handles,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
+    stacked_figure_size,
 )
 
 
@@ -50,7 +51,12 @@ def plot_rx_populations_benchmark(
     t = np.asarray(result.times_ns, dtype=float)
 
     with benchmark_plot_style():
-        fig, axes = plt.subplots(2, 1, figsize=(9.8, 7.2), sharex=True)
+        fig, axes = plt.subplots(
+            2,
+            1,
+            figsize=stacked_figure_size(2, column_span=1, row_height_inches=1.0, extra_height_inches=1.0),
+            sharex=True,
+        )
         ax_00, ax_10 = axes
 
         for ax in axes:
@@ -61,7 +67,7 @@ def plot_rx_populations_benchmark(
             ("duffing", result.duffing_pop_00_to_01),
             ("effective", result.effective_pop_00_to_01),
         ):
-            ax_00.plot(t, y, linewidth=2.2, **model_plot_kwargs(model))
+            ax_00.plot(t, y, **model_plot_kwargs(model))
         ax_00.set_title(r"Population $|00\rangle \rightarrow |01\rangle$")
         ax_00.set_ylabel("Population")
         ax_00.set_ylim(-0.02, 1.02)
@@ -72,7 +78,7 @@ def plot_rx_populations_benchmark(
             ("duffing", result.duffing_pop_10_to_11),
             ("effective", result.effective_pop_10_to_11),
         ):
-            ax_10.plot(t, y, linewidth=2.2, **model_plot_kwargs(model))
+            ax_10.plot(t, y, **model_plot_kwargs(model))
         ax_10.set_title(r"Population $|10\rangle \rightarrow |11\rangle$")
         ax_10.set_xlabel("Time (ns)")
         ax_10.set_ylabel("Population")
@@ -104,7 +110,12 @@ def plot_rx_diagnostics_benchmark(
     t = np.asarray(result.times_ns, dtype=float)
 
     with benchmark_plot_style():
-        fig, axes = plt.subplots(3, 1, figsize=(9.8, 9.2), sharex=True)
+        fig, axes = plt.subplots(
+            3,
+            1,
+            figsize=stacked_figure_size(3, column_span=1, row_height_inches=1.35, extra_height_inches=1.25),
+            sharex=True,
+        )
         ax_leak_00, ax_leak_10, ax_delta = axes
 
         for ax in axes:
@@ -115,7 +126,7 @@ def plot_rx_diagnostics_benchmark(
             ("duffing", result.duffing_leakage_from_00),
             ("effective", result.effective_leakage_from_00),
         ):
-            ax_leak_00.plot(t, y, linewidth=2.2, **model_plot_kwargs(model))
+            ax_leak_00.plot(t, y, **model_plot_kwargs(model))
         ax_leak_00.set_title(r"Leakage From $|00\rangle$")
         ax_leak_00.set_ylabel("Leakage")
         apply_benchmark_grid(ax_leak_00)
@@ -125,7 +136,7 @@ def plot_rx_diagnostics_benchmark(
             ("duffing", result.duffing_leakage_from_10),
             ("effective", result.effective_leakage_from_10),
         ):
-            ax_leak_10.plot(t, y, linewidth=2.2, **model_plot_kwargs(model))
+            ax_leak_10.plot(t, y, **model_plot_kwargs(model))
         ax_leak_10.set_title(r"Leakage From $|10\rangle$")
         ax_leak_10.set_ylabel("Leakage")
         apply_benchmark_grid(ax_leak_10)
@@ -135,7 +146,7 @@ def plot_rx_diagnostics_benchmark(
             ("duffing", result.duffing_spectator_population_delta),
             ("effective", result.effective_spectator_population_delta),
         ):
-            ax_delta.plot(t, y, linewidth=2.2, **model_plot_kwargs(model))
+            ax_delta.plot(t, y, **model_plot_kwargs(model))
         ax_delta.set_title(r"Spectator Mismatch $|P_{00\rightarrow01} - P_{10\rightarrow11}|$")
         ax_delta.set_xlabel("Time (ns)")
         ax_delta.set_ylabel("Magnitude")

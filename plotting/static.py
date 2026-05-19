@@ -14,10 +14,10 @@ from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_RECT,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    DEFAULT_PLOT_FONT_SIZE,
     MODEL_LEGEND_BBOX_TO_ANCHOR,
     MODEL_ALPHA_CIRCUIT,
     MODEL_ALPHA_DUFFING,
+    active_font_size,
     apply_benchmark_grid,
     energy_level_alpha,
     STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
@@ -28,6 +28,7 @@ from plotting.style import (
     model_color,
     model_legend_handles,
     model_plot_kwargs,
+    single_column_figure_size,
 )
 
 
@@ -186,10 +187,10 @@ def plot_static_benchmark(
     title: str,
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
-    font_size = DEFAULT_PLOT_FONT_SIZE
 
     with benchmark_plot_style():
-        fig, axes = plt.subplots(2, 2, figsize=(11.0, 8.0), sharex=True)
+        font_size = active_font_size()
+        fig, axes = plt.subplots(2, 2, figsize=single_column_figure_size(3.1), sharex=True)
         axE, axErr, axJ, axZeta = axes.ravel()
 
         _plot_static_energy_panel(
@@ -220,8 +221,8 @@ def plot_static_benchmark(
             title="Computational branches",
         )
 
-        axErr.plot(flux, result.effective_error_rmse, linewidth=1.8, **model_plot_kwargs("effective"))
-        axErr.plot(flux, result.duffing_error_rmse, linewidth=1.8, **model_plot_kwargs("duffing"))
+        axErr.plot(flux, result.effective_error_rmse, **model_plot_kwargs("effective"))
+        axErr.plot(flux, result.duffing_error_rmse, **model_plot_kwargs("duffing"))
         y_max = float(max(np.max(result.effective_error_rmse), np.max(result.duffing_error_rmse)))
         if np.any(result.near_mask):
             axErr.fill_between(flux, 0.0, y_max * 1.05, where=result.near_mask, color="C3", alpha=0.08)
@@ -230,16 +231,16 @@ def plot_static_benchmark(
         axErr.set_ylabel("Per-flux RMSE")
         apply_benchmark_grid(axErr)
 
-        axJ.plot(flux, result.circuit_parameters["J"], linewidth=1.8, **model_plot_kwargs("circuit"))
-        axJ.plot(flux, result.duffing_parameters["J"], linewidth=1.8, **model_plot_kwargs("duffing"))
-        axJ.plot(flux, result.effective_parameters["J"], linewidth=1.8, **model_plot_kwargs("effective"))
+        axJ.plot(flux, result.circuit_parameters["J"], **model_plot_kwargs("circuit"))
+        axJ.plot(flux, result.duffing_parameters["J"], **model_plot_kwargs("duffing"))
+        axJ.plot(flux, result.effective_parameters["J"], **model_plot_kwargs("effective"))
         axJ.axhline(0.0, color="0.35", linewidth=1.0)
         axJ.set_ylabel(r"Exchange $J$")
         apply_benchmark_grid(axJ)
 
-        axZeta.plot(flux, result.circuit_parameters["zeta"], linewidth=1.8, **model_plot_kwargs("circuit"))
-        axZeta.plot(flux, result.duffing_parameters["zeta"], linewidth=1.8, **model_plot_kwargs("duffing"))
-        axZeta.plot(flux, result.effective_parameters["zeta"], linewidth=1.8, **model_plot_kwargs("effective"))
+        axZeta.plot(flux, result.circuit_parameters["zeta"], **model_plot_kwargs("circuit"))
+        axZeta.plot(flux, result.duffing_parameters["zeta"], **model_plot_kwargs("duffing"))
+        axZeta.plot(flux, result.effective_parameters["zeta"], **model_plot_kwargs("effective"))
         axZeta.axhline(0.0, color="0.35", linewidth=1.0)
         axZeta.set_ylabel(r"Residual ZZ $\zeta$")
         apply_benchmark_grid(axZeta)
@@ -264,10 +265,10 @@ def plot_static_raw_energies(
     title: str,
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
-    font_size = DEFAULT_PLOT_FONT_SIZE
 
     with benchmark_plot_style():
-        fig, ax = plt.subplots(1, 1, figsize=(6.4, 4.6), sharex=True)
+        font_size = active_font_size()
+        fig, ax = plt.subplots(1, 1, figsize=single_column_figure_size(2.7), sharex=True)
         _plot_static_energy_panel(
             ax,
             flux,
@@ -319,7 +320,7 @@ def plot_static_single_excitation_overlaps(
     flux = np.asarray(result.flux_values, dtype=float)
 
     with benchmark_plot_style():
-        fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.6), sharex=True, sharey=True)
+        fig, axes = plt.subplots(1, 2, figsize=single_column_figure_size(2.35), sharex=True, sharey=True)
         panels = (
             ("circuit", axes[0], np.asarray(result.circuit_computational_bare_overlaps, dtype=float)),
             ("duffing", axes[1], np.asarray(result.duffing_computational_bare_overlaps, dtype=float)),
@@ -337,7 +338,7 @@ def plot_static_single_excitation_overlaps(
                         overlaps[:, bare_idx, branch_offset],
                         color=colors[bare_idx - 1],
                         linestyle=linestyles[branch_offset - 1],
-                        linewidth=1.8,
+                        linewidth=1.1,
                         label=f"{branch_label} vs {bare_label}",
                     )
             ax.set_title(model_name)
@@ -385,13 +386,13 @@ def plot_static_computational_basis_amplitudes(
     )
 
     with benchmark_plot_style():
-        fig = plt.figure(figsize=(12.6, 11.4), constrained_layout=True)
+        fig = plt.figure(figsize=single_column_figure_size(9.4), constrained_layout=True)
         gs = fig.add_gridspec(
             4,
             3,
-            width_ratios=(1.0, 1.0, 0.06),
-            hspace=0.28,
-            wspace=0.18,
+            width_ratios=(1.0, 1.0, 0.08),
+            hspace=0.24,
+            wspace=0.12,
         )
         axes = np.empty((4, 2), dtype=object)
         for row in range(4):
@@ -433,7 +434,7 @@ def plot_static_computational_basis_amplitudes(
                 if col == 0:
                     ax.set_yticklabels([_state_label_math(label) for label in union_labels])
                     ax.set_ylabel(f"{branch_label}\nBare states")
-                    ax.tick_params(axis="y", pad=6)
+                    ax.tick_params(axis="y", pad=4)
                 else:
                     ax.tick_params(axis="y", labelleft=False)
                 if row == 0:

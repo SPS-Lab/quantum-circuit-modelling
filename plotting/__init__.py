@@ -10,11 +10,13 @@ from plotting.static import (
     plot_static_raw_energies,
     plot_static_single_excitation_overlaps,
 )
-from plotting.style import DEFAULT_PLOT_FONT_SIZE
+from plotting.style import ACTIVE_BENCHMARK_STYLE, ACM_SIGCONF_COLUMN_WIDTH_PT, ACM_SIGCONF_TEXT_WIDTH_PT
 from plotting.truncation import plot_circuit_truncation_benchmark, plot_duffing_truncation_benchmark
 
 __all__ = [
-    "DEFAULT_PLOT_FONT_SIZE",
+    "ACTIVE_BENCHMARK_STYLE",
+    "ACM_SIGCONF_COLUMN_WIDTH_PT",
+    "ACM_SIGCONF_TEXT_WIDTH_PT",
     "plot_static_benchmark",
     "plot_static_computational_basis_amplitudes",
     "plot_static_raw_energies",

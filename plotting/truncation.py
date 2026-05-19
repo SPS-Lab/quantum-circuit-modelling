@@ -16,6 +16,8 @@ from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
     apply_benchmark_grid,
     benchmark_plot_style,
+    single_column_figure_size,
+    stacked_figure_size,
     TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
     TRUNCATION_METRIC_LEGEND_NCOL,
     truncation_metric_legend_handles,
@@ -141,8 +143,16 @@ def plot_circuit_truncation_benchmark(
         raise ValueError("Circuit truncation plot requires at least one populated sweep")
 
     with benchmark_plot_style():
-        fig_height = max(4.4, 4.2 * len(subplot_specs))
-        fig, axes = plt.subplots(len(subplot_specs), 1, figsize=(6.6, fig_height))
+        fig, axes = plt.subplots(
+            len(subplot_specs),
+            1,
+            figsize=stacked_figure_size(
+                len(subplot_specs),
+                column_span=1,
+                row_height_inches=1.35,
+                extra_height_inches=1.15,
+            ),
+        )
         if not isinstance(axes, np.ndarray):
             axes = np.asarray([axes], dtype=object)
         for ax, (x, energy_rmse, j_abs_error, zeta_abs_error, xlabel, title, xticklabels) in zip(axes, subplot_specs):
@@ -179,8 +189,16 @@ def plot_duffing_truncation_benchmark(
         raise ValueError("Duffing truncation plot requires at least one populated sweep")
 
     with benchmark_plot_style():
-        fig_height = max(4.4, 4.2 * len(subplot_specs))
-        fig, axes = plt.subplots(len(subplot_specs), 1, figsize=(6.6, fig_height))
+        fig, axes = plt.subplots(
+            len(subplot_specs),
+            1,
+            figsize=stacked_figure_size(
+                len(subplot_specs),
+                column_span=1,
+                row_height_inches=1.35,
+                extra_height_inches=1.15,
+            ),
+        )
         if not isinstance(axes, np.ndarray):
             axes = np.asarray([axes], dtype=object)
         for ax, (x, energy_rmse, j_abs_error, zeta_abs_error, xlabel, title, xticklabels) in zip(axes, subplot_specs):
@@ -221,8 +239,8 @@ def plot_truncation_benchmark(
         raise ValueError("Combined truncation plot requires at least one populated sweep")
 
     with benchmark_plot_style():
-        fig_height = max(4.8, 3.9 * len(row_order))
-        fig, axes = plt.subplots(len(row_order), 2, figsize=(12.2, fig_height), squeeze=False)
+        fig_height = 1.1 + 1.15 * len(row_order)
+        fig, axes = plt.subplots(len(row_order), 2, figsize=single_column_figure_size(fig_height), squeeze=False)
         for row_index, sweep_name in enumerate(row_order):
             left_ax = axes[row_index, 0]
             right_ax = axes[row_index, 1]

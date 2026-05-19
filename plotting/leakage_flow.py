@@ -15,7 +15,12 @@ from matplotlib.colors import hsv_to_rgb
 import numpy as np
 
 from comparison.leakage_flow import LeakageFlowBenchmarkResult
-from plotting.style import DEFAULT_PLOT_FONT_SIZE, benchmark_plot_style, pulse_schedule_plot_kwargs
+from plotting.style import (
+    benchmark_plot_style,
+    pulse_schedule_plot_kwargs,
+    scaled_font_size,
+    single_column_figure_size,
+)
 
 
 def _decode_labels(labels: np.ndarray) -> list[str]:
@@ -215,9 +220,8 @@ def plot_leakage_flow_benchmark(
             1e-12,
         )
     )
-    tick_font_size = max(10.0, 0.75 * DEFAULT_PLOT_FONT_SIZE)
-
     with benchmark_plot_style():
+        tick_font_size = scaled_font_size(0.9)
         transition_cmap = mcolors.LinearSegmentedColormap.from_list(
             "transition_blue_gray_red",
             [
@@ -228,14 +232,14 @@ def plot_leakage_flow_benchmark(
             N=256,
         )
 
-        fig = plt.figure(figsize=(13.5, 10.2))
+        fig = plt.figure(figsize=single_column_figure_size(6.2))
         outer_gs = fig.add_gridspec(
             2,
             2,
-            width_ratios=(1.0, 0.08),
+            width_ratios=(1.0, 0.12),
             height_ratios=(1.0, 1.0),
             hspace=0.28,
-            wspace=0.12,
+            wspace=0.18,
         )
         main_gs = outer_gs[:, 0].subgridspec(2, 2, hspace=0.28, wspace=0.42)
 
@@ -247,7 +251,6 @@ def plot_leakage_flow_benchmark(
         cbar_grid = outer_gs[:, 1].subgridspec(2, 1, hspace=0.45, height_ratios=(1.0, 1.0))
         ax_cbar_phase = fig.add_subplot(cbar_grid[0, 0])
         ax_cbar_tr = fig.add_subplot(cbar_grid[1, 0])
-        fig.subplots_adjust(left=0.01, right=0.99, bottom=0.15, top=0.85)
 
         if pop_rgb_duf.size > 0:
             ax_pop_duf.imshow(

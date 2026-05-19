@@ -16,6 +16,7 @@ from plotting.style import (
     model_legend_handles,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
+    single_column_figure_size,
 )
 
 
@@ -61,13 +62,13 @@ def plot_cz_benchmark(
     t = np.asarray(result.times_ns, dtype=float)
 
     with benchmark_plot_style():
-        fig = plt.figure(figsize=(8.5, 4.8))
+        fig = plt.figure(figsize=single_column_figure_size(2.3))
         ax_phase = fig.add_subplot(1, 1, 1)
         ax_flux = ax_phase.twinx()
 
-        ax_phase.plot(t, result.circuit_conditional_phase, linewidth=2.0, **model_plot_kwargs("circuit"))
-        ax_phase.plot(t, result.duffing_conditional_phase, linewidth=2.0, **model_plot_kwargs("duffing"))
-        ax_phase.plot(t, result.effective_conditional_phase, linewidth=2.0, **model_plot_kwargs("effective"))
+        ax_phase.plot(t, result.circuit_conditional_phase, **model_plot_kwargs("circuit"))
+        ax_phase.plot(t, result.duffing_conditional_phase, **model_plot_kwargs("duffing"))
+        ax_phase.plot(t, result.effective_conditional_phase, **model_plot_kwargs("effective"))
         _set_phase_axis_pi_ticks(
             ax_phase,
             [

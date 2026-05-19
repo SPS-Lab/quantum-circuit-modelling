@@ -15,6 +15,7 @@ from plotting.style import (
     benchmark_plot_style,
     model_legend_handles,
     model_plot_kwargs,
+    single_column_figure_size,
 )
 
 
@@ -34,13 +35,12 @@ def plot_runtime_benchmark(
     circuit_prop_std = np.asarray(result.circuit_propagation_runtime_std_s, dtype=float)
 
     with benchmark_plot_style():
-        fig, (ax_build, ax_prop) = plt.subplots(1, 2, figsize=(8.8, 4.4), sharex=True)
+        fig, (ax_build, ax_prop) = plt.subplots(1, 2, figsize=single_column_figure_size(2.2), sharex=True)
 
         ax_build.errorbar(
             x,
             circuit_build,
             yerr=circuit_build_std,
-            linewidth=2.0,
             marker="o",
             capsize=3.0,
             label="circuit",
@@ -50,7 +50,6 @@ def plot_runtime_benchmark(
             x,
             duffing_build,
             yerr=duffing_build_std,
-            linewidth=2.0,
             marker="o",
             capsize=3.0,
             label="duffing",
@@ -66,7 +65,6 @@ def plot_runtime_benchmark(
             x,
             circuit_prop,
             yerr=circuit_prop_std,
-            linewidth=2.0,
             marker="o",
             capsize=3.0,
             label="circuit",
@@ -76,7 +74,6 @@ def plot_runtime_benchmark(
             x,
             duffing_prop,
             yerr=duffing_prop_std,
-            linewidth=2.0,
             marker="o",
             capsize=3.0,
             label="duffing",
@@ -85,6 +82,7 @@ def plot_runtime_benchmark(
         ax_prop.set_xlabel(r"$N_{E,q}$")
         ax_prop.set_ylabel(r"Runtime ($s$)")
         ax_prop.set_title("Propagation")
+        ax_prop.set_xlabel(r"$N_{E,q}$")
         apply_benchmark_grid(ax_prop)
         ax_prop.set_xticks(x)
 

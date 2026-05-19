@@ -10,11 +10,14 @@ if str(_ROOT) not in sys.path:
 import matplotlib.pyplot as plt
 
 from plotting.style import (
-    DEFAULT_PLOT_FONT_SIZE,
+    ACM_SIGCONF_COLUMN_WIDTH_PT,
+    ACTIVE_BENCHMARK_STYLE,
     benchmark_plot_style,
+    benchmark_style_paths,
     energy_level_alpha,
     model_legend_handles,
     model_plot_kwargs,
+    single_column_width_inches,
     truncation_metric_legend_handles,
     truncation_metric_plot_kwargs,
 )
@@ -51,7 +54,9 @@ def test_benchmark_plot_style_uses_shared_default_font_size() -> None:
     base_size = plt.rcParams["font.size"]
 
     with benchmark_plot_style():
-        assert plt.rcParams["font.size"] == DEFAULT_PLOT_FONT_SIZE
+        assert plt.rcParams["font.size"] == 8.5
+        assert plt.rcParams["mathtext.fontset"] == "stix"
+        assert abs(plt.rcParams["figure.figsize"][0] - single_column_width_inches()) < 1e-6
 
     assert plt.rcParams["font.size"] == base_size
 
@@ -65,3 +70,9 @@ def test_truncation_metric_handles_match_shared_metric_styles() -> None:
         assert handle.get_color() == kwargs["color"]
         assert handle.get_marker() == kwargs["marker"]
         assert handle.get_linewidth() == kwargs["linewidth"]
+
+
+def test_benchmark_style_paths_point_to_repo_owned_stylesheets() -> None:
+    assert ACTIVE_BENCHMARK_STYLE == "paper"
+    assert ACM_SIGCONF_COLUMN_WIDTH_PT == 241.14749
+    assert all(Path(path).exists() for path in benchmark_style_paths())
