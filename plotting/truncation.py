@@ -14,11 +14,12 @@ from comparison.truncation import (
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    DEFAULT_PLOT_FONT_SIZE,
+    apply_benchmark_grid,
     benchmark_plot_style,
     TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
     TRUNCATION_METRIC_LEGEND_NCOL,
     truncation_metric_legend_handles,
+    truncation_metric_plot_kwargs,
 )
 
 
@@ -43,13 +44,13 @@ def _plot_metric_sweeps(
     title: str,
     xticklabels: list[str] | None = None,
 ) -> None:
-    ax.plot(x, energy_rmse, marker="s", linewidth=1.6)
-    ax.plot(x, j_abs_error, marker="^", linewidth=1.6)
-    ax.plot(x, zeta_abs_error, marker="d", linewidth=1.6)
+    ax.plot(x, energy_rmse, **truncation_metric_plot_kwargs("energy_rmse"))
+    ax.plot(x, j_abs_error, **truncation_metric_plot_kwargs("j_abs_error"))
+    ax.plot(x, zeta_abs_error, **truncation_metric_plot_kwargs("zeta_abs_error"))
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Error (GHz)")
     ax.set_title(title)
-    ax.grid(True, alpha=0.3)
+    apply_benchmark_grid(ax)
     if xticklabels is not None:
         ax.set_xticks(x)
         ax.set_xticklabels(xticklabels, rotation=25, ha="right")
@@ -134,14 +135,12 @@ def _duffing_subplot_specs(
 def plot_circuit_truncation_benchmark(
     result: CircuitTruncationBenchmarkResult,
     outfile: Path,
-    *,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     subplot_specs = list(_circuit_subplot_specs(result).values())
     if not subplot_specs:
         raise ValueError("Circuit truncation plot requires at least one populated sweep")
 
-    with benchmark_plot_style(font_size):
+    with benchmark_plot_style():
         fig_height = max(4.4, 4.2 * len(subplot_specs))
         fig, axes = plt.subplots(len(subplot_specs), 1, figsize=(6.6, fig_height))
         if not isinstance(axes, np.ndarray):
@@ -174,14 +173,12 @@ def plot_circuit_truncation_benchmark(
 def plot_duffing_truncation_benchmark(
     result: DuffingTruncationBenchmarkResult,
     outfile: Path,
-    *,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     subplot_specs = list(_duffing_subplot_specs(result).values())
     if not subplot_specs:
         raise ValueError("Duffing truncation plot requires at least one populated sweep")
 
-    with benchmark_plot_style(font_size):
+    with benchmark_plot_style():
         fig_height = max(4.4, 4.2 * len(subplot_specs))
         fig, axes = plt.subplots(len(subplot_specs), 1, figsize=(6.6, fig_height))
         if not isinstance(axes, np.ndarray):
@@ -214,8 +211,6 @@ def plot_duffing_truncation_benchmark(
 def plot_truncation_benchmark(
     result: TruncationBenchmarkResult,
     outfile: Path,
-    *,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     circuit_result = CircuitTruncationBenchmarkResult(**result.circuit)
     duffing_result = DuffingTruncationBenchmarkResult(**result.duffing)
@@ -225,7 +220,7 @@ def plot_truncation_benchmark(
     if not row_order:
         raise ValueError("Combined truncation plot requires at least one populated sweep")
 
-    with benchmark_plot_style(font_size):
+    with benchmark_plot_style():
         fig_height = max(4.8, 3.9 * len(row_order))
         fig, axes = plt.subplots(len(row_order), 2, figsize=(12.2, fig_height), squeeze=False)
         for row_index, sweep_name in enumerate(row_order):

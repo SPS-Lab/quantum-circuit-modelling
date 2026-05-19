@@ -11,7 +11,7 @@ from comparison.runtime import RuntimeBenchmarkResult
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    DEFAULT_PLOT_FONT_SIZE,
+    apply_benchmark_grid,
     benchmark_plot_style,
     model_legend_handles,
     model_plot_kwargs,
@@ -22,7 +22,6 @@ def plot_runtime_benchmark(
     result: RuntimeBenchmarkResult,
     outfile: Path,
     title: str,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     x = np.asarray(result.qubit_truncation_values, dtype=int)
     duffing_build = np.asarray(result.duffing_build_runtime_s, dtype=float)
@@ -34,7 +33,7 @@ def plot_runtime_benchmark(
     circuit_prop = np.asarray(result.circuit_propagation_runtime_s, dtype=float)
     circuit_prop_std = np.asarray(result.circuit_propagation_runtime_std_s, dtype=float)
 
-    with benchmark_plot_style(font_size):
+    with benchmark_plot_style():
         fig, (ax_build, ax_prop) = plt.subplots(1, 2, figsize=(8.8, 4.4), sharex=True)
 
         ax_build.errorbar(
@@ -60,7 +59,7 @@ def plot_runtime_benchmark(
         ax_build.set_xlabel(r"$N_{E,q}$")
         ax_build.set_ylabel(r"Runtime ($s$)")
         ax_build.set_title("Build")
-        ax_build.grid(True, alpha=0.3)
+        apply_benchmark_grid(ax_build)
         ax_build.set_xticks(x)
 
         ax_prop.errorbar(
@@ -86,7 +85,7 @@ def plot_runtime_benchmark(
         ax_prop.set_xlabel(r"$N_{E,q}$")
         ax_prop.set_ylabel(r"Runtime ($s$)")
         ax_prop.set_title("Propagation")
-        ax_prop.grid(True, alpha=0.3)
+        apply_benchmark_grid(ax_prop)
         ax_prop.set_xticks(x)
 
         fig.legend(

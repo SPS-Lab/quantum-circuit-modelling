@@ -193,7 +193,6 @@ def plot_leakage_flow_benchmark(
     result: LeakageFlowBenchmarkResult,
     outfile: Path,
     title: str,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float).ravel()
 
@@ -216,9 +215,9 @@ def plot_leakage_flow_benchmark(
             1e-12,
         )
     )
-    tick_font_size = max(10.0, 0.75 * float(font_size))
+    tick_font_size = max(10.0, 0.75 * DEFAULT_PLOT_FONT_SIZE)
 
-    with benchmark_plot_style(font_size):
+    with benchmark_plot_style():
         transition_cmap = mcolors.LinearSegmentedColormap.from_list(
             "transition_blue_gray_red",
             [

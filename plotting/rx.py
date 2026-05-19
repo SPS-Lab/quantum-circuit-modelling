@@ -12,7 +12,7 @@ from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_RECT,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    DEFAULT_PLOT_FONT_SIZE,
+    apply_benchmark_grid,
     benchmark_plot_style,
     model_legend_handles,
     model_plot_kwargs,
@@ -46,11 +46,10 @@ def _add_drive_background(ax: plt.Axes, times_ns: np.ndarray, envelope: np.ndarr
 def plot_rx_populations_benchmark(
     result: RxBenchmarkResult,
     outfile: Path,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    with benchmark_plot_style(font_size):
+    with benchmark_plot_style():
         fig, axes = plt.subplots(2, 1, figsize=(9.8, 7.2), sharex=True)
         ax_00, ax_10 = axes
 
@@ -66,7 +65,7 @@ def plot_rx_populations_benchmark(
         ax_00.set_title(r"Population $|00\rangle \rightarrow |01\rangle$")
         ax_00.set_ylabel("Population")
         ax_00.set_ylim(-0.02, 1.02)
-        ax_00.grid(True, alpha=0.3)
+        apply_benchmark_grid(ax_00)
 
         for model, y in (
             ("circuit", result.circuit_pop_10_to_11),
@@ -78,7 +77,7 @@ def plot_rx_populations_benchmark(
         ax_10.set_xlabel("Time (ns)")
         ax_10.set_ylabel("Population")
         ax_10.set_ylim(-0.02, 1.02)
-        ax_10.grid(True, alpha=0.3)
+        apply_benchmark_grid(ax_10)
 
         fig.legend(
             handles=model_legend_handles(),
@@ -101,11 +100,10 @@ def plot_rx_populations_benchmark(
 def plot_rx_diagnostics_benchmark(
     result: RxBenchmarkResult,
     outfile: Path,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    with benchmark_plot_style(font_size):
+    with benchmark_plot_style():
         fig, axes = plt.subplots(3, 1, figsize=(9.8, 9.2), sharex=True)
         ax_leak_00, ax_leak_10, ax_delta = axes
 
@@ -120,7 +118,7 @@ def plot_rx_diagnostics_benchmark(
             ax_leak_00.plot(t, y, linewidth=2.2, **model_plot_kwargs(model))
         ax_leak_00.set_title(r"Leakage From $|00\rangle$")
         ax_leak_00.set_ylabel("Leakage")
-        ax_leak_00.grid(True, alpha=0.3)
+        apply_benchmark_grid(ax_leak_00)
 
         for model, y in (
             ("circuit", result.circuit_leakage_from_10),
@@ -130,7 +128,7 @@ def plot_rx_diagnostics_benchmark(
             ax_leak_10.plot(t, y, linewidth=2.2, **model_plot_kwargs(model))
         ax_leak_10.set_title(r"Leakage From $|10\rangle$")
         ax_leak_10.set_ylabel("Leakage")
-        ax_leak_10.grid(True, alpha=0.3)
+        apply_benchmark_grid(ax_leak_10)
 
         for model, y in (
             ("circuit", result.circuit_spectator_population_delta),
@@ -141,7 +139,7 @@ def plot_rx_diagnostics_benchmark(
         ax_delta.set_title(r"Spectator Mismatch $|P_{00\rightarrow01} - P_{10\rightarrow11}|$")
         ax_delta.set_xlabel("Time (ns)")
         ax_delta.set_ylabel("Magnitude")
-        ax_delta.grid(True, alpha=0.3)
+        apply_benchmark_grid(ax_delta)
 
         fig.legend(
             handles=model_legend_handles(),

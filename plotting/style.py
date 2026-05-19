@@ -10,7 +10,8 @@ import numpy as np
 from matplotlib import colors as mcolors
 from matplotlib.lines import Line2D
 
-DEFAULT_PLOT_FONT_SIZE: float = 26.0 # Should be > 22 and < 25 w current style
+DEFAULT_PLOT_FONT_SIZE: float = 26.0 # Should be > 25 w current style
+BENCHMARK_GRID_ALPHA: float = 0.3
 MODEL_ALPHA_CIRCUIT: float = 1.0
 MODEL_ALPHA_DUFFING: float = 0.98
 MODEL_ALPHA_EFFECTIVE: float = 0.98
@@ -26,10 +27,15 @@ TRUNCATION_METRIC_LEGEND_NCOL: int = 3
 STATIC_LEVEL_LEGEND_LOC: str = "lower center"
 STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.02)
 STATIC_LEVEL_LEGEND_NCOL: int = 2
-STATIC_LEVEL_LEGEND_FONT_SCALE: float = 0.72
+STATIC_LEVEL_LEGEND_FONT_SCALE: float = 1
 PULSE_SCHEDULE_COLOR: str = "C4"
 PULSE_SCHEDULE_LINEWIDTH: float = 1.8
 PULSE_SCHEDULE_ALPHA: float = 0.75
+TRUNCATION_METRIC_STYLES: dict[str, dict[str, object]] = {
+    "energy_rmse": {"color": "C0", "marker": "s", "linewidth": 1.6},
+    "j_abs_error": {"color": "C1", "marker": "^", "linewidth": 1.6},
+    "zeta_abs_error": {"color": "C2", "marker": "d", "linewidth": 1.6},
+}
 
 MODEL_ALPHAS: dict[str, float] = {
     "circuit": MODEL_ALPHA_CIRCUIT,
@@ -111,9 +117,9 @@ def model_legend_handles() -> list[Line2D]:
 def truncation_metric_legend_handles() -> list[Line2D]:
     """Legend handles for truncation benchmark metric traces."""
     return [
-        Line2D([0], [0], color="C0", marker="s", linewidth=1.6, label=r"$RMSE_{E,\mathrm{comp}}$"),
-        Line2D([0], [0], color="C1", marker="^", linewidth=1.6, label=r"$|\Delta J|$"),
-        Line2D([0], [0], color="C2", marker="d", linewidth=1.6, label=r"$|\Delta \zeta|$"),
+        Line2D([0], [0], label=r"$RMSE_{E,\mathrm{comp}}$", **truncation_metric_plot_kwargs("energy_rmse")),
+        Line2D([0], [0], label=r"$|\Delta J|$", **truncation_metric_plot_kwargs("j_abs_error")),
+        Line2D([0], [0], label=r"$|\Delta \zeta|$", **truncation_metric_plot_kwargs("zeta_abs_error")),
     ]
 
 
@@ -126,10 +132,20 @@ def pulse_schedule_plot_kwargs(*, alpha: float | None = None) -> dict[str, objec
     }
 
 
+def truncation_metric_plot_kwargs(metric: str) -> dict[str, object]:
+    """Shared style for truncation benchmark metric traces."""
+    return dict(TRUNCATION_METRIC_STYLES[metric])
+
+
+def apply_benchmark_grid(ax, *, visible: bool = True) -> None:
+    """Apply the shared benchmark grid treatment to an axes."""
+    ax.grid(visible, alpha=BENCHMARK_GRID_ALPHA)
+
+
 @contextmanager
-def benchmark_plot_style(font_size: float = DEFAULT_PLOT_FONT_SIZE) -> Iterator[None]:
-    """Temporarily apply shared font sizing across benchmark plots."""
-    size = float(font_size)
+def benchmark_plot_style() -> Iterator[None]:
+    """Temporarily apply the shared font sizing across benchmark plots."""
+    size = DEFAULT_PLOT_FONT_SIZE
     with mpl.rc_context(
         rc={
             "font.size": size,

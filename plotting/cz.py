@@ -11,7 +11,7 @@ from comparison.cz import CzBenchmarkResult
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    DEFAULT_PLOT_FONT_SIZE,
+    apply_benchmark_grid,
     benchmark_plot_style,
     model_legend_handles,
     model_plot_kwargs,
@@ -57,11 +57,10 @@ def plot_cz_benchmark(
     result: CzBenchmarkResult,
     outfile: Path,
     title: str,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    with benchmark_plot_style(font_size):
+    with benchmark_plot_style():
         fig = plt.figure(figsize=(8.5, 4.8))
         ax_phase = fig.add_subplot(1, 1, 1)
         ax_flux = ax_phase.twinx()
@@ -79,7 +78,7 @@ def plot_cz_benchmark(
         )
         ax_phase.set_ylabel("CPhase (rad)")
         ax_phase.set_xlabel("Time (ns)")
-        ax_phase.grid(True, alpha=0.3)
+        apply_benchmark_grid(ax_phase)
 
         flux_line = ax_flux.plot(
             t,
