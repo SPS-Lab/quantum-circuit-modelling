@@ -8,10 +8,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from comparison.runtime import RuntimeBenchmarkResult
-from plotting.layout import named_single_column_figure_size
-from plotting.style import (
+from plotting.constants import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
+)
+from plotting.layout import named_single_column_figure_size
+from plotting.style import (
     apply_benchmark_grid,
     benchmark_plot_style,
     model_legend_handles,

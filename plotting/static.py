@@ -9,22 +9,24 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 from comparison.static import StaticBenchmarkResult
-from plotting.layout import named_single_column_figure_size
-from plotting.leakage_flow import _phase_population_rgb
-from plotting.style import (
+from plotting.constants import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_RECT,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    MODEL_LEGEND_BBOX_TO_ANCHOR,
     MODEL_ALPHA_CIRCUIT,
     MODEL_ALPHA_DUFFING,
-    active_font_size,
-    apply_benchmark_grid,
-    energy_level_alpha,
+    MODEL_LEGEND_BBOX_TO_ANCHOR,
     STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
     STATIC_LEVEL_LEGEND_FONT_SCALE,
     STATIC_LEVEL_LEGEND_LOC,
     STATIC_LEVEL_LEGEND_NCOL,
+)
+from plotting.layout import named_single_column_figure_size
+from plotting.leakage_flow import _phase_population_rgb
+from plotting.style import (
+    active_font_size,
+    apply_benchmark_grid,
+    energy_level_alpha,
     benchmark_plot_style,
     model_color,
     model_legend_handles,

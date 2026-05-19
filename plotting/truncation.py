@@ -11,14 +11,16 @@ from comparison.truncation import (
     DuffingTruncationBenchmarkResult,
     TruncationBenchmarkResult,
 )
-from plotting.layout import named_stacked_single_column_figure_size
-from plotting.style import (
+from plotting.constants import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    apply_benchmark_grid,
-    benchmark_plot_style,
     TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
     TRUNCATION_METRIC_LEGEND_NCOL,
+)
+from plotting.layout import named_stacked_single_column_figure_size
+from plotting.style import (
+    apply_benchmark_grid,
+    benchmark_plot_style,
     truncation_metric_legend_handles,
     truncation_metric_plot_kwargs,
 )

@@ -2,25 +2,13 @@
 
 from __future__ import annotations
 
-ACM_SIGCONF_COLUMN_WIDTH_PT: float = 241.14749
-ACM_SIGCONF_TEXT_WIDTH_PT: float = 506.295
-TEX_POINTS_PER_INCH: float = 72.27
-
-SINGLE_COLUMN_FIGURE_HEIGHTS: dict[str, float] = {
-    "cz": 2.3,
-    "runtime": 2.2,
-    "static_main": 3.1,
-    "static_raw_energies": 2.7,
-    "static_overlaps": 2.35,
-    "static_amplitudes": 9.4,
-    "leakage_flow": 6.2,
-}
-SINGLE_COLUMN_STACK_LAYOUTS: dict[str, tuple[float, float]] = {
-    "rx_populations": (1.0, 1.0),
-    "rx_diagnostics": (1.35, 1.25),
-    "truncation_single_model": (1.35, 1.15),
-    "truncation_combined": (1.15, 1.1),
-}
+from plotting.constants import (
+    ACM_SIGCONF_COLUMN_WIDTH_PT,
+    ACM_SIGCONF_TEXT_WIDTH_PT,
+    SINGLE_COLUMN_FIGURE_HEIGHTS,
+    SINGLE_COLUMN_STACK_LAYOUTS,
+    TEX_POINTS_PER_INCH,
+)
 
 
 def tex_pt_to_inches(points: float) -> float:

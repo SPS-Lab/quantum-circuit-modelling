@@ -9,9 +9,9 @@ if str(_ROOT) not in sys.path:
 
 import matplotlib.pyplot as plt
 
+from plotting.constants import ACTIVE_BENCHMARK_STYLE
 from plotting.layout import ACM_SIGCONF_COLUMN_WIDTH_PT, single_column_width_inches
 from plotting.style import (
-    ACTIVE_BENCHMARK_STYLE,
     benchmark_plot_style,
     benchmark_style_paths,
     energy_level_alpha,

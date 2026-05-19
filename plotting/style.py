@@ -12,59 +12,25 @@ import numpy as np
 from matplotlib import colors as mcolors
 from matplotlib.lines import Line2D
 
-ACTIVE_BENCHMARK_STYLE: str = "paper"
-MODEL_ALPHA_CIRCUIT: float = 1.0
-MODEL_ALPHA_DUFFING: float = 0.98
-MODEL_ALPHA_EFFECTIVE: float = 0.98
-# Controls vertical separation between the top model legend and subplots.
-MODEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.01)
-BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.93)
-# Controls spacing between subplot panels for all benchmark figures.
-BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 1.2
-BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.9
-TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.955)
-TRUNCATION_METRIC_LEGEND_NCOL: int = 3
-# Static-spectrum level legend (E1/E2/E3/lower levels) controls.
-STATIC_LEVEL_LEGEND_LOC: str = "lower center"
-STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.02)
-STATIC_LEVEL_LEGEND_NCOL: int = 2
-STATIC_LEVEL_LEGEND_FONT_SCALE: float = 0.95
-PULSE_SCHEDULE_COLOR: str = "C4"
-PULSE_SCHEDULE_ALPHA: float = 0.75
-TRUNCATION_METRIC_STYLES: dict[str, dict[str, object]] = {
-    "energy_rmse": {"color": "C0", "marker": "s"},
-    "j_abs_error": {"color": "C1", "marker": "^"},
-    "zeta_abs_error": {"color": "C2", "marker": "d"},
-}
-
-MODEL_ALPHAS: dict[str, float] = {
-    "circuit": MODEL_ALPHA_CIRCUIT,
-    "duffing": MODEL_ALPHA_DUFFING,
-    "effective": MODEL_ALPHA_EFFECTIVE,
-}
-MODEL_COLORS: dict[str, str] = {
-    "circuit": "C0",
-    "duffing": "C1",
-    "effective": "C2",
-}
-MODEL_LINESTYLES: dict[str, str] = {
-    "circuit": "-",
-    "duffing": "-",
-    "effective": "-",
-}
-ENERGY_LEVEL_ALPHAS: tuple[float, ...] = (1.0, 0.72, 0.48, 0.32, 0.22, 0.16)
-FALLBACK_LEVEL_ALPHA: float = 0.12
+from plotting.constants import (
+    ACTIVE_BENCHMARK_STYLE,
+    BENCHMARK_STYLE_STACKS,
+    ENERGY_LEVEL_ALPHAS,
+    FALLBACK_LEVEL_ALPHA,
+    MODEL_ALPHAS,
+    MODEL_COLORS,
+    MODEL_LINESTYLES,
+    PULSE_SCHEDULE_ALPHA,
+    PULSE_SCHEDULE_COLOR,
+    TRUNCATION_METRIC_STYLES,
+)
 
 _STYLE_DIR = Path(__file__).with_name("styles")
-_STYLE_STACKS: dict[str, tuple[str, ...]] = {
-    "paper": ("benchmark-base", "benchmark-paper"),
-    "presentation": ("benchmark-base", "benchmark-presentation"),
-}
 
 
 def benchmark_style_paths() -> list[str]:
     """Return the active repo-owned mplstyle files."""
-    style_names = _STYLE_STACKS[ACTIVE_BENCHMARK_STYLE]
+    style_names = BENCHMARK_STYLE_STACKS[ACTIVE_BENCHMARK_STYLE]
     return [str(_STYLE_DIR / f"{style_name}.mplstyle") for style_name in style_names]
 
 
