@@ -13,8 +13,7 @@ from plotting.constants import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_RECT,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    MODEL_ALPHA_CIRCUIT,
-    MODEL_ALPHA_DUFFING,
+    MODEL_ALPHAS,
     MODEL_LEGEND_BBOX_TO_ANCHOR,
     STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
     STATIC_LEVEL_LEGEND_FONT_SCALE,
@@ -122,14 +121,14 @@ def _plot_static_energy_panel(
                     circuit_full_relative[:, i],
                     color=model_color("circuit"),
                     linewidth=0.8,
-                    alpha=MODEL_ALPHA_CIRCUIT * level_alpha * 0.45,
+                    alpha=MODEL_ALPHAS["circuit"] * level_alpha * 0.45,
                 )
                 ax.plot(
                     flux,
                     duffing_full_relative[:, i],
                     color=model_color("duffing"),
                     linewidth=0.8,
-                    alpha=MODEL_ALPHA_DUFFING * level_alpha * 0.45,
+                    alpha=MODEL_ALPHAS["duffing"] * level_alpha * 0.45,
                 )
 
     for i in (1, 2, 3):
@@ -139,14 +138,14 @@ def _plot_static_energy_panel(
             circuit_relative[:, i],
             linewidth=1.8,
             color=model_color("circuit"),
-            alpha=MODEL_ALPHA_CIRCUIT * level_alpha,
+            alpha=MODEL_ALPHAS["circuit"] * level_alpha,
         )
         ax.plot(
             flux,
             duffing_relative[:, i],
             linewidth=1.8,
             color=model_color("duffing"),
-            alpha=MODEL_ALPHA_DUFFING * level_alpha,
+            alpha=MODEL_ALPHAS["duffing"] * level_alpha,
         )
         if effective_relative is not None:
             ax.plot(

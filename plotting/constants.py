@@ -8,10 +8,6 @@ ACM_SIGCONF_COLUMN_WIDTH_PT: float = 241.14749
 ACM_SIGCONF_TEXT_WIDTH_PT: float = 506.295
 TEX_POINTS_PER_INCH: float = 72.27
 
-MODEL_ALPHA_CIRCUIT: float = 1.0
-MODEL_ALPHA_DUFFING: float = 0.98
-MODEL_ALPHA_EFFECTIVE: float = 0.98
-
 MODEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.01)
 BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.93)
 BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 1.2
@@ -35,9 +31,9 @@ TRUNCATION_METRIC_STYLES: dict[str, dict[str, object]] = {
 }
 
 MODEL_ALPHAS: dict[str, float] = {
-    "circuit": MODEL_ALPHA_CIRCUIT,
-    "duffing": MODEL_ALPHA_DUFFING,
-    "effective": MODEL_ALPHA_EFFECTIVE,
+    "circuit": 1.0,
+    "duffing": 0.98,
+    "effective": 0.98,
 }
 MODEL_COLORS: dict[str, str] = {
     "circuit": "C0",
