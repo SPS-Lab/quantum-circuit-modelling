@@ -15,11 +15,11 @@ from matplotlib.colors import hsv_to_rgb
 import numpy as np
 
 from comparison.leakage_flow import LeakageFlowBenchmarkResult
+from plotting.layout import named_single_column_figure_size
 from plotting.style import (
     benchmark_plot_style,
     pulse_schedule_plot_kwargs,
     scaled_font_size,
-    single_column_figure_size,
 )
 
 
@@ -232,7 +232,7 @@ def plot_leakage_flow_benchmark(
             N=256,
         )
 
-        fig = plt.figure(figsize=single_column_figure_size(6.2))
+        fig = plt.figure(figsize=named_single_column_figure_size("leakage_flow"))
         outer_gs = fig.add_gridspec(
             2,
             2,

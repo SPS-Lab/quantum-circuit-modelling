@@ -1,4 +1,4 @@
-"""Shared Matplotlib styling and figure geometry for benchmark plots."""
+"""Shared Matplotlib styling for benchmark plots."""
 
 from __future__ import annotations
 
@@ -13,9 +13,6 @@ from matplotlib import colors as mcolors
 from matplotlib.lines import Line2D
 
 ACTIVE_BENCHMARK_STYLE: str = "paper"
-ACM_SIGCONF_COLUMN_WIDTH_PT: float = 241.14749
-ACM_SIGCONF_TEXT_WIDTH_PT: float = 506.295
-TEX_POINTS_PER_INCH: float = 72.27
 MODEL_ALPHA_CIRCUIT: float = 1.0
 MODEL_ALPHA_DUFFING: float = 0.98
 MODEL_ALPHA_EFFECTIVE: float = 0.98
@@ -63,51 +60,6 @@ _STYLE_STACKS: dict[str, tuple[str, ...]] = {
     "paper": ("benchmark-base", "benchmark-paper"),
     "presentation": ("benchmark-base", "benchmark-presentation"),
 }
-
-
-def tex_pt_to_inches(points: float) -> float:
-    """Convert TeX points to inches."""
-    return float(points) / TEX_POINTS_PER_INCH
-
-
-def single_column_width_inches() -> float:
-    """Return the ACM sigconf single-column width in inches."""
-    return tex_pt_to_inches(ACM_SIGCONF_COLUMN_WIDTH_PT)
-
-
-def text_width_inches() -> float:
-    """Return the ACM sigconf full text width in inches."""
-    return tex_pt_to_inches(ACM_SIGCONF_TEXT_WIDTH_PT)
-
-
-def single_column_figure_size(height_inches: float) -> tuple[float, float]:
-    """Build a single-column figure size in inches."""
-    return (single_column_width_inches(), float(height_inches))
-
-
-def text_width_figure_size(height_inches: float) -> tuple[float, float]:
-    """Build a full-text-width figure size in inches."""
-    return (text_width_inches(), float(height_inches))
-
-
-def stacked_figure_size(
-    row_count: int,
-    *,
-    column_span: int = 1,
-    row_height_inches: float,
-    extra_height_inches: float = 0.0,
-) -> tuple[float, float]:
-    """Build a stacked-panel figure size from a semantic row count."""
-    if row_count <= 0:
-        raise ValueError(f"row_count must be positive, got {row_count}")
-    if column_span == 1:
-        width_inches = single_column_width_inches()
-    elif column_span == 2:
-        width_inches = text_width_inches()
-    else:
-        raise ValueError(f"column_span must be 1 or 2, got {column_span}")
-    height_inches = float(extra_height_inches) + float(row_count) * float(row_height_inches)
-    return (width_inches, height_inches)
 
 
 def benchmark_style_paths() -> list[str]:

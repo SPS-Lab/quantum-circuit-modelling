@@ -9,6 +9,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 from comparison.static import StaticBenchmarkResult
+from plotting.layout import named_single_column_figure_size
 from plotting.leakage_flow import _phase_population_rgb
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
@@ -28,7 +29,6 @@ from plotting.style import (
     model_color,
     model_legend_handles,
     model_plot_kwargs,
-    single_column_figure_size,
 )
 
 
@@ -190,7 +190,7 @@ def plot_static_benchmark(
 
     with benchmark_plot_style():
         font_size = active_font_size()
-        fig, axes = plt.subplots(2, 2, figsize=single_column_figure_size(3.1), sharex=True)
+        fig, axes = plt.subplots(2, 2, figsize=named_single_column_figure_size("static_main"), sharex=True)
         axE, axErr, axJ, axZeta = axes.ravel()
 
         _plot_static_energy_panel(
@@ -268,7 +268,7 @@ def plot_static_raw_energies(
 
     with benchmark_plot_style():
         font_size = active_font_size()
-        fig, ax = plt.subplots(1, 1, figsize=single_column_figure_size(2.7), sharex=True)
+        fig, ax = plt.subplots(1, 1, figsize=named_single_column_figure_size("static_raw_energies"), sharex=True)
         _plot_static_energy_panel(
             ax,
             flux,
@@ -320,7 +320,7 @@ def plot_static_single_excitation_overlaps(
     flux = np.asarray(result.flux_values, dtype=float)
 
     with benchmark_plot_style():
-        fig, axes = plt.subplots(1, 2, figsize=single_column_figure_size(2.35), sharex=True, sharey=True)
+        fig, axes = plt.subplots(1, 2, figsize=named_single_column_figure_size("static_overlaps"), sharex=True, sharey=True)
         panels = (
             ("circuit", axes[0], np.asarray(result.circuit_computational_bare_overlaps, dtype=float)),
             ("duffing", axes[1], np.asarray(result.duffing_computational_bare_overlaps, dtype=float)),
@@ -386,7 +386,7 @@ def plot_static_computational_basis_amplitudes(
     )
 
     with benchmark_plot_style():
-        fig = plt.figure(figsize=single_column_figure_size(9.4), constrained_layout=True)
+        fig = plt.figure(figsize=named_single_column_figure_size("static_amplitudes"), constrained_layout=True)
         gs = fig.add_gridspec(
             4,
             3,

@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from comparison.rx import RxBenchmarkResult
+from plotting.layout import named_stacked_single_column_figure_size
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_RECT,
@@ -17,7 +18,6 @@ from plotting.style import (
     model_legend_handles,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
-    stacked_figure_size,
 )
 
 
@@ -54,7 +54,7 @@ def plot_rx_populations_benchmark(
         fig, axes = plt.subplots(
             2,
             1,
-            figsize=stacked_figure_size(2, column_span=1, row_height_inches=1.0, extra_height_inches=1.0),
+            figsize=named_stacked_single_column_figure_size("rx_populations", 2),
             sharex=True,
         )
         ax_00, ax_10 = axes
@@ -113,7 +113,7 @@ def plot_rx_diagnostics_benchmark(
         fig, axes = plt.subplots(
             3,
             1,
-            figsize=stacked_figure_size(3, column_span=1, row_height_inches=1.35, extra_height_inches=1.25),
+            figsize=named_stacked_single_column_figure_size("rx_diagnostics", 3),
             sharex=True,
         )
         ax_leak_00, ax_leak_10, ax_delta = axes

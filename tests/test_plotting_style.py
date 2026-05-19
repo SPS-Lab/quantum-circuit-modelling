@@ -9,15 +9,14 @@ if str(_ROOT) not in sys.path:
 
 import matplotlib.pyplot as plt
 
+from plotting.layout import ACM_SIGCONF_COLUMN_WIDTH_PT, single_column_width_inches
 from plotting.style import (
-    ACM_SIGCONF_COLUMN_WIDTH_PT,
     ACTIVE_BENCHMARK_STYLE,
     benchmark_plot_style,
     benchmark_style_paths,
     energy_level_alpha,
     model_legend_handles,
     model_plot_kwargs,
-    single_column_width_inches,
     truncation_metric_legend_handles,
     truncation_metric_plot_kwargs,
 )

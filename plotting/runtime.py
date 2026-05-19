@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from comparison.runtime import RuntimeBenchmarkResult
+from plotting.layout import named_single_column_figure_size
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
@@ -15,7 +16,6 @@ from plotting.style import (
     benchmark_plot_style,
     model_legend_handles,
     model_plot_kwargs,
-    single_column_figure_size,
 )
 
 
@@ -35,7 +35,7 @@ def plot_runtime_benchmark(
     circuit_prop_std = np.asarray(result.circuit_propagation_runtime_std_s, dtype=float)
 
     with benchmark_plot_style():
-        fig, (ax_build, ax_prop) = plt.subplots(1, 2, figsize=single_column_figure_size(2.2), sharex=True)
+        fig, (ax_build, ax_prop) = plt.subplots(1, 2, figsize=named_single_column_figure_size("runtime"), sharex=True)
 
         ax_build.errorbar(
             x,
@@ -82,7 +82,6 @@ def plot_runtime_benchmark(
         ax_prop.set_xlabel(r"$N_{E,q}$")
         ax_prop.set_ylabel(r"Runtime ($s$)")
         ax_prop.set_title("Propagation")
-        ax_prop.set_xlabel(r"$N_{E,q}$")
         apply_benchmark_grid(ax_prop)
         ax_prop.set_xticks(x)
 

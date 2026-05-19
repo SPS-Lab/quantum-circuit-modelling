@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from comparison.cz import CzBenchmarkResult
+from plotting.layout import named_single_column_figure_size
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
@@ -16,7 +17,6 @@ from plotting.style import (
     model_legend_handles,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
-    single_column_figure_size,
 )
 
 
@@ -62,7 +62,7 @@ def plot_cz_benchmark(
     t = np.asarray(result.times_ns, dtype=float)
 
     with benchmark_plot_style():
-        fig = plt.figure(figsize=single_column_figure_size(2.3))
+        fig = plt.figure(figsize=named_single_column_figure_size("cz"))
         ax_phase = fig.add_subplot(1, 1, 1)
         ax_flux = ax_phase.twinx()
 
