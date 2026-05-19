@@ -413,7 +413,7 @@ def plot_static_computational_basis_amplitudes(
         phase_mappable.set_array([])
         cbar = fig.colorbar(phase_mappable, cax=cax)
         cbar.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
-        cbar.set_ticklabels(["$-\\pi$", "$-\\pi/2$", "$0$", "$\\pi/2$", "$\\pi$"])
+        cbar.set_ticklabels(["$-\\pi$", "$-\\frac{\\pi}{2}$", "$0$", "$\\frac{\\pi}{2}$", "$\\pi$"])
         cbar.set_label("Phase hue (rad)\nStrength ~ sqrt(population)")
 
         save_benchmark_figure(fig, outfile)

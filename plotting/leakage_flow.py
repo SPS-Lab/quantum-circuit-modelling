@@ -215,7 +215,7 @@ def plot_leakage_flow_benchmark(
         )
     )
     with benchmark_plot_style():
-        tick_font_size = plt.rcParams["ytick.labelsize"]
+        tick_font_size = 6.1
         transition_cmap = mcolors.LinearSegmentedColormap.from_list(
             "transition_blue_gray_red",
             [
@@ -230,19 +230,18 @@ def plot_leakage_flow_benchmark(
         outer_gs = fig.add_gridspec(
             2,
             2,
-            width_ratios=(1.0, 0.12),
+            width_ratios=(1.0, 0.03),
             height_ratios=(1.0, 1.0),
-            hspace=0.28,
-            wspace=0.18,
+            wspace=0.08,
         )
-        main_gs = outer_gs[:, 0].subgridspec(2, 2, hspace=0.28, wspace=0.42)
+        main_gs = outer_gs[:, 0].subgridspec(2, 2, hspace=0.28, wspace=0.98)
 
         ax_pop_duf = fig.add_subplot(main_gs[0, 0])
         ax_pop_cir = fig.add_subplot(main_gs[0, 1], sharex=ax_pop_duf)
         ax_tr_duf = fig.add_subplot(main_gs[1, 0], sharex=ax_pop_duf)
         ax_tr_cir = fig.add_subplot(main_gs[1, 1], sharex=ax_pop_duf)
 
-        cbar_grid = outer_gs[:, 1].subgridspec(2, 1, hspace=0.45, height_ratios=(1.0, 1.0))
+        cbar_grid = outer_gs[:, 1].subgridspec(2, 1, hspace=1.45, height_ratios=(1.0, 1.0))
         ax_cbar_phase = fig.add_subplot(cbar_grid[0, 0])
         ax_cbar_tr = fig.add_subplot(cbar_grid[1, 0])
 
@@ -344,8 +343,8 @@ def plot_leakage_flow_benchmark(
             n_rows=max(1, tr_cir.shape[1]),
         )
 
-        ax_pop_duf.set_title("Duffing population+phase")
-        ax_pop_cir.set_title("Circuit population+phase")
+        ax_pop_duf.set_title("Duffing evolution")
+        ax_pop_cir.set_title("Circuit evolution")
         ax_tr_duf.set_title("Duffing transitions")
         ax_tr_cir.set_title("Circuit transitions")
 
@@ -359,7 +358,7 @@ def plot_leakage_flow_benchmark(
         phase_mappable.set_array([])
         cbar_phase = fig.colorbar(phase_mappable, cax=ax_cbar_phase)
         cbar_phase.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
-        cbar_phase.set_ticklabels(["$-\\pi$", "$-\\pi/2$", "$0$", "$\\pi/2$", "$\\pi$"])
+        cbar_phase.set_ticklabels(["$-\\pi$", "$-\\frac{\\pi}{2}$", "$0$", "$\\frac{\\pi}{2}$", "$\\pi$"])
         cbar_phase.set_label("Phase hue (rad)")
         #ax_cbar_phase.set_title("Color strength ~ sqrt(population)", fontsize=max(9.0, 0.62 * float(font_size)))
 

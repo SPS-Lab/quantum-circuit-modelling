@@ -25,9 +25,9 @@ def _pi_over_two_tick_label(k: int) -> str:
     if k == 0:
         return "0"
     if k == 1:
-        return r"$\pi/2$"
+        return r"$\frac{\pi}{2}$"
     if k == -1:
-        return r"$-\pi/2$"
+        return r"$-\frac{\pi}{2}$"
     if k % 2 == 0:
         half = k // 2
         if half == 1:
@@ -35,7 +35,7 @@ def _pi_over_two_tick_label(k: int) -> str:
         if half == -1:
             return r"$-\pi$"
         return rf"${half}\pi$"
-    return rf"${k}\pi/2$"
+    return rf"$\frac{{{k}\pi}}{{2}}$"
 
 
 def _set_phase_axis_pi_ticks(ax: plt.Axes, phase_arrays: list[np.ndarray]) -> None:

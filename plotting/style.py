@@ -68,7 +68,7 @@ _SINGLE_COLUMN_FIGURE_HEIGHTS: dict[str, float] = {
     "static_raw_energies": 2.7,
     "static_overlaps": 2.35,
     "static_amplitudes": 9.4,
-    "leakage_flow": 2.7,
+    "leakage_flow": 4.0,
 }
 _STACKED_FIGURE_HEIGHTS: dict[str, tuple[float, float]] = {
     "rx_populations": (1.0, 1.0),
