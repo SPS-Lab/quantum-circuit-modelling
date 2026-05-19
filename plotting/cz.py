@@ -59,7 +59,6 @@ def _set_phase_axis_pi_ticks(ax: plt.Axes, phase_arrays: list[np.ndarray]) -> No
 def plot_cz_benchmark(
     result: CzBenchmarkResult,
     outfile: Path,
-    title: str,
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 

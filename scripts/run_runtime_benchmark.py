@@ -95,7 +95,7 @@ def main() -> None:
         )
         save_result_hdf5(result, results_path, benchmark_name="runtime")
 
-    plot_runtime_benchmark(result, figure_path, title="CZ Runtime Benchmark")
+    plot_runtime_benchmark(result, figure_path)
 
     for line in build_common_truncation_lines(config):
         reporter.line(line)

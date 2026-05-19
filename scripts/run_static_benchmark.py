@@ -156,23 +156,18 @@ def main() -> None:
         )
         save_result_hdf5(result, results_path, benchmark_name="static")
 
-    title = (
-        "Static benchmark across flux: effective vs Duffing vs circuit "
-        f"(effective source={config.static_benchmark.effective_model.derivation_source})"
-    )
-    plot_static_benchmark(result, figure_path, title)
+    plot_static_benchmark(result, figure_path)
     if args.extra_sideplots:
         if not _has_extra_sideplot_data(result):
             raise ValueError(
                 "Extra side-plot data is not present in this static results file. "
                 "Re-run without --plot-only and with --extra-sideplots to generate it."
             )
-        plot_static_raw_energies(result, raw_figure_path, f"{title} [raw energies]")
-        plot_static_single_excitation_overlaps(result, overlap_figure_path, f"{title} [single-excitation overlaps]")
+        plot_static_raw_energies(result, raw_figure_path)
+        plot_static_single_excitation_overlaps(result, overlap_figure_path)
         plot_static_computational_basis_amplitudes(
             result,
             basis_amplitude_figure_path,
-            f"{title} [computational basis amplitudes]",
         )
     fitted_artifact = build_static_fitted_models_artifact(result, config=config)
     fitted_json_path = run_paths.run_dir / "static_fitted_parameters.json"

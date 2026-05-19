@@ -121,5 +121,5 @@ def test_runtime_plot_writes_pdf(tmp_path: Path) -> None:
     )
 
     outfile = tmp_path / "runtime_benchmark.pdf"
-    plot_runtime_benchmark(out, outfile, title="Runtime Test")
+    plot_runtime_benchmark(out, outfile)
     assert outfile.exists()

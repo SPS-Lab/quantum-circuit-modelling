@@ -125,11 +125,7 @@ def main() -> None:
         )
         save_result_hdf5(result, results_path, benchmark_name="leakage_flow")
 
-    title = (
-        "Leakage/flow benchmark from |1,0,1>: "
-        "population+phase states and canonical signed transitions"
-    )
-    plot_leakage_flow_benchmark(result, figure_path, title)
+    plot_leakage_flow_benchmark(result, figure_path)
 
     for line in build_common_truncation_lines(config):
         reporter.line(line)

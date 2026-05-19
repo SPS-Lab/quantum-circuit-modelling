@@ -197,7 +197,6 @@ def _overlay_flux_track(
 def plot_leakage_flow_benchmark(
     result: LeakageFlowBenchmarkResult,
     outfile: Path,
-    title: str,
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float).ravel()
 

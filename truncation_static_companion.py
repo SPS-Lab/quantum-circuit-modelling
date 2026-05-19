@@ -94,26 +94,16 @@ def materialize_static_companion_artifacts(
         )
         save_result_hdf5(result, paths.results_path, benchmark_name="static")
 
-    title = (
-        "Static benchmark across flux: effective vs Duffing vs circuit "
-        f"(effective source={config.static_benchmark.effective_model.derivation_source})"
-    )
-    plot_static_benchmark(result, paths.figure_path, title)
+    plot_static_benchmark(result, paths.figure_path)
     if include_extra_sideplots:
         if not _has_extra_sideplot_data(result):
             raise ValueError(
                 "Extra side-plot data is not present in this companion static results file. "
                 "Re-run the truncation benchmark without --plot-only and with --extra-sideplots to generate it."
             )
-        plot_static_raw_energies(result, paths.raw_figure_path, f"{title} [raw energies]")
-        plot_static_single_excitation_overlaps(
-            result, paths.overlap_figure_path, f"{title} [single-excitation overlaps]"
-        )
-        plot_static_computational_basis_amplitudes(
-            result,
-            paths.basis_amplitude_figure_path,
-            f"{title} [computational basis amplitudes]",
-        )
+        plot_static_raw_energies(result, paths.raw_figure_path)
+        plot_static_single_excitation_overlaps(result, paths.overlap_figure_path)
+        plot_static_computational_basis_amplitudes(result, paths.basis_amplitude_figure_path)
     fitted_artifact = build_static_fitted_models_artifact(result, config=config)
     save_static_fitted_models_artifact(fitted_artifact, paths.fitted_json_path)
     paths.fitted_table_path.write_text(

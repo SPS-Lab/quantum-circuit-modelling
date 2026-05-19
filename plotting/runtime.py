@@ -24,7 +24,6 @@ from plotting.style import (
 def plot_runtime_benchmark(
     result: RuntimeBenchmarkResult,
     outfile: Path,
-    title: str,
 ) -> None:
     x = np.asarray(result.qubit_truncation_values, dtype=int)
     duffing_build = np.asarray(result.duffing_build_runtime_s, dtype=float)
@@ -94,7 +93,6 @@ def plot_runtime_benchmark(
             frameon=False,
             bbox_to_anchor=(0.5, 0.955),
         )
-        fig.suptitle(title, y=0.985)
 
         fig.tight_layout(
             rect=(0.0, 0.0, 1.0, 0.90),

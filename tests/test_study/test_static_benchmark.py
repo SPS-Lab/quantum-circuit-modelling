@@ -916,7 +916,7 @@ def test_cz_plot_writes_pdf(tmp_path: Path) -> None:
         enable_hold_time_scan=False,
     )
     outfile = tmp_path / "cz_benchmark.pdf"
-    plot_cz_benchmark(out, outfile, title="test")
+    plot_cz_benchmark(out, outfile)
     assert outfile.exists()
 
 
@@ -970,7 +970,7 @@ def test_leakage_flow_plot_writes_pdf(tmp_path: Path) -> None:
     )
 
     outfile = tmp_path / "leakage_flow_benchmark.pdf"
-    plot_leakage_flow_benchmark(out, outfile, title="test")
+    plot_leakage_flow_benchmark(out, outfile)
     assert outfile.exists()
 
 

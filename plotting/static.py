@@ -185,7 +185,6 @@ def _static_level_legend(
 def plot_static_benchmark(
     result: StaticBenchmarkResult,
     outfile: Path,
-    title: str,
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
 
@@ -263,7 +262,6 @@ def plot_static_benchmark(
 def plot_static_raw_energies(
     result: StaticBenchmarkResult,
     outfile: Path,
-    title: str,
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
 
@@ -316,7 +314,6 @@ def plot_static_raw_energies(
 def plot_static_single_excitation_overlaps(
     result: StaticBenchmarkResult,
     outfile: Path,
-    title: str,
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
 
@@ -363,7 +360,6 @@ def plot_static_single_excitation_overlaps(
 def plot_static_computational_basis_amplitudes(
     result: StaticBenchmarkResult,
     outfile: Path,
-    title: str,
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
     branch_labels = (
