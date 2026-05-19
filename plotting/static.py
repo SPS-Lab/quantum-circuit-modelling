@@ -19,12 +19,13 @@ from plotting.style import (
     STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
     STATIC_LEVEL_LEGEND_LOC,
     STATIC_LEVEL_LEGEND_NCOL,
+    add_model_figure_legend,
     benchmark_plot_style,
     energy_level_alpha,
     figure_size,
     model_color,
-    model_legend_handles,
     model_plot_kwargs,
+    save_benchmark_figure,
 )
 
 
@@ -233,16 +234,13 @@ def plot_static_benchmark(
 
         axes[1, 0].set_xlabel(r"Flux bias ($\phi$)")
         axes[1, 1].set_xlabel(r"Flux bias ($\phi$)")
-        fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
+        add_model_figure_legend(fig, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
         fig.tight_layout(
             rect=BENCHMARK_TIGHT_LAYOUT_RECT,
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )
-
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile)
 
 
 def plot_static_raw_energies(
@@ -272,22 +270,13 @@ def plot_static_raw_energies(
             ncol=STATIC_LEVEL_LEGEND_NCOL,
             title="Levels (alpha)",
         )
-        fig.legend(
-            handles=model_legend_handles(),
-            loc="upper center",
-            ncol=3,
-            frameon=False,
-            bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR,
-        )
+        add_model_figure_legend(fig, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
         fig.tight_layout(
             rect=BENCHMARK_TIGHT_LAYOUT_RECT,
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )
-
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile)
 
 
 def plot_static_single_excitation_overlaps(
@@ -324,16 +313,13 @@ def plot_static_single_excitation_overlaps(
             ax.grid()
 
         axes[0].set_ylabel(r"Bare overlap $|\langle \mathrm{bare} | \mathrm{dressed} \rangle|^2$")
-        axes[1].legend(loc="upper center", bbox_to_anchor=(0.5, 1.02), ncol=2, framealpha=0.9)
+        axes[1].legend(loc="upper center", bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR, ncol=2, frameon=True)
         fig.tight_layout(
             rect=BENCHMARK_TIGHT_LAYOUT_RECT,
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )
-
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile)
 
 
 def plot_static_computational_basis_amplitudes(
@@ -425,6 +411,4 @@ def plot_static_computational_basis_amplitudes(
         cbar.set_ticklabels(["$-\\pi$", "$-\\pi/2$", "$0$", "$\\pi/2$", "$\\pi$"])
         cbar.set_label("Phase hue (rad)\nStrength ~ sqrt(population)")
 
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile)

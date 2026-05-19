@@ -12,10 +12,11 @@ from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_RECT,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
+    add_model_figure_legend,
     benchmark_plot_style,
-    model_legend_handles,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
+    save_benchmark_figure,
     stacked_figure_size,
 )
 
@@ -84,22 +85,13 @@ def plot_rx_populations_benchmark(
         ax_10.set_ylim(-0.02, 1.02)
         ax_10.grid()
 
-        fig.legend(
-            handles=model_legend_handles(),
-            loc="upper center",
-            ncol=3,
-            frameon=False,
-            bbox_to_anchor=(0.5, 0.985),
-        )
+        add_model_figure_legend(fig, bbox_to_anchor=(0.5, 0.985))
         fig.tight_layout(
             rect=BENCHMARK_TIGHT_LAYOUT_RECT,
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )
-
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile)
 
 
 def plot_rx_diagnostics_benchmark(
@@ -151,19 +143,10 @@ def plot_rx_diagnostics_benchmark(
         ax_delta.set_ylabel("Magnitude")
         ax_delta.grid()
 
-        fig.legend(
-            handles=model_legend_handles(),
-            loc="upper center",
-            ncol=3,
-            frameon=False,
-            bbox_to_anchor=(0.5, 0.985),
-        )
+        add_model_figure_legend(fig, bbox_to_anchor=(0.5, 0.985))
         fig.tight_layout(
             rect=BENCHMARK_TIGHT_LAYOUT_RECT,
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )
-
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile)

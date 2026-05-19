@@ -15,7 +15,7 @@ from matplotlib.colors import hsv_to_rgb
 import numpy as np
 
 from comparison.leakage_flow import LeakageFlowBenchmarkResult
-from plotting.style import benchmark_plot_style, figure_size, pulse_schedule_plot_kwargs
+from plotting.style import benchmark_plot_style, figure_size, pulse_schedule_plot_kwargs, save_benchmark_figure
 
 
 def _decode_labels(labels: np.ndarray) -> list[str]:
@@ -366,6 +366,4 @@ def plot_leakage_flow_benchmark(
         cbar_tr = fig.colorbar(im_tr, cax=ax_cbar_tr)
         cbar_tr.set_label("Signed current (1/ns)")
 
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf", bbox_inches="tight", pad_inches=0.04)
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile, bbox_inches="tight", pad_inches=0.04)

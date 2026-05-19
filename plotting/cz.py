@@ -11,11 +11,12 @@ from comparison.cz import CzBenchmarkResult
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
+    add_model_figure_legend,
     benchmark_plot_style,
     figure_size,
-    model_legend_handles,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
+    save_benchmark_figure,
 )
 
 
@@ -93,19 +94,10 @@ def plot_cz_benchmark(
             frameon=False,
         )
 
-        fig.legend(
-            handles=model_legend_handles(),
-            loc="upper center",
-            ncol=3,
-            frameon=False,
-            bbox_to_anchor=(0.5, 0.955),
-        )
+        add_model_figure_legend(fig)
         fig.tight_layout(
             rect=(0.0, 0.0, 1.0, 0.87),
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )
-
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile)

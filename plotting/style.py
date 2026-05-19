@@ -19,6 +19,7 @@ BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0,
 BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 1.2
 BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.9
 
+STANDARD_FIGURE_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.955)
 MODEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.01)
 TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.955)
 TRUNCATION_METRIC_LEGEND_NCOL: int = 3
@@ -128,6 +129,22 @@ def model_legend_handles() -> list[Line2D]:
     ]
 
 
+def add_model_figure_legend(
+    fig: plt.Figure,
+    *,
+    handles: list[Line2D] | None = None,
+    ncol: int = 3,
+    bbox_to_anchor: tuple[float, float] = STANDARD_FIGURE_LEGEND_BBOX_TO_ANCHOR,
+) -> None:
+    """Add the shared model legend to a figure."""
+    fig.legend(
+        handles=model_legend_handles() if handles is None else handles,
+        loc="upper center",
+        ncol=ncol,
+        bbox_to_anchor=bbox_to_anchor,
+    )
+
+
 def truncation_metric_plot_kwargs(metric: str) -> dict[str, object]:
     """Shared style for truncation benchmark metric traces."""
     return dict(TRUNCATION_METRIC_STYLES[metric])
@@ -142,12 +159,41 @@ def truncation_metric_legend_handles() -> list[Line2D]:
     ]
 
 
+def add_truncation_metric_figure_legend(fig: plt.Figure) -> None:
+    """Add the shared truncation-metric legend to a figure."""
+    fig.legend(
+        handles=truncation_metric_legend_handles(),
+        loc="upper center",
+        bbox_to_anchor=TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
+        ncol=TRUNCATION_METRIC_LEGEND_NCOL,
+        frameon=True,
+    )
+
+
 def pulse_schedule_plot_kwargs(*, alpha: float | None = None) -> dict[str, object]:
     """Shared style for plotted pulse schedules and flux tracks."""
     return {
         "color": PULSE_SCHEDULE_COLOR,
         "alpha": PULSE_SCHEDULE_ALPHA if alpha is None else float(alpha),
     }
+
+
+def save_benchmark_figure(
+    fig: plt.Figure,
+    outfile: Path,
+    *,
+    bbox_inches: str | None = None,
+    pad_inches: float | None = None,
+) -> None:
+    """Persist a benchmark figure and close it."""
+    outfile.parent.mkdir(parents=True, exist_ok=True)
+    save_kwargs: dict[str, object] = {"format": "pdf"}
+    if bbox_inches is not None:
+        save_kwargs["bbox_inches"] = bbox_inches
+    if pad_inches is not None:
+        save_kwargs["pad_inches"] = pad_inches
+    fig.savefig(outfile, **save_kwargs)
+    plt.close(fig)
 
 
 @contextmanager

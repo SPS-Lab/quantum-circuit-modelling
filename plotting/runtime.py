@@ -11,10 +11,13 @@ from comparison.runtime import RuntimeBenchmarkResult
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
+    STANDARD_FIGURE_LEGEND_BBOX_TO_ANCHOR,
+    add_model_figure_legend,
     benchmark_plot_style,
     figure_size,
     model_legend_handles,
     model_plot_kwargs,
+    save_benchmark_figure,
 )
 
 
@@ -83,12 +86,11 @@ def plot_runtime_benchmark(
         ax_prop.grid()
         ax_prop.set_xticks(x)
 
-        fig.legend(
+        add_model_figure_legend(
+            fig,
             handles=model_legend_handles()[:2],
-            loc="upper center",
             ncol=2,
-            frameon=False,
-            bbox_to_anchor=(0.5, 0.955),
+            bbox_to_anchor=STANDARD_FIGURE_LEGEND_BBOX_TO_ANCHOR,
         )
 
         fig.tight_layout(
@@ -96,6 +98,4 @@ def plot_runtime_benchmark(
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile)

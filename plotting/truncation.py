@@ -14,11 +14,10 @@ from comparison.truncation import (
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
-    TRUNCATION_METRIC_LEGEND_NCOL,
+    add_truncation_metric_figure_legend,
     benchmark_plot_style,
+    save_benchmark_figure,
     stacked_figure_size,
-    truncation_metric_legend_handles,
     truncation_metric_plot_kwargs,
 )
 
@@ -160,17 +159,9 @@ def plot_circuit_truncation_benchmark(
                 xticklabels=xticklabels,
             )
         fig.suptitle("Circuit static truncation convergence", y=0.982)
-        fig.legend(
-            handles=truncation_metric_legend_handles(),
-            loc="upper center",
-            bbox_to_anchor=TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
-            ncol=TRUNCATION_METRIC_LEGEND_NCOL,
-            frameon=True,
-        )
+        add_truncation_metric_figure_legend(fig)
         fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.91), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile)
 
 
 def plot_duffing_truncation_benchmark(
@@ -201,17 +192,9 @@ def plot_duffing_truncation_benchmark(
                 xticklabels=xticklabels,
             )
         fig.suptitle("Duffing static truncation convergence", y=0.982)
-        fig.legend(
-            handles=truncation_metric_legend_handles(),
-            loc="upper center",
-            bbox_to_anchor=TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
-            ncol=TRUNCATION_METRIC_LEGEND_NCOL,
-            frameon=True,
-        )
+        add_truncation_metric_figure_legend(fig)
         fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.91), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile)
 
 
 def plot_truncation_benchmark(
@@ -264,18 +247,10 @@ def plot_truncation_benchmark(
                 )
             else:
                 right_ax.axis("off")
-        fig.legend(
-            handles=truncation_metric_legend_handles(),
-            loc="upper center",
-            bbox_to_anchor=TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
-            ncol=TRUNCATION_METRIC_LEGEND_NCOL,
-            frameon=True,
-        )
+        add_truncation_metric_figure_legend(fig)
         fig.tight_layout(
             rect=(0.0, 0.0, 1.0, 0.91),
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile)
