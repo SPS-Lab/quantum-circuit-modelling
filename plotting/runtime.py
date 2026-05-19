@@ -11,7 +11,6 @@ from comparison.runtime import RuntimeBenchmarkResult
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    STANDARD_FIGURE_LEGEND_BBOX_TO_ANCHOR,
     add_model_figure_legend,
     benchmark_plot_style,
     figure_size,
@@ -90,7 +89,6 @@ def plot_runtime_benchmark(
             fig,
             handles=model_legend_handles()[:2],
             ncol=2,
-            bbox_to_anchor=STANDARD_FIGURE_LEGEND_BBOX_TO_ANCHOR,
         )
 
         fig.tight_layout(

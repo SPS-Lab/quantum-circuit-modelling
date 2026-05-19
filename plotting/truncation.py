@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 
 from comparison.truncation import (
@@ -14,12 +15,29 @@ from comparison.truncation import (
 from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    add_truncation_metric_figure_legend,
+    FIGURE_LEGEND_BBOX_TO_ANCHOR,
+    TRUNCATION_METRIC_LEGEND_NCOL,
     benchmark_plot_style,
     save_benchmark_figure,
     stacked_figure_size,
     truncation_metric_plot_kwargs,
 )
+
+def _truncation_metric_legend_handles() -> list[Line2D]:
+    return [
+        Line2D([0], [0], label=r"$RMSE_{E,\mathrm{comp}}$", **truncation_metric_plot_kwargs("energy_rmse")),
+        Line2D([0], [0], label=r"$|\Delta J|$", **truncation_metric_plot_kwargs("j_abs_error")),
+        Line2D([0], [0], label=r"$|\Delta \zeta|$", **truncation_metric_plot_kwargs("zeta_abs_error")),
+    ]
+
+
+def _add_truncation_metric_figure_legend(fig: plt.Figure) -> None:
+    fig.legend(
+        handles=_truncation_metric_legend_handles(),
+        loc="upper center",
+        bbox_to_anchor=FIGURE_LEGEND_BBOX_TO_ANCHOR,
+        ncol=TRUNCATION_METRIC_LEGEND_NCOL
+    )
 
 
 def _charge_basis_dim_from_ncut(ncut_values: np.ndarray) -> np.ndarray:
@@ -159,8 +177,8 @@ def plot_circuit_truncation_benchmark(
                 xticklabels=xticklabels,
             )
         fig.suptitle("Circuit static truncation convergence", y=0.982)
-        add_truncation_metric_figure_legend(fig)
-        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.91), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
+        _add_truncation_metric_figure_legend(fig)
+        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.90), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
         save_benchmark_figure(fig, outfile)
 
 
@@ -192,8 +210,8 @@ def plot_duffing_truncation_benchmark(
                 xticklabels=xticklabels,
             )
         fig.suptitle("Duffing static truncation convergence", y=0.982)
-        add_truncation_metric_figure_legend(fig)
-        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.91), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
+        _add_truncation_metric_figure_legend(fig)
+        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.90), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
         save_benchmark_figure(fig, outfile)
 
 
@@ -247,9 +265,9 @@ def plot_truncation_benchmark(
                 )
             else:
                 right_ax.axis("off")
-        add_truncation_metric_figure_legend(fig)
+        _add_truncation_metric_figure_legend(fig)
         fig.tight_layout(
-            rect=(0.0, 0.0, 1.0, 0.91),
+            rect=(0.0, 0.0, 1.0, 0.90),
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )

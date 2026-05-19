@@ -91,7 +91,6 @@ def plot_cz_benchmark(
         ax_flux.legend(
             handles=[flux_line],
             loc="lower right",
-            frameon=False,
         )
 
         add_model_figure_legend(fig)

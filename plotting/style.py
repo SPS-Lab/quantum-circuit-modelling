@@ -15,20 +15,28 @@ ACM_SIGCONF_COLUMN_WIDTH_PT: float = 241.14749
 ACM_SIGCONF_TEXT_WIDTH_PT: float = 506.295
 _TEX_POINTS_PER_INCH: float = 72.27
 
-BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.93)
+BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.92)
 BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 1.2
 BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.9
 
-STANDARD_FIGURE_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.955)
-MODEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.01)
-TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.955)
-TRUNCATION_METRIC_LEGEND_NCOL: int = 3
+FIGURE_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.985)
 STATIC_LEVEL_LEGEND_LOC: str = "lower center"
 STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.02)
 STATIC_LEVEL_LEGEND_NCOL: int = 2
 
+TRUNCATION_METRIC_LEGEND_NCOL: int = 3
+
 PULSE_SCHEDULE_COLOR: str = "C4"
 PULSE_SCHEDULE_ALPHA: float = 0.75
+PULSE_BACKGROUND_ALPHA: float = 0.3
+PULSE_BACKGROUND_FILL_ALPHA: float = 0.1
+
+REFERENCE_LINE_COLOR: str = "0.35"
+REFERENCE_LINEWIDTH: float = 1.0
+PRIMARY_LEVEL_LINEWIDTH: float = 1.7
+SECONDARY_LEVEL_LINEWIDTH: float = 0.9
+ANCILLARY_LEVEL_LINEWIDTH: float = 1.1
+COMPARISON_LINEWIDTH: float = 1.2
 
 MODEL_ALPHAS: dict[str, float] = {
     "circuit": 1.0,
@@ -134,7 +142,7 @@ def add_model_figure_legend(
     *,
     handles: list[Line2D] | None = None,
     ncol: int = 3,
-    bbox_to_anchor: tuple[float, float] = STANDARD_FIGURE_LEGEND_BBOX_TO_ANCHOR,
+    bbox_to_anchor: tuple[float, float] = FIGURE_LEGEND_BBOX_TO_ANCHOR,
 ) -> None:
     """Add the shared model legend to a figure."""
     fig.legend(
@@ -150,24 +158,7 @@ def truncation_metric_plot_kwargs(metric: str) -> dict[str, object]:
     return dict(TRUNCATION_METRIC_STYLES[metric])
 
 
-def truncation_metric_legend_handles() -> list[Line2D]:
-    """Legend handles for truncation benchmark metric traces."""
-    return [
-        Line2D([0], [0], label=r"$RMSE_{E,\mathrm{comp}}$", **truncation_metric_plot_kwargs("energy_rmse")),
-        Line2D([0], [0], label=r"$|\Delta J|$", **truncation_metric_plot_kwargs("j_abs_error")),
-        Line2D([0], [0], label=r"$|\Delta \zeta|$", **truncation_metric_plot_kwargs("zeta_abs_error")),
-    ]
 
-
-def add_truncation_metric_figure_legend(fig: plt.Figure) -> None:
-    """Add the shared truncation-metric legend to a figure."""
-    fig.legend(
-        handles=truncation_metric_legend_handles(),
-        loc="upper center",
-        bbox_to_anchor=TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
-        ncol=TRUNCATION_METRIC_LEGEND_NCOL,
-        frameon=True,
-    )
 
 
 def pulse_schedule_plot_kwargs(*, alpha: float | None = None) -> dict[str, object]:

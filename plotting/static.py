@@ -11,11 +11,16 @@ from matplotlib.lines import Line2D
 from comparison.static import StaticBenchmarkResult
 from plotting.leakage_flow import _phase_population_rgb
 from plotting.style import (
+    ANCILLARY_LEVEL_LINEWIDTH,
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_RECT,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
+    COMPARISON_LINEWIDTH,
     MODEL_ALPHAS,
-    MODEL_LEGEND_BBOX_TO_ANCHOR,
+    PRIMARY_LEVEL_LINEWIDTH,
+    REFERENCE_LINE_COLOR,
+    REFERENCE_LINEWIDTH,
+    SECONDARY_LEVEL_LINEWIDTH,
     STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
     STATIC_LEVEL_LEGEND_LOC,
     STATIC_LEVEL_LEGEND_NCOL,
@@ -116,14 +121,14 @@ def _plot_static_energy_panel(
                     flux,
                     circuit_full_relative[:, i],
                     color=model_color("circuit"),
-                    linewidth=0.8,
+                    linewidth=SECONDARY_LEVEL_LINEWIDTH,
                     alpha=MODEL_ALPHAS["circuit"] * level_alpha * 0.45,
                 )
                 ax.plot(
                     flux,
                     duffing_full_relative[:, i],
                     color=model_color("duffing"),
-                    linewidth=0.8,
+                    linewidth=SECONDARY_LEVEL_LINEWIDTH,
                     alpha=MODEL_ALPHAS["duffing"] * level_alpha * 0.45,
                 )
 
@@ -132,14 +137,14 @@ def _plot_static_energy_panel(
         ax.plot(
             flux,
             circuit_relative[:, i],
-            linewidth=1.8,
+            linewidth=PRIMARY_LEVEL_LINEWIDTH,
             color=model_color("circuit"),
             alpha=MODEL_ALPHAS["circuit"] * level_alpha,
         )
         ax.plot(
             flux,
             duffing_relative[:, i],
-            linewidth=1.8,
+            linewidth=PRIMARY_LEVEL_LINEWIDTH,
             color=model_color("duffing"),
             alpha=MODEL_ALPHAS["duffing"] * level_alpha,
         )
@@ -147,7 +152,7 @@ def _plot_static_energy_panel(
             ax.plot(
                 flux,
                 effective_relative[:, i],
-                linewidth=1.8,
+                linewidth=PRIMARY_LEVEL_LINEWIDTH,
                 color=model_color("effective"),
                 alpha=MODEL_ALPHAS["effective"] * level_alpha,
             )
@@ -159,9 +164,9 @@ def _static_level_legend(
     include_other_levels: bool = True,
 ) -> list[Line2D]:
     handles = [
-        Line2D([0], [0], color="0.15", linewidth=1.8, alpha=energy_level_alpha(0), label=labels[0]),
-        Line2D([0], [0], color="0.15", linewidth=1.8, alpha=energy_level_alpha(1), label=labels[1]),
-        Line2D([0], [0], color="0.15", linewidth=1.8, alpha=energy_level_alpha(2), label=labels[2]),
+        Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(0), label=labels[0]),
+        Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(1), label=labels[1]),
+        Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(2), label=labels[2]),
     ]
     if include_other_levels:
         handles.append(
@@ -169,7 +174,7 @@ def _static_level_legend(
                 [0],
                 [0],
                 color="0.15",
-                linewidth=1.1,
+                linewidth=ANCILLARY_LEVEL_LINEWIDTH,
                 alpha=energy_level_alpha(3) * 0.7,
                 label="other levels",
             )
@@ -221,20 +226,20 @@ def plot_static_benchmark(
         axJ.plot(flux, result.circuit_parameters["J"], **model_plot_kwargs("circuit"))
         axJ.plot(flux, result.duffing_parameters["J"], **model_plot_kwargs("duffing"))
         axJ.plot(flux, result.effective_parameters["J"], **model_plot_kwargs("effective"))
-        axJ.axhline(0.0, color="0.35", linewidth=1.0)
+        axJ.axhline(0.0, color=REFERENCE_LINE_COLOR, linewidth=REFERENCE_LINEWIDTH)
         axJ.set_ylabel(r"Exchange $J$")
         axJ.grid()
 
         axZeta.plot(flux, result.circuit_parameters["zeta"], **model_plot_kwargs("circuit"))
         axZeta.plot(flux, result.duffing_parameters["zeta"], **model_plot_kwargs("duffing"))
         axZeta.plot(flux, result.effective_parameters["zeta"], **model_plot_kwargs("effective"))
-        axZeta.axhline(0.0, color="0.35", linewidth=1.0)
+        axZeta.axhline(0.0, color=REFERENCE_LINE_COLOR, linewidth=REFERENCE_LINEWIDTH)
         axZeta.set_ylabel(r"Residual ZZ $\zeta$")
         axZeta.grid()
 
         axes[1, 0].set_xlabel(r"Flux bias ($\phi$)")
         axes[1, 1].set_xlabel(r"Flux bias ($\phi$)")
-        add_model_figure_legend(fig, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
+        add_model_figure_legend(fig)
         fig.tight_layout(
             rect=BENCHMARK_TIGHT_LAYOUT_RECT,
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
@@ -270,7 +275,7 @@ def plot_static_raw_energies(
             ncol=STATIC_LEVEL_LEGEND_NCOL,
             title="Levels (alpha)",
         )
-        add_model_figure_legend(fig, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
+        add_model_figure_legend(fig)
         fig.tight_layout(
             rect=BENCHMARK_TIGHT_LAYOUT_RECT,
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
@@ -304,7 +309,7 @@ def plot_static_single_excitation_overlaps(
                         overlaps[:, bare_idx, branch_offset],
                         color=colors[bare_idx - 1],
                         linestyle=linestyles[branch_offset - 1],
-                        linewidth=1.1,
+                        linewidth=COMPARISON_LINEWIDTH,
                         label=f"{branch_label} vs {bare_label}",
             )
             ax.set_title(model_name)
@@ -313,7 +318,7 @@ def plot_static_single_excitation_overlaps(
             ax.grid()
 
         axes[0].set_ylabel(r"Bare overlap $|\langle \mathrm{bare} | \mathrm{dressed} \rangle|^2$")
-        axes[1].legend(loc="upper center", bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR, ncol=2, frameon=True)
+        axes[1].legend(loc="upper center", bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR, ncol=2)
         fig.tight_layout(
             rect=BENCHMARK_TIGHT_LAYOUT_RECT,
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,

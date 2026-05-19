@@ -12,6 +12,8 @@ from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_RECT,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
+    PULSE_BACKGROUND_ALPHA,
+    PULSE_BACKGROUND_FILL_ALPHA,
     add_model_figure_legend,
     benchmark_plot_style,
     model_plot_kwargs,
@@ -29,14 +31,14 @@ def _add_drive_background(ax: plt.Axes, times_ns: np.ndarray, envelope: np.ndarr
     bg.plot(
         np.asarray(times_ns, dtype=float),
         float(amplitude) * np.asarray(envelope, dtype=float),
-        **pulse_schedule_plot_kwargs(alpha=0.35),
+        **pulse_schedule_plot_kwargs(alpha=PULSE_BACKGROUND_ALPHA),
     )
     bg.fill_between(
         np.asarray(times_ns, dtype=float),
         0.0,
         float(amplitude) * np.asarray(envelope, dtype=float),
         color=pulse_schedule_plot_kwargs()["color"],
-        alpha=0.08,
+        alpha=PULSE_BACKGROUND_FILL_ALPHA,
     )
     bg.set_ylim(0.0, max(1e-12, 1.05 * float(amplitude)))
     bg.set_yticks([])
@@ -85,7 +87,7 @@ def plot_rx_populations_benchmark(
         ax_10.set_ylim(-0.02, 1.02)
         ax_10.grid()
 
-        add_model_figure_legend(fig, bbox_to_anchor=(0.5, 0.985))
+        add_model_figure_legend(fig)
         fig.tight_layout(
             rect=BENCHMARK_TIGHT_LAYOUT_RECT,
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
@@ -143,7 +145,7 @@ def plot_rx_diagnostics_benchmark(
         ax_delta.set_ylabel("Magnitude")
         ax_delta.grid()
 
-        add_model_figure_legend(fig, bbox_to_anchor=(0.5, 0.985))
+        add_model_figure_legend(fig)
         fig.tight_layout(
             rect=BENCHMARK_TIGHT_LAYOUT_RECT,
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
