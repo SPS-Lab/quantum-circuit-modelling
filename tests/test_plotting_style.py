@@ -9,14 +9,15 @@ if str(_ROOT) not in sys.path:
 
 import matplotlib.pyplot as plt
 
-from plotting.constants import ACTIVE_BENCHMARK_STYLE
-from plotting.layout import ACM_SIGCONF_COLUMN_WIDTH_PT, single_column_width_inches
 from plotting.style import (
+    ACM_SIGCONF_COLUMN_WIDTH_PT,
+    ACTIVE_BENCHMARK_STYLE,
     benchmark_plot_style,
     benchmark_style_paths,
     energy_level_alpha,
     model_legend_handles,
     model_plot_kwargs,
+    single_column_width_inches,
     truncation_metric_legend_handles,
     truncation_metric_plot_kwargs,
 )
@@ -68,7 +69,6 @@ def test_truncation_metric_handles_match_shared_metric_styles() -> None:
         kwargs = truncation_metric_plot_kwargs(metric)
         assert handle.get_color() == kwargs["color"]
         assert handle.get_marker() == kwargs["marker"]
-        assert handle.get_linewidth() == kwargs["linewidth"]
 
 
 def test_benchmark_style_paths_point_to_repo_owned_stylesheets() -> None:

@@ -8,6 +8,7 @@ axes.labelsize: 18.0
 xtick.labelsize: 16.5
 ytick.labelsize: 16.5
 legend.fontsize: 16.0
+legend.title_fontsize: 16.0
 lines.linewidth: 2.4
 lines.markersize: 7.0
 mathtext.fontset: dejavusans

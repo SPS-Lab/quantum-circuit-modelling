@@ -15,12 +15,7 @@ from matplotlib.colors import hsv_to_rgb
 import numpy as np
 
 from comparison.leakage_flow import LeakageFlowBenchmarkResult
-from plotting.layout import named_single_column_figure_size
-from plotting.style import (
-    benchmark_plot_style,
-    pulse_schedule_plot_kwargs,
-    scaled_font_size,
-)
+from plotting.style import benchmark_plot_style, figure_size, pulse_schedule_plot_kwargs
 
 
 def _decode_labels(labels: np.ndarray) -> list[str]:
@@ -220,7 +215,7 @@ def plot_leakage_flow_benchmark(
         )
     )
     with benchmark_plot_style():
-        tick_font_size = scaled_font_size(0.9)
+        tick_font_size = plt.rcParams["ytick.labelsize"]
         transition_cmap = mcolors.LinearSegmentedColormap.from_list(
             "transition_blue_gray_red",
             [
@@ -231,7 +226,7 @@ def plot_leakage_flow_benchmark(
             N=256,
         )
 
-        fig = plt.figure(figsize=named_single_column_figure_size("leakage_flow"))
+        fig = plt.figure(figsize=figure_size("leakage_flow"))
         outer_gs = fig.add_gridspec(
             2,
             2,

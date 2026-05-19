@@ -1,4 +1,4 @@
-"""Shared Matplotlib styling for benchmark plots."""
+"""Shared plotting theme for benchmark figures."""
 
 from __future__ import annotations
 
@@ -6,79 +6,90 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib import colors as mcolors
 from matplotlib.lines import Line2D
 
-from plotting.constants import (
-    ACTIVE_BENCHMARK_STYLE,
-    BENCHMARK_STYLE_STACKS,
-    ENERGY_LEVEL_ALPHAS,
-    FALLBACK_LEVEL_ALPHA,
-    MODEL_ALPHAS,
-    MODEL_COLORS,
-    MODEL_LINESTYLES,
-    PULSE_SCHEDULE_ALPHA,
-    PULSE_SCHEDULE_COLOR,
-    TRUNCATION_METRIC_STYLES,
-)
+ACTIVE_BENCHMARK_STYLE: str = "paper"
+
+ACM_SIGCONF_COLUMN_WIDTH_PT: float = 241.14749
+ACM_SIGCONF_TEXT_WIDTH_PT: float = 506.295
+_TEX_POINTS_PER_INCH: float = 72.27
+
+BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.93)
+BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 1.2
+BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.9
+
+MODEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.01)
+TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.955)
+TRUNCATION_METRIC_LEGEND_NCOL: int = 3
+STATIC_LEVEL_LEGEND_LOC: str = "lower center"
+STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.02)
+STATIC_LEVEL_LEGEND_NCOL: int = 2
+
+PULSE_SCHEDULE_COLOR: str = "C4"
+PULSE_SCHEDULE_ALPHA: float = 0.75
+
+MODEL_ALPHAS: dict[str, float] = {
+    "circuit": 1.0,
+    "duffing": 0.98,
+    "effective": 0.98,
+}
+MODEL_COLORS: dict[str, str] = {
+    "circuit": "C0",
+    "duffing": "C1",
+    "effective": "C2",
+}
+TRUNCATION_METRIC_STYLES: dict[str, dict[str, object]] = {
+    "energy_rmse": {"color": "C0", "marker": "s"},
+    "j_abs_error": {"color": "C1", "marker": "^"},
+    "zeta_abs_error": {"color": "C2", "marker": "d"},
+}
+ENERGY_LEVEL_ALPHAS: tuple[float, ...] = (1.0, 0.72, 0.48, 0.32, 0.22, 0.16)
+FALLBACK_LEVEL_ALPHA: float = 0.12
 
 _STYLE_DIR = Path(__file__).with_name("styles")
+_BENCHMARK_STYLE_STACKS: dict[str, tuple[str, ...]] = {
+    "paper": ("benchmark-base", "benchmark-paper"),
+    "presentation": ("benchmark-base", "benchmark-presentation"),
+}
+_SINGLE_COLUMN_FIGURE_HEIGHTS: dict[str, float] = {
+    "cz": 2.3,
+    "runtime": 2.2,
+    "static_main": 3.1,
+    "static_raw_energies": 2.7,
+    "static_overlaps": 2.35,
+    "static_amplitudes": 9.4,
+    "leakage_flow": 2.7,
+}
+_STACKED_FIGURE_HEIGHTS: dict[str, tuple[float, float]] = {
+    "rx_populations": (1.0, 1.0),
+    "rx_diagnostics": (1.35, 1.25),
+    "truncation_single_model": (1.35, 1.15),
+    "truncation_combined": (1.15, 1.1),
+}
 
 
 def benchmark_style_paths() -> list[str]:
     """Return the active repo-owned mplstyle files."""
-    style_names = BENCHMARK_STYLE_STACKS[ACTIVE_BENCHMARK_STYLE]
-    return [str(_STYLE_DIR / f"{style_name}.mplstyle") for style_name in style_names]
+    return [str(_STYLE_DIR / f"{name}.mplstyle") for name in _BENCHMARK_STYLE_STACKS[ACTIVE_BENCHMARK_STYLE]]
 
 
-def active_font_size() -> float:
-    """Return the active Matplotlib base font size."""
-    return float(mpl.rcParams["font.size"])
+def single_column_width_inches() -> float:
+    """Return the ACM sigconf single-column width in inches."""
+    return ACM_SIGCONF_COLUMN_WIDTH_PT / _TEX_POINTS_PER_INCH
 
 
-def scaled_font_size(scale: float, *, minimum: float | None = None) -> float:
-    """Scale the active Matplotlib base font size with an optional floor."""
-    size = active_font_size() * float(scale)
-    if minimum is not None:
-        size = max(size, float(minimum))
-    return float(size)
+def figure_size(name: str) -> tuple[float, float]:
+    """Return a named single-column figure size in inches."""
+    return (single_column_width_inches(), _SINGLE_COLUMN_FIGURE_HEIGHTS[name])
 
 
-def model_linewidth() -> float:
-    """Return the active line width for model traces."""
-    return float(mpl.rcParams["lines.linewidth"])
-
-
-def truncation_metric_linewidth() -> float:
-    """Return the active line width for truncation metric traces."""
-    return 0.9 * model_linewidth()
-
-
-def pulse_schedule_linewidth() -> float:
-    """Return the active line width for pulse schedules and flux tracks."""
-    return 0.95 * model_linewidth()
-
-
-def blend_colors(color_a: str | tuple[float, float, float], color_b: str | tuple[float, float, float], weight_b: float) -> tuple[float, float, float]:
-    """Blend two colors in RGB with `weight_b` assigned to `color_b`."""
-    wb = float(np.clip(weight_b, 0.0, 1.0))
-    wa = 1.0 - wb
-    a = np.asarray(mcolors.to_rgb(color_a), dtype=float)
-    b = np.asarray(mcolors.to_rgb(color_b), dtype=float)
-    return tuple(np.clip(wa * a + wb * b, 0.0, 1.0))
-
-
-def lighten_color(color: str | tuple[float, float, float], amount: float) -> tuple[float, float, float]:
-    """Blend a color toward white by `amount`."""
-    return blend_colors(color, (1.0, 1.0, 1.0), amount)
-
-
-def model_color(model: str) -> str:
-    """Shared color for a model trace."""
-    return MODEL_COLORS[model]
+def stacked_figure_size(name: str, row_count: int) -> tuple[float, float]:
+    """Return a named stacked single-column figure size in inches."""
+    if row_count <= 0:
+        raise ValueError(f"row_count must be positive, got {row_count}")
+    row_height_inches, extra_height_inches = _STACKED_FIGURE_HEIGHTS[name]
+    return (single_column_width_inches(), extra_height_inches + row_count * row_height_inches)
 
 
 def energy_level_alpha(level_index: int) -> float:
@@ -87,14 +98,13 @@ def energy_level_alpha(level_index: int) -> float:
     if idx < 0:
         raise ValueError(f"level_index must be non-negative, got {level_index}")
     if idx < len(ENERGY_LEVEL_ALPHAS):
-        return float(ENERGY_LEVEL_ALPHAS[idx])
+        return ENERGY_LEVEL_ALPHAS[idx]
     return FALLBACK_LEVEL_ALPHA
 
 
-def model_level_color(base_color: str | tuple[float, float, float], model: str) -> tuple[float, float, float]:
-    """Preserve a level hue without re-encoding model identity in color."""
-    del model
-    return mcolors.to_rgb(base_color)
+def model_color(model: str) -> str:
+    """Shared color for a model trace."""
+    return MODEL_COLORS[model]
 
 
 def model_plot_kwargs(
@@ -102,13 +112,10 @@ def model_plot_kwargs(
     *,
     color: str | tuple[float, float, float] | None = None,
 ) -> dict[str, object]:
-    """Shared line style for a model trace."""
-    resolved_color = MODEL_COLORS[model] if color is None else color
+    """Shared style for a model trace."""
     return {
         "alpha": MODEL_ALPHAS[model],
-        "linestyle": MODEL_LINESTYLES[model],
-        "color": resolved_color,
-        "linewidth": model_linewidth(),
+        "color": MODEL_COLORS[model] if color is None else color,
     }
 
 
@@ -121,6 +128,11 @@ def model_legend_handles() -> list[Line2D]:
     ]
 
 
+def truncation_metric_plot_kwargs(metric: str) -> dict[str, object]:
+    """Shared style for truncation benchmark metric traces."""
+    return dict(TRUNCATION_METRIC_STYLES[metric])
+
+
 def truncation_metric_legend_handles() -> list[Line2D]:
     """Legend handles for truncation benchmark metric traces."""
     return [
@@ -131,25 +143,11 @@ def truncation_metric_legend_handles() -> list[Line2D]:
 
 
 def pulse_schedule_plot_kwargs(*, alpha: float | None = None) -> dict[str, object]:
-    """Shared style for plotted pulse schedules/flux tracks."""
+    """Shared style for plotted pulse schedules and flux tracks."""
     return {
         "color": PULSE_SCHEDULE_COLOR,
-        "linewidth": pulse_schedule_linewidth(),
         "alpha": PULSE_SCHEDULE_ALPHA if alpha is None else float(alpha),
     }
-
-
-def truncation_metric_plot_kwargs(metric: str) -> dict[str, object]:
-    """Shared style for truncation benchmark metric traces."""
-    return {
-        **TRUNCATION_METRIC_STYLES[metric],
-        "linewidth": truncation_metric_linewidth(),
-    }
-
-
-def apply_benchmark_grid(ax, *, visible: bool = True) -> None:
-    """Apply the shared benchmark grid treatment to an axes."""
-    ax.grid(visible)
 
 
 @contextmanager

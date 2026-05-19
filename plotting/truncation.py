@@ -11,16 +11,13 @@ from comparison.truncation import (
     DuffingTruncationBenchmarkResult,
     TruncationBenchmarkResult,
 )
-from plotting.constants import (
+from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
     TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
     TRUNCATION_METRIC_LEGEND_NCOL,
-)
-from plotting.layout import named_stacked_single_column_figure_size
-from plotting.style import (
-    apply_benchmark_grid,
     benchmark_plot_style,
+    stacked_figure_size,
     truncation_metric_legend_handles,
     truncation_metric_plot_kwargs,
 )
@@ -53,7 +50,7 @@ def _plot_metric_sweeps(
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Error (GHz)")
     ax.set_title(title)
-    apply_benchmark_grid(ax)
+    ax.grid()
     if xticklabels is not None:
         ax.set_xticks(x)
         ax.set_xticklabels(xticklabels, rotation=25, ha="right")
@@ -147,7 +144,7 @@ def plot_circuit_truncation_benchmark(
         fig, axes = plt.subplots(
             len(subplot_specs),
             1,
-            figsize=named_stacked_single_column_figure_size("truncation_single_model", len(subplot_specs)),
+            figsize=stacked_figure_size("truncation_single_model", len(subplot_specs)),
         )
         if not isinstance(axes, np.ndarray):
             axes = np.asarray([axes], dtype=object)
@@ -188,7 +185,7 @@ def plot_duffing_truncation_benchmark(
         fig, axes = plt.subplots(
             len(subplot_specs),
             1,
-            figsize=named_stacked_single_column_figure_size("truncation_single_model", len(subplot_specs)),
+            figsize=stacked_figure_size("truncation_single_model", len(subplot_specs)),
         )
         if not isinstance(axes, np.ndarray):
             axes = np.asarray([axes], dtype=object)
@@ -233,7 +230,7 @@ def plot_truncation_benchmark(
         fig, axes = plt.subplots(
             len(row_order),
             2,
-            figsize=named_stacked_single_column_figure_size("truncation_combined", len(row_order)),
+            figsize=stacked_figure_size("truncation_combined", len(row_order)),
             squeeze=False,
         )
         for row_index, sweep_name in enumerate(row_order):
@@ -267,7 +264,6 @@ def plot_truncation_benchmark(
                 )
             else:
                 right_ax.axis("off")
-        fig.suptitle("Static truncation convergence", y=0.982)
         fig.legend(
             handles=truncation_metric_legend_handles(),
             loc="upper center",

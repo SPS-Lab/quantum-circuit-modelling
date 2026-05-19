@@ -9,24 +9,19 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 from comparison.static import StaticBenchmarkResult
-from plotting.constants import (
+from plotting.leakage_flow import _phase_population_rgb
+from plotting.style import (
     BENCHMARK_TIGHT_LAYOUT_H_PAD,
     BENCHMARK_TIGHT_LAYOUT_RECT,
     BENCHMARK_TIGHT_LAYOUT_W_PAD,
     MODEL_ALPHAS,
     MODEL_LEGEND_BBOX_TO_ANCHOR,
     STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
-    STATIC_LEVEL_LEGEND_FONT_SCALE,
     STATIC_LEVEL_LEGEND_LOC,
     STATIC_LEVEL_LEGEND_NCOL,
-)
-from plotting.layout import named_single_column_figure_size
-from plotting.leakage_flow import _phase_population_rgb
-from plotting.style import (
-    active_font_size,
-    apply_benchmark_grid,
-    energy_level_alpha,
     benchmark_plot_style,
+    energy_level_alpha,
+    figure_size,
     model_color,
     model_legend_handles,
     model_plot_kwargs,
@@ -153,12 +148,11 @@ def _plot_static_energy_panel(
                 effective_relative[:, i],
                 linewidth=1.8,
                 color=model_color("effective"),
-                alpha=model_plot_kwargs("effective")["alpha"] * level_alpha,
+                alpha=MODEL_ALPHAS["effective"] * level_alpha,
             )
 
 
 def _static_level_legend(
-    font_size: float,
     *,
     labels: tuple[str, str, str] = (r"$E_{1}$", r"$E_{2}$", r"$E_{3}$"),
     include_other_levels: bool = True,
@@ -189,8 +183,7 @@ def plot_static_benchmark(
     flux = np.asarray(result.flux_values, dtype=float)
 
     with benchmark_plot_style():
-        font_size = active_font_size()
-        fig, axes = plt.subplots(2, 2, figsize=named_single_column_figure_size("static_main"), sharex=True)
+        fig, axes = plt.subplots(2, 2, figsize=figure_size("static_main"), sharex=True)
         axE, axErr, axJ, axZeta = axes.ravel()
 
         _plot_static_energy_panel(
@@ -202,22 +195,15 @@ def plot_static_benchmark(
             include_other_levels=False,
         )
         axE.set_ylabel("Rel. energies")
-        apply_benchmark_grid(axE)
+        axE.grid()
         axE.legend(
             handles=_static_level_legend(
-                font_size,
                 labels=(r"$E_{01}$", r"$E_{10}$", r"$E_{11}$"),
                 include_other_levels=False,
             ),
             loc=STATIC_LEVEL_LEGEND_LOC,
             bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
             ncol=STATIC_LEVEL_LEGEND_NCOL,
-            fontsize=font_size * STATIC_LEVEL_LEGEND_FONT_SCALE,
-            framealpha=0.9,
-            borderpad=0.25,
-            labelspacing=0.25,
-            handlelength=1.4,
-            columnspacing=0.9,
             title="Computational branches",
         )
 
@@ -229,21 +215,21 @@ def plot_static_benchmark(
         if np.any(result.idle_mask):
             axErr.fill_between(flux, 0.0, y_max * 1.05, where=result.idle_mask, color="C0", alpha=0.05)
         axErr.set_ylabel("Per-flux RMSE")
-        apply_benchmark_grid(axErr)
+        axErr.grid()
 
         axJ.plot(flux, result.circuit_parameters["J"], **model_plot_kwargs("circuit"))
         axJ.plot(flux, result.duffing_parameters["J"], **model_plot_kwargs("duffing"))
         axJ.plot(flux, result.effective_parameters["J"], **model_plot_kwargs("effective"))
         axJ.axhline(0.0, color="0.35", linewidth=1.0)
         axJ.set_ylabel(r"Exchange $J$")
-        apply_benchmark_grid(axJ)
+        axJ.grid()
 
         axZeta.plot(flux, result.circuit_parameters["zeta"], **model_plot_kwargs("circuit"))
         axZeta.plot(flux, result.duffing_parameters["zeta"], **model_plot_kwargs("duffing"))
         axZeta.plot(flux, result.effective_parameters["zeta"], **model_plot_kwargs("effective"))
         axZeta.axhline(0.0, color="0.35", linewidth=1.0)
         axZeta.set_ylabel(r"Residual ZZ $\zeta$")
-        apply_benchmark_grid(axZeta)
+        axZeta.grid()
 
         axes[1, 0].set_xlabel(r"Flux bias ($\phi$)")
         axes[1, 1].set_xlabel(r"Flux bias ($\phi$)")
@@ -266,8 +252,7 @@ def plot_static_raw_energies(
     flux = np.asarray(result.flux_values, dtype=float)
 
     with benchmark_plot_style():
-        font_size = active_font_size()
-        fig, ax = plt.subplots(1, 1, figsize=named_single_column_figure_size("static_raw_energies"), sharex=True)
+        fig, ax = plt.subplots(1, 1, figsize=figure_size("static_raw_energies"), sharex=True)
         _plot_static_energy_panel(
             ax,
             flux,
@@ -279,18 +264,12 @@ def plot_static_raw_energies(
         )
         ax.set_ylabel("Raw energy")
         ax.set_xlabel(r"Flux bias ($\phi$)")
-        apply_benchmark_grid(ax)
+        ax.grid()
         ax.legend(
-            handles=_static_level_legend(font_size),
+            handles=_static_level_legend(),
             loc=STATIC_LEVEL_LEGEND_LOC,
             bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
             ncol=STATIC_LEVEL_LEGEND_NCOL,
-            fontsize=font_size * STATIC_LEVEL_LEGEND_FONT_SCALE,
-            framealpha=0.9,
-            borderpad=0.25,
-            labelspacing=0.25,
-            handlelength=1.4,
-            columnspacing=0.9,
             title="Levels (alpha)",
         )
         fig.legend(
@@ -318,7 +297,7 @@ def plot_static_single_excitation_overlaps(
     flux = np.asarray(result.flux_values, dtype=float)
 
     with benchmark_plot_style():
-        fig, axes = plt.subplots(1, 2, figsize=named_single_column_figure_size("static_overlaps"), sharex=True, sharey=True)
+        fig, axes = plt.subplots(1, 2, figsize=figure_size("static_overlaps"), sharex=True, sharey=True)
         panels = (
             ("circuit", axes[0], np.asarray(result.circuit_computational_bare_overlaps, dtype=float)),
             ("duffing", axes[1], np.asarray(result.duffing_computational_bare_overlaps, dtype=float)),
@@ -338,11 +317,11 @@ def plot_static_single_excitation_overlaps(
                         linestyle=linestyles[branch_offset - 1],
                         linewidth=1.1,
                         label=f"{branch_label} vs {bare_label}",
-                    )
+            )
             ax.set_title(model_name)
             ax.set_xlabel(r"Flux bias ($\phi$)")
             ax.set_ylim(-0.02, 1.02)
-            apply_benchmark_grid(ax)
+            ax.grid()
 
         axes[0].set_ylabel(r"Bare overlap $|\langle \mathrm{bare} | \mathrm{dressed} \rangle|^2$")
         axes[1].legend(loc="upper center", bbox_to_anchor=(0.5, 1.02), ncol=2, framealpha=0.9)
@@ -383,7 +362,7 @@ def plot_static_computational_basis_amplitudes(
     )
 
     with benchmark_plot_style():
-        fig = plt.figure(figsize=named_single_column_figure_size("static_amplitudes"), constrained_layout=True)
+        fig = plt.figure(figsize=figure_size("static_amplitudes"), constrained_layout=True)
         gs = fig.add_gridspec(
             4,
             3,

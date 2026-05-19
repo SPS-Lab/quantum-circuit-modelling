@@ -5,9 +5,13 @@ grid.alpha: 0.25
 grid.color: D0D0D0
 grid.linewidth: 0.5
 legend.frameon: False
+legend.framealpha: 0.9
+legend.borderpad: 0.25
 legend.borderaxespad: 0.2
 legend.handlelength: 1.6
 legend.handletextpad: 0.4
+legend.labelspacing: 0.25
+legend.columnspacing: 0.9
 lines.solid_capstyle: round
 lines.dash_capstyle: round
 patch.linewidth: 0.8
