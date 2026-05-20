@@ -229,11 +229,6 @@ def plot_static_benchmark(
 
         axErr.plot(flux, result.effective_error_rmse, **model_plot_kwargs("effective"))
         axErr.plot(flux, result.duffing_error_rmse, **model_plot_kwargs("duffing"))
-        y_max = float(max(np.max(result.effective_error_rmse), np.max(result.duffing_error_rmse)))
-        if np.any(result.near_mask):
-            axErr.fill_between(flux, 0.0, y_max * 1.05, where=result.near_mask, color="C3", alpha=0.08)
-        if np.any(result.idle_mask):
-            axErr.fill_between(flux, 0.0, y_max * 1.05, where=result.idle_mask, color="C0", alpha=0.05)
         axErr.set_ylabel("Per-flux RMSE")
         axErr.grid()
 
