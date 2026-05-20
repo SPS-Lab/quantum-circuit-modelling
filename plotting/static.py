@@ -109,6 +109,7 @@ def _plot_static_energy_panel(
     circuit_full_relative: np.ndarray | None = None,
     duffing_full_relative: np.ndarray | None = None,
     include_other_levels: bool = True,
+    level_linestyles: tuple[str, str, str] | None = None,
 ) -> None:
     if include_other_levels and circuit_full_relative is not None and duffing_full_relative is not None:
         n_full = int(circuit_full_relative.shape[1])
@@ -131,28 +132,33 @@ def _plot_static_energy_panel(
                 )
 
     for i in (1, 2, 3):
-        level_alpha = energy_level_alpha(i - 1)
+        use_level_linestyle = level_linestyles is not None
+        line_kwargs: dict[str, object] = {}
+        if use_level_linestyle:
+            line_kwargs["linestyle"] = level_linestyles[i - 1]
+        else:
+            line_kwargs["linewidth"] = PRIMARY_LEVEL_LINEWIDTH
         ax.plot(
             flux,
             circuit_relative[:, i],
-            linewidth=PRIMARY_LEVEL_LINEWIDTH,
             color=model_color("circuit"),
-            alpha=MODEL_ALPHAS["circuit"] * level_alpha,
+            alpha=MODEL_ALPHAS["circuit"] if use_level_linestyle else MODEL_ALPHAS["circuit"] * energy_level_alpha(i - 1),
+            **line_kwargs,
         )
         ax.plot(
             flux,
             duffing_relative[:, i],
-            linewidth=PRIMARY_LEVEL_LINEWIDTH,
             color=model_color("duffing"),
-            alpha=MODEL_ALPHAS["duffing"] * level_alpha,
+            alpha=MODEL_ALPHAS["duffing"] if use_level_linestyle else MODEL_ALPHAS["duffing"] * energy_level_alpha(i - 1),
+            **line_kwargs,
         )
         if effective_relative is not None:
             ax.plot(
                 flux,
                 effective_relative[:, i],
-                linewidth=PRIMARY_LEVEL_LINEWIDTH,
                 color=model_color("effective"),
-                alpha=MODEL_ALPHAS["effective"] * level_alpha,
+                alpha=MODEL_ALPHAS["effective"] if use_level_linestyle else MODEL_ALPHAS["effective"] * energy_level_alpha(i - 1),
+                **line_kwargs,
             )
 
 
@@ -160,12 +166,20 @@ def _static_level_legend(
     *,
     labels: tuple[str, str, str] = (r"$E_{1}$", r"$E_{2}$", r"$E_{3}$"),
     include_other_levels: bool = True,
+    linestyles: tuple[str, str, str] | None = None,
 ) -> list[Line2D]:
-    handles = [
-        Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(0), label=labels[0]),
-        Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(1), label=labels[1]),
-        Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(2), label=labels[2]),
-    ]
+    if linestyles is None:
+        handles = [
+            Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(0), label=labels[0]),
+            Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(1), label=labels[1]),
+            Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(2), label=labels[2]),
+        ]
+    else:
+        handles = [
+            Line2D([0], [0], color="0.15", linestyle=linestyles[0], label=labels[0]),
+            Line2D([0], [0], color="0.15", linestyle=linestyles[1], label=labels[1]),
+            Line2D([0], [0], color="0.15", linestyle=linestyles[2], label=labels[2]),
+        ]
     if include_other_levels:
         handles.append(
             Line2D(
@@ -197,6 +211,7 @@ def plot_static_benchmark(
             duffing_relative=result.duffing_relative_energies,
             effective_relative=result.effective_relative_energies,
             include_other_levels=False,
+            level_linestyles=("-", "--", ":"),
         )
         axE.set_ylabel("Rel. energies")
         axE.grid()
@@ -204,6 +219,7 @@ def plot_static_benchmark(
             handles=_static_level_legend(
                 labels=(r"$E_{01}$", r"$E_{10}$", r"$E_{11}$"),
                 include_other_levels=False,
+                linestyles=("-", "--", ":"),
             ),
             loc=STATIC_LEVEL_LEGEND_LOC,
             bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
