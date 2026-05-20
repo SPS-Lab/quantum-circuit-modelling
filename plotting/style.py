@@ -19,7 +19,7 @@ _TEX_POINTS_PER_INCH: float = 72.27
 BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.92)
 # In unit scale of font size, default 1.08
 BENCHMARK_TIGHT_LAYOUT_PAD: float = 0.5
-BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 0.5
+BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 0.0
 BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.5
 
 FIGURE_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.985)

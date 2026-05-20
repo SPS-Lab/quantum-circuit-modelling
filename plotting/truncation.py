@@ -57,7 +57,7 @@ def _plot_metric_sweeps(
     j_abs_error: np.ndarray,
     zeta_abs_error: np.ndarray,
     xlabel: str,
-    title: str,
+    title: str | None,
     xticklabels: list[str] | None = None,
 ) -> None:
     y_series = (
@@ -71,14 +71,15 @@ def _plot_metric_sweeps(
     ax.plot(x, zeta_abs_error, **truncation_metric_plot_kwargs("zeta_abs_error"))
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Error")
-    ax.set_title(title)
+    if title:
+        ax.set_title(title)
     ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
     if y_max > 0.0:
         ax.yaxis.set_major_locator(MultipleLocator(3.0 * 10.0 ** np.floor(np.log10(y_max))))
     ax.grid()
     if xticklabels is not None:
         ax.set_xticks(x)
-        ax.set_xticklabels(xticklabels, rotation=25, ha="right")
+        ax.set_xticklabels(xticklabels)
 
 
 def _circuit_subplot_specs(
@@ -92,7 +93,7 @@ def _circuit_subplot_specs(
             np.asarray(result.circuit_ncut_energy_rmse, dtype=float),
             np.asarray(result.circuit_ncut_j_abs_error, dtype=float),
             np.asarray(result.circuit_ncut_zeta_abs_error, dtype=float),
-            r"$N_Q$",
+            r"Charge dimension ($N_Q$)",
             r"Circuit: $N_Q$ sweep",
             _integer_ticklabels(n_q_values),
         )
@@ -103,7 +104,7 @@ def _circuit_subplot_specs(
             np.asarray(result.circuit_qubit_truncation_energy_rmse, dtype=float),
             np.asarray(result.circuit_qubit_truncation_j_abs_error, dtype=float),
             np.asarray(result.circuit_qubit_truncation_zeta_abs_error, dtype=float),
-            r"$N_{E,q}$",
+            r"Qubit truncation ($N_{E,q}$)",
             r"Circuit: $N_{E,q}$ sweep",
             _integer_ticklabels(qubit_dims),
         )
@@ -114,7 +115,7 @@ def _circuit_subplot_specs(
             np.asarray(result.circuit_coupler_truncation_energy_rmse, dtype=float),
             np.asarray(result.circuit_coupler_truncation_j_abs_error, dtype=float),
             np.asarray(result.circuit_coupler_truncation_zeta_abs_error, dtype=float),
-            r"$N_{E,c}$",
+            r"Coupler truncation ($N_{E,c}$)",
             r"Circuit: $N_{E,c}$ sweep",
             _integer_ticklabels(coupler_dims),
         )
@@ -132,7 +133,7 @@ def _duffing_subplot_specs(
             np.asarray(result.duffing_ncut_energy_rmse, dtype=float),
             np.asarray(result.duffing_ncut_j_abs_error, dtype=float),
             np.asarray(result.duffing_ncut_zeta_abs_error, dtype=float),
-            r"$N_Q$",
+            r"Charge dimension ($N_Q$)",
             r"Duffing: $N_Q$ sweep",
             _integer_ticklabels(n_q_values),
         )
@@ -143,7 +144,7 @@ def _duffing_subplot_specs(
             np.asarray(result.duffing_hilbert_qubit_energy_rmse, dtype=float),
             np.asarray(result.duffing_hilbert_qubit_j_abs_error, dtype=float),
             np.asarray(result.duffing_hilbert_qubit_zeta_abs_error, dtype=float),
-            r"$N_{E,q}$",
+            r"Qubit truncation ($N_{E,q}$)",
             r"Duffing: $N_{E,q}$ sweep",
             _integer_ticklabels(qubit_dims),
         )
@@ -154,7 +155,7 @@ def _duffing_subplot_specs(
             np.asarray(result.duffing_hilbert_coupler_energy_rmse, dtype=float),
             np.asarray(result.duffing_hilbert_coupler_j_abs_error, dtype=float),
             np.asarray(result.duffing_hilbert_coupler_zeta_abs_error, dtype=float),
-            r"$N_{E,c}$",
+            r"Coupler truncation ($N_{E,c}$)",
             r"Duffing: $N_{E,c}$ sweep",
             _integer_ticklabels(coupler_dims),
         )
@@ -258,7 +259,7 @@ def plot_truncation_benchmark(
                     j_abs_error=j_abs_error,
                     zeta_abs_error=zeta_abs_error,
                     xlabel=xlabel,
-                    title=title,
+                    title=None,
                     xticklabels=xticklabels,
                 )
             else:
@@ -272,11 +273,15 @@ def plot_truncation_benchmark(
                     j_abs_error=j_abs_error,
                     zeta_abs_error=zeta_abs_error,
                     xlabel=xlabel,
-                    title=title,
+                    title=None,
                     xticklabels=xticklabels,
                 )
             else:
                 right_ax.axis("off")
+        if axes[0, 0].axison:
+            axes[0, 0].set_title("Circuit")
+        if axes[0, 1].axison:
+            axes[0, 1].set_title("Duffing")
         _add_truncation_metric_figure_legend(fig)
         benchmark_tight_layout(fig)
         save_benchmark_figure(fig, outfile)
