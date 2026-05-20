@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 from matplotlib.lines import Line2D
 import numpy as np
 
@@ -59,12 +60,21 @@ def _plot_metric_sweeps(
     title: str,
     xticklabels: list[str] | None = None,
 ) -> None:
+    y_series = (
+        np.asarray(energy_rmse, dtype=float),
+        np.asarray(j_abs_error, dtype=float),
+        np.asarray(zeta_abs_error, dtype=float),
+    )
+    y_max = max(float(np.nanmax(np.abs(values))) for values in y_series if values.size > 0)
     ax.plot(x, energy_rmse, **truncation_metric_plot_kwargs("energy_rmse"))
     ax.plot(x, j_abs_error, **truncation_metric_plot_kwargs("j_abs_error"))
     ax.plot(x, zeta_abs_error, **truncation_metric_plot_kwargs("zeta_abs_error"))
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Error")
     ax.set_title(title)
+    ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+    if y_max > 0.0:
+        ax.yaxis.set_major_locator(MultipleLocator(3.0 * 10.0 ** np.floor(np.log10(y_max))))
     ax.grid()
     if xticklabels is not None:
         ax.set_xticks(x)
@@ -87,24 +97,26 @@ def _circuit_subplot_specs(
             _integer_ticklabels(n_q_values),
         )
     if np.asarray(result.circuit_qubit_truncated_dim_values).size > 0:
+        qubit_dims = np.asarray(result.circuit_qubit_truncated_dim_values, dtype=float)
         specs["qubit"] = (
-            np.asarray(result.circuit_qubit_truncated_dim_values, dtype=float),
+            qubit_dims,
             np.asarray(result.circuit_qubit_truncation_energy_rmse, dtype=float),
             np.asarray(result.circuit_qubit_truncation_j_abs_error, dtype=float),
             np.asarray(result.circuit_qubit_truncation_zeta_abs_error, dtype=float),
             r"$N_{E,q}$",
             r"Circuit: $N_{E,q}$ sweep",
-            None,
+            _integer_ticklabels(qubit_dims),
         )
     if np.asarray(result.circuit_coupler_truncated_dim_values).size > 0:
+        coupler_dims = np.asarray(result.circuit_coupler_truncated_dim_values, dtype=float)
         specs["coupler"] = (
-            np.asarray(result.circuit_coupler_truncated_dim_values, dtype=float),
+            coupler_dims,
             np.asarray(result.circuit_coupler_truncation_energy_rmse, dtype=float),
             np.asarray(result.circuit_coupler_truncation_j_abs_error, dtype=float),
             np.asarray(result.circuit_coupler_truncation_zeta_abs_error, dtype=float),
             r"$N_{E,c}$",
             r"Circuit: $N_{E,c}$ sweep",
-            None,
+            _integer_ticklabels(coupler_dims),
         )
     return specs
 
@@ -125,24 +137,26 @@ def _duffing_subplot_specs(
             _integer_ticklabels(n_q_values),
         )
     if np.asarray(result.duffing_hilbert_qubit_dim_values).size > 0:
+        qubit_dims = np.asarray(result.duffing_hilbert_qubit_dim_values, dtype=float)
         specs["qubit"] = (
-            np.asarray(result.duffing_hilbert_qubit_dim_values, dtype=float),
+            qubit_dims,
             np.asarray(result.duffing_hilbert_qubit_energy_rmse, dtype=float),
             np.asarray(result.duffing_hilbert_qubit_j_abs_error, dtype=float),
             np.asarray(result.duffing_hilbert_qubit_zeta_abs_error, dtype=float),
             r"$N_{E,q}$",
             r"Duffing: $N_{E,q}$ sweep",
-            None,
+            _integer_ticklabels(qubit_dims),
         )
     if np.asarray(result.duffing_hilbert_coupler_dim_values).size > 0:
+        coupler_dims = np.asarray(result.duffing_hilbert_coupler_dim_values, dtype=float)
         specs["coupler"] = (
-            np.asarray(result.duffing_hilbert_coupler_dim_values, dtype=float),
+            coupler_dims,
             np.asarray(result.duffing_hilbert_coupler_energy_rmse, dtype=float),
             np.asarray(result.duffing_hilbert_coupler_j_abs_error, dtype=float),
             np.asarray(result.duffing_hilbert_coupler_zeta_abs_error, dtype=float),
             r"$N_{E,c}$",
             r"Duffing: $N_{E,c}$ sweep",
-            None,
+            _integer_ticklabels(coupler_dims),
         )
     return specs
 
