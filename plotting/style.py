@@ -71,8 +71,8 @@ _BENCHMARK_STYLE_STACKS: dict[str, tuple[str, ...]] = {
 
 # (width_scale, height_inches)
 _FIGURE_SPECS: dict[str, tuple[float, float]] = {
-    "cz": (0.85, 1.5),
-    "runtime": (1.0, 1.2),
+    "cz": (0.95, 1.7),
+    "runtime": (1.0, 1.5),
     "static_main": (1.0, 2.9),
     "static_raw_energies": (1.0, 2.35),
     "static_overlaps": (1.0, 2.1),
@@ -86,7 +86,7 @@ _STACKED_FIGURE_SPECS: dict[str, dict[int, tuple[float, float]]] = {
         2: (1.0, 2.0),
     },
     "rx_diagnostics": {
-        3: (1.0, 3.0),
+        3: (1.0, 3.4),
     },
     "truncation_single_model": {
         1: (1.0, 1.25),
