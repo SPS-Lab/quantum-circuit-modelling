@@ -79,7 +79,6 @@ def plot_runtime_benchmark(
             **model_plot_kwargs("duffing"),
         )
         ax_prop.set_xlabel(r"$N_{E,q}$")
-        ax_prop.set_ylabel(r"Runtime ($s$)")
         ax_prop.set_title("Propagation")
         ax_prop.grid()
         ax_prop.set_xticks(x)

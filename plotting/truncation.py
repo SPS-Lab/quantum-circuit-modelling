@@ -59,6 +59,7 @@ def _plot_metric_sweeps(
     zeta_abs_error: np.ndarray,
     xlabel: str,
     title: str | None,
+    ylabel: str = "Error",
     xticklabels: list[str] | None = None,
 ) -> None:
     y_series = (
@@ -71,7 +72,7 @@ def _plot_metric_sweeps(
     ax.plot(x, j_abs_error, **truncation_metric_plot_kwargs("j_abs_error"))
     ax.plot(x, zeta_abs_error, **truncation_metric_plot_kwargs("zeta_abs_error"))
     ax.set_xlabel(xlabel)
-    ax.set_ylabel("Error")
+    ax.set_ylabel(ylabel)
     if title:
         ax.set_title(title)
     ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
@@ -261,6 +262,7 @@ def plot_truncation_benchmark(
                     zeta_abs_error=zeta_abs_error,
                     xlabel=xlabel,
                     title=None,
+                    ylabel="Error",
                     xticklabels=xticklabels,
                 )
             else:
@@ -275,6 +277,7 @@ def plot_truncation_benchmark(
                     zeta_abs_error=zeta_abs_error,
                     xlabel=xlabel,
                     title=None,
+                    ylabel="",
                     xticklabels=xticklabels,
                 )
             else:
