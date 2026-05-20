@@ -241,9 +241,10 @@ def plot_leakage_flow_benchmark(
         ax_tr_duf = fig.add_subplot(main_gs[1, 0], sharex=ax_pop_duf)
         ax_tr_cir = fig.add_subplot(main_gs[1, 1], sharex=ax_pop_duf)
 
-        cbar_grid = outer_gs[:, 1].subgridspec(2, 1, hspace=1.45, height_ratios=(1.0, 1.0))
-        ax_cbar_phase = fig.add_subplot(cbar_grid[0, 0])
-        ax_cbar_tr = fig.add_subplot(cbar_grid[1, 0])
+        phase_cbar_gs = outer_gs[0, 1].subgridspec(3, 1, height_ratios=(1.0, 2.2, 1.0), hspace=0.0)
+        transition_cbar_gs = outer_gs[1, 1].subgridspec(3, 1, height_ratios=(1.0, 2.2, 1.0), hspace=0.0)
+        ax_cbar_phase = fig.add_subplot(phase_cbar_gs[1, 0])
+        ax_cbar_tr = fig.add_subplot(transition_cbar_gs[1, 0])
 
         if pop_rgb_duf.size > 0:
             ax_pop_duf.imshow(
