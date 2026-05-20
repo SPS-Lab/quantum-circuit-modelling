@@ -5,11 +5,12 @@ font.serif: STIXGeneral, DejaVu Serif
 font.size: 8.5
 axes.titlesize: 8.5
 axes.labelsize: 8.5
+axes.labelpad: 2.0
 axes.titlepad: 3.5
 xtick.labelsize: 7.6
 ytick.labelsize: 7.6
 legend.fontsize: 7.4
 legend.title_fontsize: 7.4
-lines.linewidth: 1.35
+lines.linewidth: 0.7
 lines.markersize: 2.0
 mathtext.fontset: stix

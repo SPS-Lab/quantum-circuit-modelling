@@ -67,13 +67,13 @@ _BENCHMARK_STYLE_STACKS: dict[str, tuple[str, ...]] = {
 
 # (width_scale, height_inches)
 _FIGURE_SPECS: dict[str, tuple[float, float]] = {
-    "cz": (0.75, 1.5),
-    "runtime": (0.90, 2.0),
-    "static_main": (1.0, 3.1),
-    "static_raw_energies": (0.88, 2.35),
-    "static_overlaps": (0.92, 2.1),
+    "cz": (0.85, 1.5),
+    "runtime": (1.0, 1.2),
+    "static_main": (1.0, 2.9),
+    "static_raw_energies": (1.0, 2.35),
+    "static_overlaps": (1.0, 2.1),
     "static_amplitudes": (1.0, 9.4),
-    "leakage_flow": (1.0, 4.0),
+    "leakage_flow": (1.0, 3.5),
 }
 
 # row_count -> (width_scale, height_inches)
@@ -90,7 +90,7 @@ _STACKED_FIGURE_SPECS: dict[str, dict[int, tuple[float, float]]] = {
         3: (1.0, 3.0),
     },
     "truncation_combined": {
-        3: (1.0, 4.0),
+        3: (1.0, 3.2),
     },
 }
 
