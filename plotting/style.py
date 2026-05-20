@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
@@ -16,7 +17,7 @@ ACM_SIGCONF_TEXT_WIDTH_PT: float = 506.295
 _TEX_POINTS_PER_INCH: float = 72.27
 
 BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.92)
-BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 1.2
+BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 5.0
 BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.9
 
 FIGURE_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.985)
@@ -61,20 +62,34 @@ _BENCHMARK_STYLE_STACKS: dict[str, tuple[str, ...]] = {
     "paper": ("benchmark-base", "benchmark-paper"),
     "presentation": ("benchmark-base", "benchmark-presentation"),
 }
-_SINGLE_COLUMN_FIGURE_HEIGHTS: dict[str, float] = {
-    "cz": 2.3,
-    "runtime": 2.2,
-    "static_main": 3.1,
-    "static_raw_energies": 2.7,
-    "static_overlaps": 2.35,
-    "static_amplitudes": 9.4,
-    "leakage_flow": 4.0,
+
+# (width_scale, height_inches)
+_FIGURE_SPECS: dict[str, tuple[float, float]] = {
+    "cz": (0.75, 1.5),
+    "runtime": (0.90, 2.0),
+    "static_main": (1.0, 3.1),
+    "static_raw_energies": (0.88, 2.35),
+    "static_overlaps": (0.92, 2.1),
+    "static_amplitudes": (1.0, 9.4),
+    "leakage_flow": (1.0, 4.0),
 }
-_STACKED_FIGURE_HEIGHTS: dict[str, tuple[float, float]] = {
-    "rx_populations": (1.0, 1.0),
-    "rx_diagnostics": (1.35, 1.25),
-    "truncation_single_model": (1.35, 1.15),
-    "truncation_combined": (1.15, 1.1),
+
+# row_count -> (width_scale, height_inches)
+_STACKED_FIGURE_SPECS: dict[str, dict[int, tuple[float, float]]] = {
+    "rx_populations": {
+        2: (1.0, 2.0),
+    },
+    "rx_diagnostics": {
+        3: (1.0, 3.0),
+    },
+    "truncation_single_model": {
+        1: (1.0, 1.25),
+        2: (1.0, 2.1),
+        3: (1.0, 3.0),
+    },
+    "truncation_combined": {
+        3: (1.0, 3.0),
+    },
 }
 
 
@@ -89,16 +104,20 @@ def single_column_width_inches() -> float:
 
 
 def figure_size(name: str) -> tuple[float, float]:
-    """Return a named single-column figure size in inches."""
-    return (single_column_width_inches(), _SINGLE_COLUMN_FIGURE_HEIGHTS[name])
+    """Return a named paper figure size in inches."""
+    width_scale, height_inches = _FIGURE_SPECS[name]
+    return (width_scale * single_column_width_inches(), height_inches)
 
 
 def stacked_figure_size(name: str, row_count: int) -> tuple[float, float]:
-    """Return a named stacked single-column figure size in inches."""
+    """Return an explicit named stacked paper figure size in inches."""
     if row_count <= 0:
         raise ValueError(f"row_count must be positive, got {row_count}")
-    row_height_inches, extra_height_inches = _STACKED_FIGURE_HEIGHTS[name]
-    return (single_column_width_inches(), extra_height_inches + row_count * row_height_inches)
+    try:
+        width_scale, height_inches = _STACKED_FIGURE_SPECS[name][row_count]
+    except KeyError as exc:
+        raise ValueError(f"No stacked figure size recipe for {name!r} with row_count={row_count}") from exc
+    return (width_scale * single_column_width_inches(), height_inches)
 
 
 def energy_level_alpha(level_index: int) -> float:
@@ -158,8 +177,13 @@ def truncation_metric_plot_kwargs(metric: str) -> dict[str, object]:
     return dict(TRUNCATION_METRIC_STYLES[metric])
 
 
-
-
+def truncation_metric_legend_handles() -> list[Line2D]:
+    """Legend handles for truncation benchmark metric traces."""
+    return [
+        Line2D([0], [0], label=r"$RMSE_{E,\mathrm{comp}}$", **truncation_metric_plot_kwargs("energy_rmse")),
+        Line2D([0], [0], label=r"$|\Delta J|$", **truncation_metric_plot_kwargs("j_abs_error")),
+        Line2D([0], [0], label=r"$|\Delta \zeta|$", **truncation_metric_plot_kwargs("zeta_abs_error")),
+    ]
 
 def pulse_schedule_plot_kwargs(*, alpha: float | None = None) -> dict[str, object]:
     """Shared style for plotted pulse schedules and flux tracks."""
@@ -189,6 +213,8 @@ def save_benchmark_figure(
 
 @contextmanager
 def benchmark_plot_style() -> Iterator[None]:
-    """Apply the active repo-owned benchmark style stack."""
-    with plt.style.context(benchmark_style_paths()):
-        yield
+    """Apply the active repo-owned benchmark style stack with warnings as errors."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        with plt.style.context(benchmark_style_paths()):
+            yield

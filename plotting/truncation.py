@@ -65,7 +65,7 @@ def _plot_metric_sweeps(
     ax.plot(x, j_abs_error, **truncation_metric_plot_kwargs("j_abs_error"))
     ax.plot(x, zeta_abs_error, **truncation_metric_plot_kwargs("zeta_abs_error"))
     ax.set_xlabel(xlabel)
-    ax.set_ylabel("Error (GHz)")
+    ax.set_ylabel("Error")
     ax.set_title(title)
     ax.grid()
     if xticklabels is not None:
@@ -178,7 +178,11 @@ def plot_circuit_truncation_benchmark(
             )
         fig.suptitle("Circuit static truncation convergence", y=0.982)
         _add_truncation_metric_figure_legend(fig)
-        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.90), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
+        fig.tight_layout(
+            rect=(0.0, 0.0, 1.0, 0.90),
+            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
+            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
+        )
         save_benchmark_figure(fig, outfile)
 
 
@@ -211,7 +215,11 @@ def plot_duffing_truncation_benchmark(
             )
         fig.suptitle("Duffing static truncation convergence", y=0.982)
         _add_truncation_metric_figure_legend(fig)
-        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.90), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
+        fig.tight_layout(
+            rect=(0.0, 0.0, 1.0, 0.90),
+            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
+            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
+        )
         save_benchmark_figure(fig, outfile)
 
 
@@ -223,15 +231,15 @@ def plot_truncation_benchmark(
     duffing_result = DuffingTruncationBenchmarkResult(**result.duffing)
     circuit_specs = _circuit_subplot_specs(circuit_result)
     duffing_specs = _duffing_subplot_specs(duffing_result)
-    row_order = [name for name in ("ncut", "qubit", "coupler") if name in circuit_specs or name in duffing_specs]
-    if not row_order:
+    row_order = ("ncut", "qubit", "coupler")
+    if not any(name in circuit_specs or name in duffing_specs for name in row_order):
         raise ValueError("Combined truncation plot requires at least one populated sweep")
 
     with benchmark_plot_style():
         fig, axes = plt.subplots(
-            len(row_order),
+            3,
             2,
-            figsize=stacked_figure_size("truncation_combined", len(row_order)),
+            figsize=stacked_figure_size("truncation_combined", 3),
             squeeze=False,
         )
         for row_index, sweep_name in enumerate(row_order):
@@ -267,7 +275,7 @@ def plot_truncation_benchmark(
                 right_ax.axis("off")
         _add_truncation_metric_figure_legend(fig)
         fig.tight_layout(
-            rect=(0.0, 0.0, 1.0, 0.90),
+            rect=(0.0, 0.0, 1.0, 0.95),
             h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
             w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
         )

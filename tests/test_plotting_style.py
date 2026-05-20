@@ -15,6 +15,7 @@ from plotting.style import (
     benchmark_plot_style,
     benchmark_style_paths,
     energy_level_alpha,
+    figure_size,
     model_legend_handles,
     model_plot_kwargs,
     single_column_width_inches,
@@ -75,3 +76,9 @@ def test_benchmark_style_paths_point_to_repo_owned_stylesheets() -> None:
     assert ACTIVE_BENCHMARK_STYLE == "paper"
     assert ACM_SIGCONF_COLUMN_WIDTH_PT == 241.14749
     assert all(Path(path).exists() for path in benchmark_style_paths())
+
+
+def test_simple_single_axis_figures_can_be_narrower_than_full_column() -> None:
+    assert figure_size("cz")[0] < single_column_width_inches()
+    assert figure_size("static_raw_energies")[0] < single_column_width_inches()
+    assert figure_size("runtime")[0] < single_column_width_inches()
