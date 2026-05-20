@@ -18,9 +18,9 @@ _TEX_POINTS_PER_INCH: float = 72.27
 
 BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.92)
 # In unit scale of font size, default 1.08
-BENCHMARK_TIGHT_LAYOUT_PAD: float = 0.5
+BENCHMARK_TIGHT_LAYOUT_PAD: float = 0.0
 BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 0.0
-BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.5
+BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.0
 
 FIGURE_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.985)
 
@@ -218,17 +218,10 @@ def pulse_schedule_plot_kwargs(*, alpha: float | None = None) -> dict[str, objec
 def save_benchmark_figure(
     fig: plt.Figure,
     outfile: Path,
-    *,
-    bbox_inches: str | None = None,
-    pad_inches: float | None = None,
 ) -> None:
     """Persist a benchmark figure and close it."""
     outfile.parent.mkdir(parents=True, exist_ok=True)
     save_kwargs: dict[str, object] = {"format": "pdf"}
-    if bbox_inches is not None:
-        save_kwargs["bbox_inches"] = bbox_inches
-    if pad_inches is not None:
-        save_kwargs["pad_inches"] = pad_inches
     fig.savefig(outfile, **save_kwargs)
     plt.close(fig)
 
