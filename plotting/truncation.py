@@ -15,6 +15,7 @@ from comparison.truncation import (
 )
 from plotting.style import (
     FIGURE_LEGEND_BBOX_TO_ANCHOR,
+    add_column_title,
     benchmark_tight_layout,
     benchmark_plot_style,
     save_benchmark_figure,
@@ -279,9 +280,9 @@ def plot_truncation_benchmark(
             else:
                 right_ax.axis("off")
         if axes[0, 0].axison:
-            axes[0, 0].set_title("Circuit")
+            add_column_title(axes[0, 0], "Circuit")
         if axes[0, 1].axison:
-            axes[0, 1].set_title("Duffing")
+            add_column_title(axes[0, 1], "Duffing")
         _add_truncation_metric_figure_legend(fig)
         benchmark_tight_layout(fig)
         save_benchmark_figure(fig, outfile)

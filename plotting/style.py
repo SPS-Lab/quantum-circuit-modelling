@@ -23,6 +23,10 @@ BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 0.0
 BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.5
 
 FIGURE_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.985)
+
+COLUMN_TITLE_PAD: float = 11
+COLUMN_TITLE_FONTSIZE_EXTRA: float = 2
+
 STATIC_LEVEL_LEGEND_LOC: str = "upper center"
 STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 1.3)
 STATIC_LEVEL_LEGEND_NCOL: int = 3
@@ -187,6 +191,9 @@ def truncation_metric_legend_handles() -> list[Line2D]:
         Line2D([0], [0], label=r"$|\Delta \zeta|$", **truncation_metric_plot_kwargs("zeta_abs_error")),
     ]
 
+def add_column_title(axes: plt.Axes, title: str) -> None:
+    """Add larger title to top Axes of column"""
+    axes.set_title(title, pad=COLUMN_TITLE_PAD, fontsize=plt.rcParams['axes.titlesize']+COLUMN_TITLE_FONTSIZE_EXTRA)
 
 def benchmark_tight_layout(
     fig: plt.Figure,
