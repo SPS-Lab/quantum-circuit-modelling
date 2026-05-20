@@ -17,8 +17,10 @@ ACM_SIGCONF_TEXT_WIDTH_PT: float = 506.295
 _TEX_POINTS_PER_INCH: float = 72.27
 
 BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.92)
-BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 5.0
-BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.9
+# In unit scale of font size, default 1.08
+BENCHMARK_TIGHT_LAYOUT_PAD: float = 0.5
+BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 0.5
+BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.5
 
 FIGURE_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.985)
 STATIC_LEVEL_LEGEND_LOC: str = "lower center"
@@ -88,7 +90,7 @@ _STACKED_FIGURE_SPECS: dict[str, dict[int, tuple[float, float]]] = {
         3: (1.0, 3.0),
     },
     "truncation_combined": {
-        3: (1.0, 3.0),
+        3: (1.0, 4.0),
     },
 }
 
@@ -184,6 +186,19 @@ def truncation_metric_legend_handles() -> list[Line2D]:
         Line2D([0], [0], label=r"$|\Delta J|$", **truncation_metric_plot_kwargs("j_abs_error")),
         Line2D([0], [0], label=r"$|\Delta \zeta|$", **truncation_metric_plot_kwargs("zeta_abs_error")),
     ]
+
+
+def benchmark_tight_layout(
+    fig: plt.Figure,
+) -> None:
+    """Apply the shared tight_layout policy for benchmark figures."""
+    fig.tight_layout(
+        rect=BENCHMARK_TIGHT_LAYOUT_RECT,
+        pad=BENCHMARK_TIGHT_LAYOUT_PAD,
+        h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
+        w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD
+    )
+
 
 def pulse_schedule_plot_kwargs(*, alpha: float | None = None) -> dict[str, object]:
     """Shared style for plotted pulse schedules and flux tracks."""

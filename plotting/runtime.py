@@ -9,9 +9,8 @@ import numpy as np
 
 from comparison.runtime import RuntimeBenchmarkResult
 from plotting.style import (
-    BENCHMARK_TIGHT_LAYOUT_H_PAD,
-    BENCHMARK_TIGHT_LAYOUT_W_PAD,
     add_model_figure_legend,
+    benchmark_tight_layout,
     benchmark_plot_style,
     figure_size,
     model_legend_handles,
@@ -91,9 +90,5 @@ def plot_runtime_benchmark(
             ncol=2,
         )
 
-        fig.tight_layout(
-            rect=(0.0, 0.0, 1.0, 0.90),
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
+        benchmark_tight_layout(fig)
         save_benchmark_figure(fig, outfile)

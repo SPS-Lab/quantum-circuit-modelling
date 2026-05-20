@@ -12,9 +12,6 @@ from comparison.static import StaticBenchmarkResult
 from plotting.leakage_flow import _phase_population_rgb
 from plotting.style import (
     ANCILLARY_LEVEL_LINEWIDTH,
-    BENCHMARK_TIGHT_LAYOUT_H_PAD,
-    BENCHMARK_TIGHT_LAYOUT_RECT,
-    BENCHMARK_TIGHT_LAYOUT_W_PAD,
     COMPARISON_LINEWIDTH,
     MODEL_ALPHAS,
     PRIMARY_LEVEL_LINEWIDTH,
@@ -25,6 +22,7 @@ from plotting.style import (
     STATIC_LEVEL_LEGEND_LOC,
     STATIC_LEVEL_LEGEND_NCOL,
     add_model_figure_legend,
+    benchmark_tight_layout,
     benchmark_plot_style,
     energy_level_alpha,
     figure_size,
@@ -240,11 +238,7 @@ def plot_static_benchmark(
         axes[1, 0].set_xlabel(r"Flux bias ($\phi$)")
         axes[1, 1].set_xlabel(r"Flux bias ($\phi$)")
         add_model_figure_legend(fig)
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
+        benchmark_tight_layout(fig)
         save_benchmark_figure(fig, outfile)
 
 
@@ -276,11 +270,7 @@ def plot_static_raw_energies(
             title="Levels (alpha)",
         )
         add_model_figure_legend(fig)
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
+        benchmark_tight_layout(fig)
         save_benchmark_figure(fig, outfile)
 
 
@@ -319,11 +309,7 @@ def plot_static_single_excitation_overlaps(
 
         axes[0].set_ylabel(r"Bare overlap $|\langle \mathrm{bare} | \mathrm{dressed} \rangle|^2$")
         axes[1].legend(loc="upper center", bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR, ncol=2)
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
+        benchmark_tight_layout(fig)
         save_benchmark_figure(fig, outfile)
 
 

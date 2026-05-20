@@ -11,5 +11,5 @@ ytick.labelsize: 7.6
 legend.fontsize: 7.4
 legend.title_fontsize: 7.4
 lines.linewidth: 1.35
-lines.markersize: 4.0
+lines.markersize: 2.0
 mathtext.fontset: stix

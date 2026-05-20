@@ -9,12 +9,10 @@ import numpy as np
 
 from comparison.rx import RxBenchmarkResult
 from plotting.style import (
-    BENCHMARK_TIGHT_LAYOUT_H_PAD,
-    BENCHMARK_TIGHT_LAYOUT_RECT,
-    BENCHMARK_TIGHT_LAYOUT_W_PAD,
     PULSE_BACKGROUND_ALPHA,
     PULSE_BACKGROUND_FILL_ALPHA,
     add_model_figure_legend,
+    benchmark_tight_layout,
     benchmark_plot_style,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
@@ -88,11 +86,7 @@ def plot_rx_populations_benchmark(
         ax_10.grid()
 
         add_model_figure_legend(fig)
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
+        benchmark_tight_layout(fig)
         save_benchmark_figure(fig, outfile)
 
 
@@ -146,9 +140,5 @@ def plot_rx_diagnostics_benchmark(
         ax_delta.grid()
 
         add_model_figure_legend(fig)
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
+        benchmark_tight_layout(fig)
         save_benchmark_figure(fig, outfile)

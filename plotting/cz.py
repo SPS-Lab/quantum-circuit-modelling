@@ -9,9 +9,8 @@ import numpy as np
 
 from comparison.cz import CzBenchmarkResult
 from plotting.style import (
-    BENCHMARK_TIGHT_LAYOUT_H_PAD,
-    BENCHMARK_TIGHT_LAYOUT_W_PAD,
     add_model_figure_legend,
+    benchmark_tight_layout,
     benchmark_plot_style,
     figure_size,
     model_plot_kwargs,
@@ -94,9 +93,5 @@ def plot_cz_benchmark(
         )
 
         add_model_figure_legend(fig)
-        fig.tight_layout(
-            rect=(0.0, 0.0, 1.0, 0.87),
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
+        benchmark_tight_layout(fig)
         save_benchmark_figure(fig, outfile)
