@@ -87,10 +87,11 @@ def plot_cz_benchmark(
         )[0]
         ax_flux.set_ylabel(r"Flux bias ($\phi$)")
         ax_flux.grid(False)
-        ax_flux.legend(
+        flux_legend = ax_flux.legend(
             handles=[flux_line],
             loc="lower right",
         )
+        flux_legend.set_in_layout(False)
 
         legend = add_model_figure_legend(fig)
         benchmark_tight_layout(fig, reserve_artists=[legend])
