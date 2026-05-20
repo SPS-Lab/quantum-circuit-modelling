@@ -85,8 +85,8 @@ def plot_rx_populations_benchmark(
         ax_10.set_ylim(-0.02, 1.02)
         ax_10.grid()
 
-        add_model_figure_legend(fig)
-        benchmark_tight_layout(fig)
+        legend = add_model_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
         save_benchmark_figure(fig, outfile)
 
 
@@ -139,6 +139,6 @@ def plot_rx_diagnostics_benchmark(
         ax_delta.set_ylabel("Magnitude")
         ax_delta.grid()
 
-        add_model_figure_legend(fig)
-        benchmark_tight_layout(fig)
+        legend = add_model_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
         save_benchmark_figure(fig, outfile)

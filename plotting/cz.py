@@ -92,6 +92,6 @@ def plot_cz_benchmark(
             loc="lower right",
         )
 
-        add_model_figure_legend(fig)
-        benchmark_tight_layout(fig)
+        legend = add_model_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
         save_benchmark_figure(fig, outfile)

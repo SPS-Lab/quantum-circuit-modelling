@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Iterator
 
 import matplotlib.pyplot as plt
+from matplotlib.artist import Artist
 from matplotlib.lines import Line2D
 
 ACTIVE_BENCHMARK_STYLE: str = "paper"
@@ -16,13 +17,14 @@ ACM_SIGCONF_COLUMN_WIDTH_PT: float = 241.14749
 ACM_SIGCONF_TEXT_WIDTH_PT: float = 506.295
 _TEX_POINTS_PER_INCH: float = 72.27
 
-BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.92)
+BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 1.0)
 # In unit scale of font size, default 1.08
 BENCHMARK_TIGHT_LAYOUT_PAD: float = 0.0
 BENCHMARK_TIGHT_LAYOUT_H_PAD: float = 0.0
 BENCHMARK_TIGHT_LAYOUT_W_PAD: float = 0.0
+BENCHMARK_TIGHT_LAYOUT_TOP_GAP: float = 0.01
 
-FIGURE_LEGEND_BBOX_TO_ANCHOR: tuple[float, float] = (0.5, 0.985)
+FIGURE_LEGEND_TOP_MARGIN_INCHES: float = 0.07
 
 COLUMN_TITLE_PAD: float = 11
 COLUMN_TITLE_FONTSIZE_EXTRA: float = 2
@@ -162,19 +164,27 @@ def model_legend_handles() -> list[Line2D]:
     ]
 
 
+def figure_legend_bbox_to_anchor(fig: plt.Figure) -> tuple[float, float]:
+    """Return a figure-legend anchor with a fixed physical top margin."""
+    _, fig_height_inches = fig.get_size_inches()
+    if fig_height_inches <= 0.0:
+        return (0.5, 0.985)
+    return (0.5, 1.0 - FIGURE_LEGEND_TOP_MARGIN_INCHES / float(fig_height_inches))
+
+
 def add_model_figure_legend(
     fig: plt.Figure,
     *,
     handles: list[Line2D] | None = None,
     ncol: int = 3,
-    bbox_to_anchor: tuple[float, float] = FIGURE_LEGEND_BBOX_TO_ANCHOR,
-) -> None:
+    bbox_to_anchor: tuple[float, float] | None = None,
+) -> Artist:
     """Add the shared model legend to a figure."""
-    fig.legend(
+    return fig.legend(
         handles=model_legend_handles() if handles is None else handles,
         loc="upper center",
         ncol=ncol,
-        bbox_to_anchor=bbox_to_anchor,
+        bbox_to_anchor=figure_legend_bbox_to_anchor(fig) if bbox_to_anchor is None else bbox_to_anchor,
     )
 
 
@@ -197,10 +207,21 @@ def add_column_title(axes: plt.Axes, title: str) -> None:
 
 def benchmark_tight_layout(
     fig: plt.Figure,
+    *,
+    reserve_artists: list[Artist] | None = None,
 ) -> None:
     """Apply the shared tight_layout policy for benchmark figures."""
+    rect = list(BENCHMARK_TIGHT_LAYOUT_RECT)
+    if reserve_artists:
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        top_limit = rect[3]
+        for artist in reserve_artists:
+            bbox = artist.get_window_extent(renderer=renderer).transformed(fig.transFigure.inverted())
+            top_limit = min(top_limit, float(bbox.y0) - BENCHMARK_TIGHT_LAYOUT_TOP_GAP)
+        rect[3] = max(rect[1] + 0.1, top_limit)
     fig.tight_layout(
-        rect=BENCHMARK_TIGHT_LAYOUT_RECT,
+        rect=tuple(rect),
         pad=BENCHMARK_TIGHT_LAYOUT_PAD,
         h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
         w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD

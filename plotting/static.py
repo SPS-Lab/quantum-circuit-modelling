@@ -248,8 +248,8 @@ def plot_static_benchmark(
 
         axes[1, 0].set_xlabel(r"Flux bias ($\phi$)")
         axes[1, 1].set_xlabel(r"Flux bias ($\phi$)")
-        add_model_figure_legend(fig)
-        benchmark_tight_layout(fig)
+        legend = add_model_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
         save_benchmark_figure(fig, outfile)
 
 
@@ -280,8 +280,8 @@ def plot_static_raw_energies(
             ncol=STATIC_LEVEL_LEGEND_NCOL,
             title="Levels (alpha)",
         )
-        add_model_figure_legend(fig)
-        benchmark_tight_layout(fig)
+        legend = add_model_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
         save_benchmark_figure(fig, outfile)
 
 

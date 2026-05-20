@@ -14,10 +14,10 @@ from comparison.truncation import (
     TruncationBenchmarkResult,
 )
 from plotting.style import (
-    FIGURE_LEGEND_BBOX_TO_ANCHOR,
     add_column_title,
     benchmark_tight_layout,
     benchmark_plot_style,
+    figure_legend_bbox_to_anchor,
     save_benchmark_figure,
     stacked_figure_size,
     truncation_metric_plot_kwargs,
@@ -31,11 +31,11 @@ def _truncation_metric_legend_handles() -> list[Line2D]:
     ]
 
 
-def _add_truncation_metric_figure_legend(fig: plt.Figure) -> None:
-    fig.legend(
+def _add_truncation_metric_figure_legend(fig: plt.Figure):
+    return fig.legend(
         handles=_truncation_metric_legend_handles(),
         loc="upper center",
-        bbox_to_anchor=FIGURE_LEGEND_BBOX_TO_ANCHOR,
+        bbox_to_anchor=figure_legend_bbox_to_anchor(fig),
         ncol=3
     )
 
@@ -191,8 +191,8 @@ def plot_circuit_truncation_benchmark(
                 xticklabels=xticklabels,
             )
         fig.suptitle("Circuit static truncation convergence", y=0.982)
-        _add_truncation_metric_figure_legend(fig)
-        benchmark_tight_layout(fig)
+        legend = _add_truncation_metric_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
         save_benchmark_figure(fig, outfile)
 
 
@@ -224,8 +224,8 @@ def plot_duffing_truncation_benchmark(
                 xticklabels=xticklabels,
             )
         fig.suptitle("Duffing static truncation convergence", y=0.982)
-        _add_truncation_metric_figure_legend(fig)
-        benchmark_tight_layout(fig)
+        legend = _add_truncation_metric_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
         save_benchmark_figure(fig, outfile)
 
 
@@ -283,6 +283,6 @@ def plot_truncation_benchmark(
             add_column_title(axes[0, 0], "Circuit")
         if axes[0, 1].axison:
             add_column_title(axes[0, 1], "Duffing")
-        _add_truncation_metric_figure_legend(fig)
-        benchmark_tight_layout(fig)
+        legend = _add_truncation_metric_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
         save_benchmark_figure(fig, outfile)

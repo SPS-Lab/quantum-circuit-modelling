@@ -84,11 +84,11 @@ def plot_runtime_benchmark(
         ax_prop.grid()
         ax_prop.set_xticks(x)
 
-        add_model_figure_legend(
+        legend = add_model_figure_legend(
             fig,
             handles=model_legend_handles()[:2],
             ncol=2,
         )
 
-        benchmark_tight_layout(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
         save_benchmark_figure(fig, outfile)
