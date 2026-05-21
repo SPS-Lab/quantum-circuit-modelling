@@ -18,7 +18,7 @@ $$\\{\gamma~,~c_{0}~,~c_{r_0}~,~c_{r_1}~,~c_{\mathrm{prod}}~,~c_{{r_0},\mathrm{s
 
 each as
 
-$$O(\phi) = c_{0} + c_{r_1}~r_0(\phi) + c_{r_2}~r_1(\phi) + c_{\mathrm{prod}}~(r_1(\phi)~r_2(\phi)) + c_{r_0,\mathrm{sq}}~r_0(\phi)^2 + c_{r_1,\mathrm{sq}}~r_0(\phi)^2\quad O=J,\zeta$$
+$$O(\phi) = c_{0} + c_{r_0}~r_0(\phi) + c_{r_1}~r_1(\phi) + c_{\mathrm{prod}}~(r_0(\phi)~r_1(\phi)) + c_{r_0,\mathrm{sq}}~r_0(\phi)^2 + c_{r_1,\mathrm{sq}}~r_1(\phi)^2\quad O=J,\zeta$$
 
 where
 
