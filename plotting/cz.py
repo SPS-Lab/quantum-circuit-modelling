@@ -10,7 +10,6 @@ import numpy as np
 from comparison.cz import CzBenchmarkResult
 from plotting.style import (
     add_model_figure_legend,
-    benchmark_tight_layout,
     benchmark_plot_style,
     figure_size,
     model_plot_kwargs,
@@ -90,9 +89,11 @@ def plot_cz_benchmark(
         flux_legend = ax_flux.legend(
             handles=[flux_line],
             loc="lower right",
+            bbox_to_anchor=(0.93, 0.02),
         )
         flux_legend.set_in_layout(False)
 
         legend = add_model_figure_legend(fig)
-        benchmark_tight_layout(fig, reserve_artists=[legend])
+        legend.set_in_layout(False)
+        fig.subplots_adjust(left=0.13, right=0.87, bottom=0.20, top=0.80)
         save_benchmark_figure(fig, outfile)
