@@ -158,9 +158,9 @@ def model_plot_kwargs(
 def model_legend_handles() -> list[Line2D]:
     """Legend handles that encode model identity consistently across plots."""
     return [
-        Line2D([0], [0], label="circuit", **model_plot_kwargs("circuit")),
-        Line2D([0], [0], label="duffing", **model_plot_kwargs("duffing")),
-        Line2D([0], [0], label="effective", **model_plot_kwargs("effective")),
+        Line2D([0], [0], label="Circuit", **model_plot_kwargs("circuit")),
+        Line2D([0], [0], label="Duffing", **model_plot_kwargs("duffing")),
+        Line2D([0], [0], label="Effective", **model_plot_kwargs("effective")),
     ]
 
 

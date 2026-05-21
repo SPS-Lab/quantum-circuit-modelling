@@ -53,7 +53,7 @@ def plot_runtime_benchmark(
             label="duffing",
             **model_plot_kwargs("duffing"),
         )
-        ax_build.set_xlabel(r"$N_{E,q}$")
+        ax_build.set_xlabel(r"Qubit truncation ($N_{E,q}$)")
         ax_build.set_ylabel(r"Runtime ($s$)")
         ax_build.set_title("Build")
         ax_build.grid()
@@ -77,7 +77,7 @@ def plot_runtime_benchmark(
             label="duffing",
             **model_plot_kwargs("duffing"),
         )
-        ax_prop.set_xlabel(r"$N_{E,q}$")
+        ax_prop.set_xlabel(r"Qubit truncation ($N_{E,q}$)")
         ax_prop.set_title("Propagation")
         ax_prop.grid()
         ax_prop.set_xticks(x)

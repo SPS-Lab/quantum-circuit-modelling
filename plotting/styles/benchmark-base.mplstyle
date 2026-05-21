@@ -1,14 +1,13 @@
 axes.axisbelow: True
 axes.grid: False
-axes.linewidth: 0.8
+axes.linewidth: 0.6
 grid.alpha: 0.25
 grid.color: D0D0D0
 grid.linewidth: 0.5
-legend.frameon: True
+legend.frameon: False
 legend.fancybox: False
 legend.framealpha: 1.0
 legend.facecolor: none
-legend.edgecolor: red
 legend.borderpad: 0.25
 legend.borderaxespad: 0.2
 legend.handlelength: 1.6

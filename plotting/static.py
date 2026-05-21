@@ -109,7 +109,7 @@ def _plot_static_energy_panel(
     circuit_full_relative: np.ndarray | None = None,
     duffing_full_relative: np.ndarray | None = None,
     include_other_levels: bool = True,
-    level_linestyles: tuple[str, str, str] | None = None,
+    level_linestyles: tuple[object, object, object] | None = None,
 ) -> None:
     if include_other_levels and circuit_full_relative is not None and duffing_full_relative is not None:
         n_full = int(circuit_full_relative.shape[1])
@@ -166,7 +166,7 @@ def _static_level_legend(
     *,
     labels: tuple[str, str, str] = (r"$E_{1}$", r"$E_{2}$", r"$E_{3}$"),
     include_other_levels: bool = True,
-    linestyles: tuple[str, str, str] | None = None,
+    linestyles: tuple[object, object, object] | None = None,
 ) -> list[Line2D]:
     if linestyles is None:
         handles = [
@@ -211,7 +211,11 @@ def plot_static_benchmark(
             duffing_relative=result.duffing_relative_energies,
             effective_relative=result.effective_relative_energies,
             include_other_levels=False,
-            level_linestyles=("-", "--", ":"),
+            level_linestyles=(
+                "solid",
+                (0, (4.0, 1.6)),
+                (0, (1, 4)),
+            ),
         )
         axE.set_ylabel("Rel. energies")
         axE.grid()
@@ -219,7 +223,11 @@ def plot_static_benchmark(
             handles=_static_level_legend(
                 labels=(r"$E_{01}$", r"$E_{10}$", r"$E_{11}$"),
                 include_other_levels=False,
-                linestyles=("-", "--", ":"),
+                linestyles=(
+                    "solid",
+                    (0, (4.0, 1.6)),
+                    (0, (1, 4)),
+                ),
             ),
             loc=STATIC_LEVEL_LEGEND_LOC,
             bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
