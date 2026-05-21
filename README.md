@@ -1,6 +1,6 @@
 # scmodels
 
-Code to answer the question "Which Superconducting-Qubit Model Is Good Enough?"
+Code used in "Which Superconducting-Qubit Model Is Good Enough?" (to be published in ICS Workshops ’26).
 
 Calibration details for the models presented in the paper is presented in [docs/calibration.md](docs/calibration.md).
 
