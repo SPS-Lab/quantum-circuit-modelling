@@ -61,7 +61,11 @@ The parameters used in the paper are presented below.
 | $\zeta$ | $c_{r_1,\mathrm{sq}}$ | 1.614140e+05 |
 | $\zeta$ | $c_{r_2,\mathrm{sq}}$ | 4.327856e-02 |
 
-## Symbolic Duffing fitted coefficients
+## Duffing model
+
+
+
+
 <!-- Experiment folder: 20260518_044450_static_4c84263 -->
 <!-- Git provenance: commit=ec5eefc12b7f2d6c0ac0a52b515112259108625c (short=ec5eefc), branch=plotting-dev, dirty=true -->
 
