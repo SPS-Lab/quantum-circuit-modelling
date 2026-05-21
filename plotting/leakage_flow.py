@@ -15,7 +15,12 @@ from matplotlib.colors import hsv_to_rgb
 import numpy as np
 
 from comparison.leakage_flow import LeakageFlowBenchmarkResult
-from plotting.style import DEFAULT_PLOT_FONT_SIZE, benchmark_plot_style, pulse_schedule_plot_kwargs
+from plotting.style import (
+    benchmark_plot_style,
+    figure_size,
+    pulse_schedule_plot_kwargs,
+    save_benchmark_figure,
+)
 
 
 def _decode_labels(labels: np.ndarray) -> list[str]:
@@ -189,11 +194,16 @@ def _overlay_flux_track(
     )
 
 
+def _add_row_side_label(fig: plt.Figure, ax: plt.Axes, text: str) -> None:
+    bbox = ax.get_position()
+    x = bbox.x0 - 0.018
+    y = 0.5 * (bbox.y0 + bbox.y1)
+    fig.text(x, y, text, rotation="vertical", va="center", ha="center")
+
+
 def plot_leakage_flow_benchmark(
     result: LeakageFlowBenchmarkResult,
     outfile: Path,
-    title: str,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float).ravel()
 
@@ -216,9 +226,8 @@ def plot_leakage_flow_benchmark(
             1e-12,
         )
     )
-    tick_font_size = max(10.0, 0.75 * float(font_size))
-
-    with benchmark_plot_style(font_size):
+    with benchmark_plot_style():
+        tick_font_size = 6.1
         transition_cmap = mcolors.LinearSegmentedColormap.from_list(
             "transition_blue_gray_red",
             [
@@ -229,26 +238,16 @@ def plot_leakage_flow_benchmark(
             N=256,
         )
 
-        fig = plt.figure(figsize=(13.5, 10.2))
-        outer_gs = fig.add_gridspec(
+        fig, axes = plt.subplots(
             2,
             2,
-            width_ratios=(1.0, 0.08),
-            height_ratios=(1.0, 1.0),
-            hspace=0.28,
-            wspace=0.12,
+            figsize=figure_size("leakage_flow"),
+            sharex=True,
+            gridspec_kw={"hspace": 0.28, "wspace": 0.98},
         )
-        main_gs = outer_gs[:, 0].subgridspec(2, 2, hspace=0.28, wspace=0.42)
-
-        ax_pop_duf = fig.add_subplot(main_gs[0, 0])
-        ax_pop_cir = fig.add_subplot(main_gs[0, 1], sharex=ax_pop_duf)
-        ax_tr_duf = fig.add_subplot(main_gs[1, 0], sharex=ax_pop_duf)
-        ax_tr_cir = fig.add_subplot(main_gs[1, 1], sharex=ax_pop_duf)
-
-        cbar_grid = outer_gs[:, 1].subgridspec(2, 1, hspace=0.45, height_ratios=(1.0, 1.0))
-        ax_cbar_phase = fig.add_subplot(cbar_grid[0, 0])
-        ax_cbar_tr = fig.add_subplot(cbar_grid[1, 0])
-        fig.subplots_adjust(left=0.01, right=0.99, bottom=0.15, top=0.85)
+        fig.subplots_adjust(left=0.05, right=0.90, bottom=0.10, top=0.95)
+        ax_pop_duf, ax_pop_cir = axes[0]
+        ax_tr_duf, ax_tr_cir = axes[1]
 
         if pop_rgb_duf.size > 0:
             ax_pop_duf.imshow(
@@ -274,15 +273,6 @@ def plot_leakage_flow_benchmark(
         else:
             ax_pop_cir.text(0.5, 0.5, "No states selected", ha="center", va="center", transform=ax_pop_cir.transAxes)
 
-        _set_center_shared_y_labels(
-            fig,
-            ax_pop_duf,
-            ax_pop_cir,
-            pop_labels,
-            transition=False,
-            tick_font_size=tick_font_size,
-        )
-
         im_tr = ax_tr_duf.imshow(
             tr_duf.T if tr_duf.size > 0 else np.zeros((1, t.size), dtype=float),
             aspect="auto",
@@ -306,15 +296,6 @@ def plot_leakage_flow_benchmark(
             cmap=transition_cmap,
             zorder=2,
         )
-        _set_center_shared_y_labels(
-            fig,
-            ax_tr_duf,
-            ax_tr_cir,
-            tr_labels,
-            transition=True,
-            tick_font_size=tick_font_size,
-        )
-
         _overlay_flux_track(
             ax_pop_duf,
             times_ns=t,
@@ -348,28 +329,53 @@ def plot_leakage_flow_benchmark(
             n_rows=max(1, tr_cir.shape[1]),
         )
 
-        ax_pop_duf.set_title("Duffing population+phase")
-        ax_pop_cir.set_title("Circuit population+phase")
+        ax_pop_duf.set_title("Duffing evolution")
+        ax_pop_cir.set_title("Circuit evolution")
         ax_tr_duf.set_title("Duffing transitions")
         ax_tr_cir.set_title("Circuit transitions")
-
-        ax_pop_duf.set_ylabel("States")
-        ax_tr_duf.set_ylabel("Transitions")
 
         ax_tr_duf.set_xlabel("Time (ns)")
         ax_tr_cir.set_xlabel("Time (ns)")
 
         phase_mappable = plt.cm.ScalarMappable(cmap="hsv", norm=plt.Normalize(vmin=-np.pi, vmax=np.pi))
         phase_mappable.set_array([])
-        cbar_phase = fig.colorbar(phase_mappable, cax=ax_cbar_phase)
+        cbar_phase = fig.colorbar(
+            phase_mappable,
+            ax=[ax_pop_duf, ax_pop_cir],
+            fraction=0.04,
+            pad=0.03,
+            shrink=0.82,
+        )
         cbar_phase.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
-        cbar_phase.set_ticklabels(["$-\\pi$", "$-\\pi/2$", "$0$", "$\\pi/2$", "$\\pi$"])
+        cbar_phase.set_ticklabels(["$-\\pi$", "$-\\frac{\\pi}{2}$", "$0$", "$\\frac{\\pi}{2}$", "$\\pi$"])
         cbar_phase.set_label("Phase hue (rad)")
-        #ax_cbar_phase.set_title("Color strength ~ sqrt(population)", fontsize=max(9.0, 0.62 * float(font_size)))
 
-        cbar_tr = fig.colorbar(im_tr, cax=ax_cbar_tr)
+        cbar_tr = fig.colorbar(
+            im_tr,
+            ax=[ax_tr_duf, ax_tr_cir],
+            fraction=0.04,
+            pad=0.03,
+            shrink=0.82,
+        )
         cbar_tr.set_label("Signed current (1/ns)")
 
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf", bbox_inches="tight", pad_inches=0.04)
-        plt.close(fig)
+        _set_center_shared_y_labels(
+            fig,
+            ax_pop_duf,
+            ax_pop_cir,
+            pop_labels,
+            transition=False,
+            tick_font_size=tick_font_size,
+        )
+        _set_center_shared_y_labels(
+            fig,
+            ax_tr_duf,
+            ax_tr_cir,
+            tr_labels,
+            transition=True,
+            tick_font_size=tick_font_size,
+        )
+        _add_row_side_label(fig, ax_pop_duf, "States")
+        _add_row_side_label(fig, ax_tr_duf, "Transitions")
+
+        save_benchmark_figure(fig, outfile)

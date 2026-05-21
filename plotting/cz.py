@@ -9,13 +9,12 @@ import numpy as np
 
 from comparison.cz import CzBenchmarkResult
 from plotting.style import (
-    BENCHMARK_TIGHT_LAYOUT_H_PAD,
-    BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    DEFAULT_PLOT_FONT_SIZE,
+    add_model_figure_legend,
     benchmark_plot_style,
-    model_legend_handles,
+    figure_size,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
+    save_benchmark_figure,
 )
 
 
@@ -24,9 +23,9 @@ def _pi_over_two_tick_label(k: int) -> str:
     if k == 0:
         return "0"
     if k == 1:
-        return r"$\pi/2$"
+        return r"$\frac{\pi}{2}$"
     if k == -1:
-        return r"$-\pi/2$"
+        return r"$-\frac{\pi}{2}$"
     if k % 2 == 0:
         half = k // 2
         if half == 1:
@@ -34,7 +33,7 @@ def _pi_over_two_tick_label(k: int) -> str:
         if half == -1:
             return r"$-\pi$"
         return rf"${half}\pi$"
-    return rf"${k}\pi/2$"
+    return rf"$\frac{{{k}\pi}}{{2}}$"
 
 
 def _set_phase_axis_pi_ticks(ax: plt.Axes, phase_arrays: list[np.ndarray]) -> None:
@@ -56,19 +55,17 @@ def _set_phase_axis_pi_ticks(ax: plt.Axes, phase_arrays: list[np.ndarray]) -> No
 def plot_cz_benchmark(
     result: CzBenchmarkResult,
     outfile: Path,
-    title: str,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    with benchmark_plot_style(font_size):
-        fig = plt.figure(figsize=(8.5, 4.8))
+    with benchmark_plot_style():
+        fig = plt.figure(figsize=figure_size("cz"))
         ax_phase = fig.add_subplot(1, 1, 1)
         ax_flux = ax_phase.twinx()
 
-        ax_phase.plot(t, result.circuit_conditional_phase, linewidth=2.0, **model_plot_kwargs("circuit"))
-        ax_phase.plot(t, result.duffing_conditional_phase, linewidth=2.0, **model_plot_kwargs("duffing"))
-        ax_phase.plot(t, result.effective_conditional_phase, linewidth=2.0, **model_plot_kwargs("effective"))
+        ax_phase.plot(t, result.circuit_conditional_phase, **model_plot_kwargs("circuit"))
+        ax_phase.plot(t, result.duffing_conditional_phase, **model_plot_kwargs("duffing"))
+        ax_phase.plot(t, result.effective_conditional_phase, **model_plot_kwargs("effective"))
         _set_phase_axis_pi_ticks(
             ax_phase,
             [
@@ -79,7 +76,7 @@ def plot_cz_benchmark(
         )
         ax_phase.set_ylabel("CPhase (rad)")
         ax_phase.set_xlabel("Time (ns)")
-        ax_phase.grid(True, alpha=0.3)
+        ax_phase.grid()
 
         flux_line = ax_flux.plot(
             t,
@@ -89,25 +86,14 @@ def plot_cz_benchmark(
         )[0]
         ax_flux.set_ylabel(r"Flux bias ($\phi$)")
         ax_flux.grid(False)
-        ax_flux.legend(
+        flux_legend = ax_flux.legend(
             handles=[flux_line],
             loc="lower right",
-            frameon=False,
+            bbox_to_anchor=(0.93, 0.02),
         )
+        flux_legend.set_in_layout(False)
 
-        fig.legend(
-            handles=model_legend_handles(),
-            loc="upper center",
-            ncol=3,
-            frameon=False,
-            bbox_to_anchor=(0.5, 0.955),
-        )
-        fig.tight_layout(
-            rect=(0.0, 0.0, 1.0, 0.87),
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
-
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        legend = add_model_figure_legend(fig)
+        legend.set_in_layout(False)
+        fig.subplots_adjust(left=0.13, right=0.87, bottom=0.20, top=0.80)
+        save_benchmark_figure(fig, outfile)

@@ -4,6 +4,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
+from matplotlib.lines import Line2D
 import numpy as np
 
 from comparison.truncation import (
@@ -12,14 +14,30 @@ from comparison.truncation import (
     TruncationBenchmarkResult,
 )
 from plotting.style import (
-    BENCHMARK_TIGHT_LAYOUT_H_PAD,
-    BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    DEFAULT_PLOT_FONT_SIZE,
+    add_column_title,
+    benchmark_tight_layout,
     benchmark_plot_style,
-    TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
-    TRUNCATION_METRIC_LEGEND_NCOL,
-    truncation_metric_legend_handles,
+    figure_legend_bbox_to_anchor,
+    save_benchmark_figure,
+    stacked_figure_size,
+    truncation_metric_plot_kwargs,
 )
+
+def _truncation_metric_legend_handles() -> list[Line2D]:
+    return [
+        Line2D([0], [0], label=r"$RMSE_{E,\mathrm{comp}}$", **truncation_metric_plot_kwargs("energy_rmse")),
+        Line2D([0], [0], label=r"$|\Delta J|$", **truncation_metric_plot_kwargs("j_abs_error")),
+        Line2D([0], [0], label=r"$|\Delta \zeta|$", **truncation_metric_plot_kwargs("zeta_abs_error")),
+    ]
+
+
+def _add_truncation_metric_figure_legend(fig: plt.Figure):
+    return fig.legend(
+        handles=_truncation_metric_legend_handles(),
+        loc="upper center",
+        bbox_to_anchor=figure_legend_bbox_to_anchor(fig),
+        ncol=3
+    )
 
 
 def _charge_basis_dim_from_ncut(ncut_values: np.ndarray) -> np.ndarray:
@@ -40,19 +58,30 @@ def _plot_metric_sweeps(
     j_abs_error: np.ndarray,
     zeta_abs_error: np.ndarray,
     xlabel: str,
-    title: str,
+    title: str | None,
+    ylabel: str = "Error",
     xticklabels: list[str] | None = None,
 ) -> None:
-    ax.plot(x, energy_rmse, marker="s", linewidth=1.6)
-    ax.plot(x, j_abs_error, marker="^", linewidth=1.6)
-    ax.plot(x, zeta_abs_error, marker="d", linewidth=1.6)
+    y_series = (
+        np.asarray(energy_rmse, dtype=float),
+        np.asarray(j_abs_error, dtype=float),
+        np.asarray(zeta_abs_error, dtype=float),
+    )
+    y_max = max(float(np.nanmax(np.abs(values))) for values in y_series if values.size > 0)
+    ax.plot(x, energy_rmse, **truncation_metric_plot_kwargs("energy_rmse"))
+    ax.plot(x, j_abs_error, **truncation_metric_plot_kwargs("j_abs_error"))
+    ax.plot(x, zeta_abs_error, **truncation_metric_plot_kwargs("zeta_abs_error"))
     ax.set_xlabel(xlabel)
-    ax.set_ylabel("Error (GHz)")
-    ax.set_title(title)
-    ax.grid(True, alpha=0.3)
+    ax.set_ylabel(ylabel)
+    if title:
+        ax.set_title(title)
+    ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+    if y_max > 0.0:
+        ax.yaxis.set_major_locator(MultipleLocator(3.0 * 10.0 ** np.floor(np.log10(y_max))))
+    ax.grid()
     if xticklabels is not None:
         ax.set_xticks(x)
-        ax.set_xticklabels(xticklabels, rotation=25, ha="right")
+        ax.set_xticklabels(xticklabels)
 
 
 def _circuit_subplot_specs(
@@ -66,29 +95,31 @@ def _circuit_subplot_specs(
             np.asarray(result.circuit_ncut_energy_rmse, dtype=float),
             np.asarray(result.circuit_ncut_j_abs_error, dtype=float),
             np.asarray(result.circuit_ncut_zeta_abs_error, dtype=float),
-            r"$N_Q$",
+            r"Charge dimension ($N_Q$)",
             r"Circuit: $N_Q$ sweep",
             _integer_ticklabels(n_q_values),
         )
     if np.asarray(result.circuit_qubit_truncated_dim_values).size > 0:
+        qubit_dims = np.asarray(result.circuit_qubit_truncated_dim_values, dtype=float)
         specs["qubit"] = (
-            np.asarray(result.circuit_qubit_truncated_dim_values, dtype=float),
+            qubit_dims,
             np.asarray(result.circuit_qubit_truncation_energy_rmse, dtype=float),
             np.asarray(result.circuit_qubit_truncation_j_abs_error, dtype=float),
             np.asarray(result.circuit_qubit_truncation_zeta_abs_error, dtype=float),
-            r"$N_{E,q}$",
+            r"Qubit truncation ($N_{E,q}$)",
             r"Circuit: $N_{E,q}$ sweep",
-            None,
+            _integer_ticklabels(qubit_dims),
         )
     if np.asarray(result.circuit_coupler_truncated_dim_values).size > 0:
+        coupler_dims = np.asarray(result.circuit_coupler_truncated_dim_values, dtype=float)
         specs["coupler"] = (
-            np.asarray(result.circuit_coupler_truncated_dim_values, dtype=float),
+            coupler_dims,
             np.asarray(result.circuit_coupler_truncation_energy_rmse, dtype=float),
             np.asarray(result.circuit_coupler_truncation_j_abs_error, dtype=float),
             np.asarray(result.circuit_coupler_truncation_zeta_abs_error, dtype=float),
-            r"$N_{E,c}$",
+            r"Coupler truncation ($N_{E,c}$)",
             r"Circuit: $N_{E,c}$ sweep",
-            None,
+            _integer_ticklabels(coupler_dims),
         )
     return specs
 
@@ -104,29 +135,31 @@ def _duffing_subplot_specs(
             np.asarray(result.duffing_ncut_energy_rmse, dtype=float),
             np.asarray(result.duffing_ncut_j_abs_error, dtype=float),
             np.asarray(result.duffing_ncut_zeta_abs_error, dtype=float),
-            r"$N_Q$",
+            r"Charge dimension ($N_Q$)",
             r"Duffing: $N_Q$ sweep",
             _integer_ticklabels(n_q_values),
         )
     if np.asarray(result.duffing_hilbert_qubit_dim_values).size > 0:
+        qubit_dims = np.asarray(result.duffing_hilbert_qubit_dim_values, dtype=float)
         specs["qubit"] = (
-            np.asarray(result.duffing_hilbert_qubit_dim_values, dtype=float),
+            qubit_dims,
             np.asarray(result.duffing_hilbert_qubit_energy_rmse, dtype=float),
             np.asarray(result.duffing_hilbert_qubit_j_abs_error, dtype=float),
             np.asarray(result.duffing_hilbert_qubit_zeta_abs_error, dtype=float),
-            r"$N_{E,q}$",
+            r"Qubit truncation ($N_{E,q}$)",
             r"Duffing: $N_{E,q}$ sweep",
-            None,
+            _integer_ticklabels(qubit_dims),
         )
     if np.asarray(result.duffing_hilbert_coupler_dim_values).size > 0:
+        coupler_dims = np.asarray(result.duffing_hilbert_coupler_dim_values, dtype=float)
         specs["coupler"] = (
-            np.asarray(result.duffing_hilbert_coupler_dim_values, dtype=float),
+            coupler_dims,
             np.asarray(result.duffing_hilbert_coupler_energy_rmse, dtype=float),
             np.asarray(result.duffing_hilbert_coupler_j_abs_error, dtype=float),
             np.asarray(result.duffing_hilbert_coupler_zeta_abs_error, dtype=float),
-            r"$N_{E,c}$",
+            r"Coupler truncation ($N_{E,c}$)",
             r"Duffing: $N_{E,c}$ sweep",
-            None,
+            _integer_ticklabels(coupler_dims),
         )
     return specs
 
@@ -134,16 +167,17 @@ def _duffing_subplot_specs(
 def plot_circuit_truncation_benchmark(
     result: CircuitTruncationBenchmarkResult,
     outfile: Path,
-    *,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     subplot_specs = list(_circuit_subplot_specs(result).values())
     if not subplot_specs:
         raise ValueError("Circuit truncation plot requires at least one populated sweep")
 
-    with benchmark_plot_style(font_size):
-        fig_height = max(4.4, 4.2 * len(subplot_specs))
-        fig, axes = plt.subplots(len(subplot_specs), 1, figsize=(6.6, fig_height))
+    with benchmark_plot_style():
+        fig, axes = plt.subplots(
+            len(subplot_specs),
+            1,
+            figsize=stacked_figure_size("truncation_single_model", len(subplot_specs)),
+        )
         if not isinstance(axes, np.ndarray):
             axes = np.asarray([axes], dtype=object)
         for ax, (x, energy_rmse, j_abs_error, zeta_abs_error, xlabel, title, xticklabels) in zip(axes, subplot_specs):
@@ -158,32 +192,25 @@ def plot_circuit_truncation_benchmark(
                 xticklabels=xticklabels,
             )
         fig.suptitle("Circuit static truncation convergence", y=0.982)
-        fig.legend(
-            handles=truncation_metric_legend_handles(),
-            loc="upper center",
-            bbox_to_anchor=TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
-            ncol=TRUNCATION_METRIC_LEGEND_NCOL,
-            frameon=True,
-        )
-        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.91), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        legend = _add_truncation_metric_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
+        save_benchmark_figure(fig, outfile)
 
 
 def plot_duffing_truncation_benchmark(
     result: DuffingTruncationBenchmarkResult,
     outfile: Path,
-    *,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     subplot_specs = list(_duffing_subplot_specs(result).values())
     if not subplot_specs:
         raise ValueError("Duffing truncation plot requires at least one populated sweep")
 
-    with benchmark_plot_style(font_size):
-        fig_height = max(4.4, 4.2 * len(subplot_specs))
-        fig, axes = plt.subplots(len(subplot_specs), 1, figsize=(6.6, fig_height))
+    with benchmark_plot_style():
+        fig, axes = plt.subplots(
+            len(subplot_specs),
+            1,
+            figsize=stacked_figure_size("truncation_single_model", len(subplot_specs)),
+        )
         if not isinstance(axes, np.ndarray):
             axes = np.asarray([axes], dtype=object)
         for ax, (x, energy_rmse, j_abs_error, zeta_abs_error, xlabel, title, xticklabels) in zip(axes, subplot_specs):
@@ -198,36 +225,30 @@ def plot_duffing_truncation_benchmark(
                 xticklabels=xticklabels,
             )
         fig.suptitle("Duffing static truncation convergence", y=0.982)
-        fig.legend(
-            handles=truncation_metric_legend_handles(),
-            loc="upper center",
-            bbox_to_anchor=TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
-            ncol=TRUNCATION_METRIC_LEGEND_NCOL,
-            frameon=True,
-        )
-        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.91), h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD, w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD)
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        legend = _add_truncation_metric_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
+        save_benchmark_figure(fig, outfile)
 
 
 def plot_truncation_benchmark(
     result: TruncationBenchmarkResult,
     outfile: Path,
-    *,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     circuit_result = CircuitTruncationBenchmarkResult(**result.circuit)
     duffing_result = DuffingTruncationBenchmarkResult(**result.duffing)
     circuit_specs = _circuit_subplot_specs(circuit_result)
     duffing_specs = _duffing_subplot_specs(duffing_result)
-    row_order = [name for name in ("ncut", "qubit", "coupler") if name in circuit_specs or name in duffing_specs]
-    if not row_order:
+    row_order = ("ncut", "qubit", "coupler")
+    if not any(name in circuit_specs or name in duffing_specs for name in row_order):
         raise ValueError("Combined truncation plot requires at least one populated sweep")
 
-    with benchmark_plot_style(font_size):
-        fig_height = max(4.8, 3.9 * len(row_order))
-        fig, axes = plt.subplots(len(row_order), 2, figsize=(12.2, fig_height), squeeze=False)
+    with benchmark_plot_style():
+        fig, axes = plt.subplots(
+            3,
+            2,
+            figsize=stacked_figure_size("truncation_combined", 3),
+            squeeze=False,
+        )
         for row_index, sweep_name in enumerate(row_order):
             left_ax = axes[row_index, 0]
             right_ax = axes[row_index, 1]
@@ -240,7 +261,8 @@ def plot_truncation_benchmark(
                     j_abs_error=j_abs_error,
                     zeta_abs_error=zeta_abs_error,
                     xlabel=xlabel,
-                    title=title,
+                    title=None,
+                    ylabel="Error",
                     xticklabels=xticklabels,
                 )
             else:
@@ -254,24 +276,16 @@ def plot_truncation_benchmark(
                     j_abs_error=j_abs_error,
                     zeta_abs_error=zeta_abs_error,
                     xlabel=xlabel,
-                    title=title,
+                    title=None,
+                    ylabel="",
                     xticklabels=xticklabels,
                 )
             else:
                 right_ax.axis("off")
-        fig.suptitle("Static truncation convergence", y=0.982)
-        fig.legend(
-            handles=truncation_metric_legend_handles(),
-            loc="upper center",
-            bbox_to_anchor=TRUNCATION_METRIC_LEGEND_BBOX_TO_ANCHOR,
-            ncol=TRUNCATION_METRIC_LEGEND_NCOL,
-            frameon=True,
-        )
-        fig.tight_layout(
-            rect=(0.0, 0.0, 1.0, 0.91),
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        if axes[0, 0].axison:
+            add_column_title(axes[0, 0], "Circuit")
+        if axes[0, 1].axison:
+            add_column_title(axes[0, 1], "Duffing")
+        legend = _add_truncation_metric_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
+        save_benchmark_figure(fig, outfile)

@@ -125,8 +125,7 @@ def main() -> None:
         )
         save_result_hdf5(result, results_path, benchmark_name="cz")
 
-    title = "CZ Benchmark: Flux And CPhase"
-    plot_cz_benchmark(result, figure_path, title)
+    plot_cz_benchmark(result, figure_path)
 
     for line in build_common_truncation_lines(config):
         reporter.line(line)

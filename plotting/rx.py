@@ -9,14 +9,15 @@ import numpy as np
 
 from comparison.rx import RxBenchmarkResult
 from plotting.style import (
-    BENCHMARK_TIGHT_LAYOUT_H_PAD,
-    BENCHMARK_TIGHT_LAYOUT_RECT,
-    BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    DEFAULT_PLOT_FONT_SIZE,
+    PULSE_BACKGROUND_ALPHA,
+    PULSE_BACKGROUND_FILL_ALPHA,
+    add_model_figure_legend,
+    benchmark_tight_layout,
     benchmark_plot_style,
-    model_legend_handles,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
+    save_benchmark_figure,
+    stacked_figure_size,
 )
 
 
@@ -28,14 +29,14 @@ def _add_drive_background(ax: plt.Axes, times_ns: np.ndarray, envelope: np.ndarr
     bg.plot(
         np.asarray(times_ns, dtype=float),
         float(amplitude) * np.asarray(envelope, dtype=float),
-        **pulse_schedule_plot_kwargs(alpha=0.35),
+        **pulse_schedule_plot_kwargs(alpha=PULSE_BACKGROUND_ALPHA),
     )
     bg.fill_between(
         np.asarray(times_ns, dtype=float),
         0.0,
         float(amplitude) * np.asarray(envelope, dtype=float),
         color=pulse_schedule_plot_kwargs()["color"],
-        alpha=0.08,
+        alpha=PULSE_BACKGROUND_FILL_ALPHA,
     )
     bg.set_ylim(0.0, max(1e-12, 1.05 * float(amplitude)))
     bg.set_yticks([])
@@ -46,12 +47,16 @@ def _add_drive_background(ax: plt.Axes, times_ns: np.ndarray, envelope: np.ndarr
 def plot_rx_populations_benchmark(
     result: RxBenchmarkResult,
     outfile: Path,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    with benchmark_plot_style(font_size):
-        fig, axes = plt.subplots(2, 1, figsize=(9.8, 7.2), sharex=True)
+    with benchmark_plot_style():
+        fig, axes = plt.subplots(
+            2,
+            1,
+            figsize=stacked_figure_size("rx_populations", 2),
+            sharex=True,
+        )
         ax_00, ax_10 = axes
 
         for ax in axes:
@@ -62,51 +67,42 @@ def plot_rx_populations_benchmark(
             ("duffing", result.duffing_pop_00_to_01),
             ("effective", result.effective_pop_00_to_01),
         ):
-            ax_00.plot(t, y, linewidth=2.2, **model_plot_kwargs(model))
+            ax_00.plot(t, y, **model_plot_kwargs(model))
         ax_00.set_title(r"Population $|00\rangle \rightarrow |01\rangle$")
         ax_00.set_ylabel("Population")
         ax_00.set_ylim(-0.02, 1.02)
-        ax_00.grid(True, alpha=0.3)
+        ax_00.grid()
 
         for model, y in (
             ("circuit", result.circuit_pop_10_to_11),
             ("duffing", result.duffing_pop_10_to_11),
             ("effective", result.effective_pop_10_to_11),
         ):
-            ax_10.plot(t, y, linewidth=2.2, **model_plot_kwargs(model))
+            ax_10.plot(t, y, **model_plot_kwargs(model))
         ax_10.set_title(r"Population $|10\rangle \rightarrow |11\rangle$")
         ax_10.set_xlabel("Time (ns)")
         ax_10.set_ylabel("Population")
         ax_10.set_ylim(-0.02, 1.02)
-        ax_10.grid(True, alpha=0.3)
+        ax_10.grid()
 
-        fig.legend(
-            handles=model_legend_handles(),
-            loc="upper center",
-            ncol=3,
-            frameon=False,
-            bbox_to_anchor=(0.5, 0.985),
-        )
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
-
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        legend = add_model_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
+        save_benchmark_figure(fig, outfile)
 
 
 def plot_rx_diagnostics_benchmark(
     result: RxBenchmarkResult,
     outfile: Path,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    with benchmark_plot_style(font_size):
-        fig, axes = plt.subplots(3, 1, figsize=(9.8, 9.2), sharex=True)
+    with benchmark_plot_style():
+        fig, axes = plt.subplots(
+            3,
+            1,
+            figsize=stacked_figure_size("rx_diagnostics", 3),
+            sharex=True,
+        )
         ax_leak_00, ax_leak_10, ax_delta = axes
 
         for ax in axes:
@@ -117,45 +113,32 @@ def plot_rx_diagnostics_benchmark(
             ("duffing", result.duffing_leakage_from_00),
             ("effective", result.effective_leakage_from_00),
         ):
-            ax_leak_00.plot(t, y, linewidth=2.2, **model_plot_kwargs(model))
+            ax_leak_00.plot(t, y, **model_plot_kwargs(model))
         ax_leak_00.set_title(r"Leakage From $|00\rangle$")
         ax_leak_00.set_ylabel("Leakage")
-        ax_leak_00.grid(True, alpha=0.3)
+        ax_leak_00.grid()
 
         for model, y in (
             ("circuit", result.circuit_leakage_from_10),
             ("duffing", result.duffing_leakage_from_10),
             ("effective", result.effective_leakage_from_10),
         ):
-            ax_leak_10.plot(t, y, linewidth=2.2, **model_plot_kwargs(model))
+            ax_leak_10.plot(t, y, **model_plot_kwargs(model))
         ax_leak_10.set_title(r"Leakage From $|10\rangle$")
         ax_leak_10.set_ylabel("Leakage")
-        ax_leak_10.grid(True, alpha=0.3)
+        ax_leak_10.grid()
 
         for model, y in (
             ("circuit", result.circuit_spectator_population_delta),
             ("duffing", result.duffing_spectator_population_delta),
             ("effective", result.effective_spectator_population_delta),
         ):
-            ax_delta.plot(t, y, linewidth=2.2, **model_plot_kwargs(model))
+            ax_delta.plot(t, y, **model_plot_kwargs(model))
         ax_delta.set_title(r"Spectator Mismatch $|P_{00\rightarrow01} - P_{10\rightarrow11}|$")
         ax_delta.set_xlabel("Time (ns)")
         ax_delta.set_ylabel("Magnitude")
-        ax_delta.grid(True, alpha=0.3)
+        ax_delta.grid()
 
-        fig.legend(
-            handles=model_legend_handles(),
-            loc="upper center",
-            ncol=3,
-            frameon=False,
-            bbox_to_anchor=(0.5, 0.985),
-        )
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
-
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        legend = add_model_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
+        save_benchmark_figure(fig, outfile)

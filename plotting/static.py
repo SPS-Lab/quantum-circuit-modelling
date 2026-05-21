@@ -11,22 +11,24 @@ from matplotlib.lines import Line2D
 from comparison.static import StaticBenchmarkResult
 from plotting.leakage_flow import _phase_population_rgb
 from plotting.style import (
-    BENCHMARK_TIGHT_LAYOUT_H_PAD,
-    BENCHMARK_TIGHT_LAYOUT_RECT,
-    BENCHMARK_TIGHT_LAYOUT_W_PAD,
-    DEFAULT_PLOT_FONT_SIZE,
-    MODEL_LEGEND_BBOX_TO_ANCHOR,
-    MODEL_ALPHA_CIRCUIT,
-    MODEL_ALPHA_DUFFING,
-    energy_level_alpha,
+    ANCILLARY_LEVEL_LINEWIDTH,
+    COMPARISON_LINEWIDTH,
+    MODEL_ALPHAS,
+    PRIMARY_LEVEL_LINEWIDTH,
+    REFERENCE_LINE_COLOR,
+    REFERENCE_LINEWIDTH,
+    SECONDARY_LEVEL_LINEWIDTH,
     STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
-    STATIC_LEVEL_LEGEND_FONT_SCALE,
     STATIC_LEVEL_LEGEND_LOC,
     STATIC_LEVEL_LEGEND_NCOL,
+    add_model_figure_legend,
+    benchmark_tight_layout,
     benchmark_plot_style,
+    energy_level_alpha,
+    figure_size,
     model_color,
-    model_legend_handles,
     model_plot_kwargs,
+    save_benchmark_figure,
 )
 
 
@@ -107,6 +109,7 @@ def _plot_static_energy_panel(
     circuit_full_relative: np.ndarray | None = None,
     duffing_full_relative: np.ndarray | None = None,
     include_other_levels: bool = True,
+    level_linestyles: tuple[object, object, object] | None = None,
 ) -> None:
     if include_other_levels and circuit_full_relative is not None and duffing_full_relative is not None:
         n_full = int(circuit_full_relative.shape[1])
@@ -117,61 +120,73 @@ def _plot_static_energy_panel(
                     flux,
                     circuit_full_relative[:, i],
                     color=model_color("circuit"),
-                    linewidth=0.8,
-                    alpha=MODEL_ALPHA_CIRCUIT * level_alpha * 0.45,
+                    linewidth=SECONDARY_LEVEL_LINEWIDTH,
+                    alpha=MODEL_ALPHAS["circuit"] * level_alpha * 0.45,
                 )
                 ax.plot(
                     flux,
                     duffing_full_relative[:, i],
                     color=model_color("duffing"),
-                    linewidth=0.8,
-                    alpha=MODEL_ALPHA_DUFFING * level_alpha * 0.45,
+                    linewidth=SECONDARY_LEVEL_LINEWIDTH,
+                    alpha=MODEL_ALPHAS["duffing"] * level_alpha * 0.45,
                 )
 
     for i in (1, 2, 3):
-        level_alpha = energy_level_alpha(i - 1)
+        use_level_linestyle = level_linestyles is not None
+        line_kwargs: dict[str, object] = {}
+        if use_level_linestyle:
+            line_kwargs["linestyle"] = level_linestyles[i - 1]
+        else:
+            line_kwargs["linewidth"] = PRIMARY_LEVEL_LINEWIDTH
         ax.plot(
             flux,
             circuit_relative[:, i],
-            linewidth=1.8,
             color=model_color("circuit"),
-            alpha=MODEL_ALPHA_CIRCUIT * level_alpha,
+            alpha=MODEL_ALPHAS["circuit"] if use_level_linestyle else MODEL_ALPHAS["circuit"] * energy_level_alpha(i - 1),
+            **line_kwargs,
         )
         ax.plot(
             flux,
             duffing_relative[:, i],
-            linewidth=1.8,
             color=model_color("duffing"),
-            alpha=MODEL_ALPHA_DUFFING * level_alpha,
+            alpha=MODEL_ALPHAS["duffing"] if use_level_linestyle else MODEL_ALPHAS["duffing"] * energy_level_alpha(i - 1),
+            **line_kwargs,
         )
         if effective_relative is not None:
             ax.plot(
                 flux,
                 effective_relative[:, i],
-                linewidth=1.8,
                 color=model_color("effective"),
-                alpha=model_plot_kwargs("effective")["alpha"] * level_alpha,
+                alpha=MODEL_ALPHAS["effective"] if use_level_linestyle else MODEL_ALPHAS["effective"] * energy_level_alpha(i - 1),
+                **line_kwargs,
             )
 
 
 def _static_level_legend(
-    font_size: float,
     *,
     labels: tuple[str, str, str] = (r"$E_{1}$", r"$E_{2}$", r"$E_{3}$"),
     include_other_levels: bool = True,
+    linestyles: tuple[object, object, object] | None = None,
 ) -> list[Line2D]:
-    handles = [
-        Line2D([0], [0], color="0.15", linewidth=1.8, alpha=energy_level_alpha(0), label=labels[0]),
-        Line2D([0], [0], color="0.15", linewidth=1.8, alpha=energy_level_alpha(1), label=labels[1]),
-        Line2D([0], [0], color="0.15", linewidth=1.8, alpha=energy_level_alpha(2), label=labels[2]),
-    ]
+    if linestyles is None:
+        handles = [
+            Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(0), label=labels[0]),
+            Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(1), label=labels[1]),
+            Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(2), label=labels[2]),
+        ]
+    else:
+        handles = [
+            Line2D([0], [0], color="0.15", linestyle=linestyles[0], label=labels[0]),
+            Line2D([0], [0], color="0.15", linestyle=linestyles[1], label=labels[1]),
+            Line2D([0], [0], color="0.15", linestyle=linestyles[2], label=labels[2]),
+        ]
     if include_other_levels:
         handles.append(
             Line2D(
                 [0],
                 [0],
                 color="0.15",
-                linewidth=1.1,
+                linewidth=ANCILLARY_LEVEL_LINEWIDTH,
                 alpha=energy_level_alpha(3) * 0.7,
                 label="other levels",
             )
@@ -182,13 +197,11 @@ def _static_level_legend(
 def plot_static_benchmark(
     result: StaticBenchmarkResult,
     outfile: Path,
-    title: str,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
 
-    with benchmark_plot_style(font_size):
-        fig, axes = plt.subplots(2, 2, figsize=(11.0, 8.0), sharex=True)
+    with benchmark_plot_style():
+        fig, axes = plt.subplots(2, 2, figsize=figure_size("static_main"), sharex=True)
         axE, axErr, axJ, axZeta = axes.ravel()
 
         _plot_static_energy_panel(
@@ -198,75 +211,64 @@ def plot_static_benchmark(
             duffing_relative=result.duffing_relative_energies,
             effective_relative=result.effective_relative_energies,
             include_other_levels=False,
+            level_linestyles=(
+                "solid",
+                (0, (4.0, 1.6)),
+                (0, (1, 4)),
+            ),
         )
         axE.set_ylabel("Rel. energies")
-        axE.grid(True, alpha=0.3)
+        axE.grid()
         axE.legend(
             handles=_static_level_legend(
-                font_size,
                 labels=(r"$E_{01}$", r"$E_{10}$", r"$E_{11}$"),
                 include_other_levels=False,
+                linestyles=(
+                    "solid",
+                    (0, (4.0, 1.6)),
+                    (0, (1, 4)),
+                ),
             ),
             loc=STATIC_LEVEL_LEGEND_LOC,
             bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
             ncol=STATIC_LEVEL_LEGEND_NCOL,
-            fontsize=font_size * STATIC_LEVEL_LEGEND_FONT_SCALE,
-            framealpha=0.9,
-            borderpad=0.25,
-            labelspacing=0.25,
-            handlelength=1.4,
-            columnspacing=0.9,
             title="Computational branches",
         )
 
-        axErr.plot(flux, result.effective_error_rmse, linewidth=1.8, **model_plot_kwargs("effective"))
-        axErr.plot(flux, result.duffing_error_rmse, linewidth=1.8, **model_plot_kwargs("duffing"))
-        y_max = float(max(np.max(result.effective_error_rmse), np.max(result.duffing_error_rmse)))
-        if np.any(result.near_mask):
-            axErr.fill_between(flux, 0.0, y_max * 1.05, where=result.near_mask, color="C3", alpha=0.08)
-        if np.any(result.idle_mask):
-            axErr.fill_between(flux, 0.0, y_max * 1.05, where=result.idle_mask, color="C0", alpha=0.05)
+        axErr.plot(flux, result.effective_error_rmse, **model_plot_kwargs("effective"))
+        axErr.plot(flux, result.duffing_error_rmse, **model_plot_kwargs("duffing"))
         axErr.set_ylabel("Per-flux RMSE")
-        axErr.grid(True, alpha=0.3)
+        axErr.grid()
 
-        axJ.plot(flux, result.circuit_parameters["J"], linewidth=1.8, **model_plot_kwargs("circuit"))
-        axJ.plot(flux, result.duffing_parameters["J"], linewidth=1.8, **model_plot_kwargs("duffing"))
-        axJ.plot(flux, result.effective_parameters["J"], linewidth=1.8, **model_plot_kwargs("effective"))
-        axJ.axhline(0.0, color="0.35", linewidth=1.0)
+        axJ.plot(flux, result.circuit_parameters["J"], **model_plot_kwargs("circuit"))
+        axJ.plot(flux, result.duffing_parameters["J"], **model_plot_kwargs("duffing"))
+        axJ.plot(flux, result.effective_parameters["J"], **model_plot_kwargs("effective"))
+        axJ.axhline(0.0, color=REFERENCE_LINE_COLOR, linewidth=REFERENCE_LINEWIDTH)
         axJ.set_ylabel(r"Exchange $J$")
-        axJ.grid(True, alpha=0.3)
+        axJ.grid()
 
-        axZeta.plot(flux, result.circuit_parameters["zeta"], linewidth=1.8, **model_plot_kwargs("circuit"))
-        axZeta.plot(flux, result.duffing_parameters["zeta"], linewidth=1.8, **model_plot_kwargs("duffing"))
-        axZeta.plot(flux, result.effective_parameters["zeta"], linewidth=1.8, **model_plot_kwargs("effective"))
-        axZeta.axhline(0.0, color="0.35", linewidth=1.0)
+        axZeta.plot(flux, result.circuit_parameters["zeta"], **model_plot_kwargs("circuit"))
+        axZeta.plot(flux, result.duffing_parameters["zeta"], **model_plot_kwargs("duffing"))
+        axZeta.plot(flux, result.effective_parameters["zeta"], **model_plot_kwargs("effective"))
+        axZeta.axhline(0.0, color=REFERENCE_LINE_COLOR, linewidth=REFERENCE_LINEWIDTH)
         axZeta.set_ylabel(r"Residual ZZ $\zeta$")
-        axZeta.grid(True, alpha=0.3)
+        axZeta.grid()
 
         axes[1, 0].set_xlabel(r"Flux bias ($\phi$)")
         axes[1, 1].set_xlabel(r"Flux bias ($\phi$)")
-        fig.legend(handles=model_legend_handles(), loc="upper center", ncol=3, frameon=False, bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR)
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
-
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        legend = add_model_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
+        save_benchmark_figure(fig, outfile)
 
 
 def plot_static_raw_energies(
     result: StaticBenchmarkResult,
     outfile: Path,
-    title: str,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
 
-    with benchmark_plot_style(font_size):
-        fig, ax = plt.subplots(1, 1, figsize=(6.4, 4.6), sharex=True)
+    with benchmark_plot_style():
+        fig, ax = plt.subplots(1, 1, figsize=figure_size("static_raw_energies"), sharex=True)
         _plot_static_energy_panel(
             ax,
             flux,
@@ -278,48 +280,27 @@ def plot_static_raw_energies(
         )
         ax.set_ylabel("Raw energy")
         ax.set_xlabel(r"Flux bias ($\phi$)")
-        ax.grid(True, alpha=0.3)
+        ax.grid()
         ax.legend(
-            handles=_static_level_legend(font_size),
+            handles=_static_level_legend(),
             loc=STATIC_LEVEL_LEGEND_LOC,
             bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
             ncol=STATIC_LEVEL_LEGEND_NCOL,
-            fontsize=font_size * STATIC_LEVEL_LEGEND_FONT_SCALE,
-            framealpha=0.9,
-            borderpad=0.25,
-            labelspacing=0.25,
-            handlelength=1.4,
-            columnspacing=0.9,
             title="Levels (alpha)",
         )
-        fig.legend(
-            handles=model_legend_handles(),
-            loc="upper center",
-            ncol=3,
-            frameon=False,
-            bbox_to_anchor=MODEL_LEGEND_BBOX_TO_ANCHOR,
-        )
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
-
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        legend = add_model_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
+        save_benchmark_figure(fig, outfile)
 
 
 def plot_static_single_excitation_overlaps(
     result: StaticBenchmarkResult,
     outfile: Path,
-    title: str,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
 
-    with benchmark_plot_style(font_size):
-        fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.6), sharex=True, sharey=True)
+    with benchmark_plot_style():
+        fig, axes = plt.subplots(1, 2, figsize=figure_size("static_overlaps"), sharex=True, sharey=True)
         panels = (
             ("circuit", axes[0], np.asarray(result.circuit_computational_bare_overlaps, dtype=float)),
             ("duffing", axes[1], np.asarray(result.duffing_computational_bare_overlaps, dtype=float)),
@@ -337,32 +318,23 @@ def plot_static_single_excitation_overlaps(
                         overlaps[:, bare_idx, branch_offset],
                         color=colors[bare_idx - 1],
                         linestyle=linestyles[branch_offset - 1],
-                        linewidth=1.8,
+                        linewidth=COMPARISON_LINEWIDTH,
                         label=f"{branch_label} vs {bare_label}",
-                    )
+            )
             ax.set_title(model_name)
             ax.set_xlabel(r"Flux bias ($\phi$)")
             ax.set_ylim(-0.02, 1.02)
-            ax.grid(True, alpha=0.3)
+            ax.grid()
 
         axes[0].set_ylabel(r"Bare overlap $|\langle \mathrm{bare} | \mathrm{dressed} \rangle|^2$")
-        axes[1].legend(loc="upper center", bbox_to_anchor=(0.5, 1.02), ncol=2, framealpha=0.9)
-        fig.tight_layout(
-            rect=BENCHMARK_TIGHT_LAYOUT_RECT,
-            h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-            w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD,
-        )
-
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        axes[1].legend(loc="upper center", bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR, ncol=2)
+        benchmark_tight_layout(fig)
+        save_benchmark_figure(fig, outfile)
 
 
 def plot_static_computational_basis_amplitudes(
     result: StaticBenchmarkResult,
     outfile: Path,
-    title: str,
-    font_size: float = DEFAULT_PLOT_FONT_SIZE,
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
     branch_labels = (
@@ -385,14 +357,14 @@ def plot_static_computational_basis_amplitudes(
         ),
     )
 
-    with benchmark_plot_style(font_size):
-        fig = plt.figure(figsize=(12.6, 11.4), constrained_layout=True)
+    with benchmark_plot_style():
+        fig = plt.figure(figsize=figure_size("static_amplitudes"), constrained_layout=True)
         gs = fig.add_gridspec(
             4,
             3,
-            width_ratios=(1.0, 1.0, 0.06),
-            hspace=0.28,
-            wspace=0.18,
+            width_ratios=(1.0, 1.0, 0.08),
+            hspace=0.24,
+            wspace=0.12,
         )
         axes = np.empty((4, 2), dtype=object)
         for row in range(4):
@@ -434,7 +406,7 @@ def plot_static_computational_basis_amplitudes(
                 if col == 0:
                     ax.set_yticklabels([_state_label_math(label) for label in union_labels])
                     ax.set_ylabel(f"{branch_label}\nBare states")
-                    ax.tick_params(axis="y", pad=6)
+                    ax.tick_params(axis="y", pad=4)
                 else:
                     ax.tick_params(axis="y", labelleft=False)
                 if row == 0:
@@ -446,9 +418,7 @@ def plot_static_computational_basis_amplitudes(
         phase_mappable.set_array([])
         cbar = fig.colorbar(phase_mappable, cax=cax)
         cbar.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
-        cbar.set_ticklabels(["$-\\pi$", "$-\\pi/2$", "$0$", "$\\pi/2$", "$\\pi$"])
+        cbar.set_ticklabels(["$-\\pi$", "$-\\frac{\\pi}{2}$", "$0$", "$\\frac{\\pi}{2}$", "$\\pi$"])
         cbar.set_label("Phase hue (rad)\nStrength ~ sqrt(population)")
 
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(outfile, format="pdf")
-        plt.close(fig)
+        save_benchmark_figure(fig, outfile)
