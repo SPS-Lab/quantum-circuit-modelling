@@ -15,7 +15,12 @@ from matplotlib.colors import hsv_to_rgb
 import numpy as np
 
 from comparison.leakage_flow import LeakageFlowBenchmarkResult
-from plotting.style import benchmark_plot_style, figure_size, pulse_schedule_plot_kwargs, save_benchmark_figure
+from plotting.style import (
+    benchmark_plot_style,
+    figure_size,
+    pulse_schedule_plot_kwargs,
+    save_benchmark_figure,
+)
 
 
 def _decode_labels(labels: np.ndarray) -> list[str]:
@@ -191,7 +196,7 @@ def _overlay_flux_track(
 
 def _add_row_side_label(fig: plt.Figure, ax: plt.Axes, text: str) -> None:
     bbox = ax.get_position()
-    x = 0.018
+    x = bbox.x0 - 0.018
     y = 0.5 * (bbox.y0 + bbox.y1)
     fig.text(x, y, text, rotation="vertical", va="center", ha="center")
 
@@ -240,7 +245,7 @@ def plot_leakage_flow_benchmark(
             sharex=True,
             gridspec_kw={"hspace": 0.28, "wspace": 0.98},
         )
-        fig.subplots_adjust(left=0.06, right=0.96, bottom=0.11, top=0.90)
+        fig.subplots_adjust(left=0.05, right=0.90, bottom=0.10, top=0.95)
         ax_pop_duf, ax_pop_cir = axes[0]
         ax_tr_duf, ax_tr_cir = axes[1]
 
