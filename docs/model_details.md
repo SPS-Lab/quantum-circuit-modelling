@@ -12,7 +12,7 @@ H_{\mathrm{eff}}(\phi) = \sum_{j\in\{0,1\}} \frac{\tilde{\omega}_j(\phi)}{2} Z_j
 \end{equation}
 $$
 
-The dressed qubit frequencies are modelled as harmonics
+The dressed qubit frequencies are modelled as even harmonics
 
 $$
 \begin{equation}
@@ -24,7 +24,7 @@ $J$ and $\zeta$ is modelled with one coefficient set
 
 $$\\{\gamma~,~c_{0}~,~c_{r_0}~,~c_{r_1}~,~c_{\mathrm{prod}}~,~c_{{r_0},\mathrm{sq}}~,~c_{{r_1},\mathrm{sq}}\\}$$
 
-each as
+each, as
 
 $$
 \begin{equation}
@@ -34,7 +34,7 @@ $$
 
 where
 
-* the residuals $r_j(\phi) = \frac{1}{\sqrt{\Delta_j(\phi)^2 + \gamma^2}}, \quad j=0,1,$
+* $r_j(\phi) = \frac{1}{\sqrt{\Delta_j(\phi)^2 + \gamma^2}}, \quad j=0,1,$
 
 * $\Delta_j(\phi)=\omega_j(\phi)-\omega_c$,
 
@@ -74,6 +74,8 @@ The parameters used in the paper are presented below.
 | $\zeta$ | $c_{r_2,\mathrm{sq}}$ | 4.327856e-02 |
 
 ## Duffing model
+The Duffing model is
+
 $$
 \begin{aligned}
 H_{\mathrm{Duff}}(\phi)
@@ -85,8 +87,16 @@ H_{\mathrm{Duff}}(\phi)
 \right)
 +\omega_c\, a_c^\dagger a_c \\
 &\quad
-+\sum_{j\in\{0,1\}} g_{j,c}\left(a_j^\dagger a_c+a_c^\dagger a_j\right),
++\sum_{j\in\{0,1\}} g_{j,c}\left(a_j^\dagger a_c+a_c^\dagger a_j\right).
 \end{aligned}
+$$
+
+All parameters are modelled as even harmonics
+
+$$
+\begin{equation}
+p_j(\phi) = 2\pi c_{j,0} + \sum_{k=1}^{C_p} a_{j,k}\cos(2\pi k\phi), \quad p = \omega_0, \omega_1, \alpha_0, \alpha_1, \omega_c, g_{0,c}, g_{1,c}.
+\end{equation}
 $$
 
 <!-- Experiment folder: 20260518_044450_static_4c84263 -->
@@ -94,23 +104,23 @@ $$
 
 | Duffing parameter | Coefficient | Value (GHz) |
 | --- | --- | ---: |
-| $\omega_0$ | c0 | 9.729824e+00 |
-| $\omega_1$ | c0 | 6.155486e+00 |
-| $\omega_1$ | $cos1$ | 2.643109e+00 |
-| $\omega_1$ | $cos2$ | -8.641246e-01 |
-| $\omega_1$ | $cos3$ | 4.425637e-01 |
-| $\omega_1$ | $cos4$ | -3.709943e-01 |
-| $\omega_1$ | $cos5$ | 1.995666e-01 |
-| $\alpha_0$ | c0 | -2.610773e-01 |
-| $\alpha_1$ | c0 | -4.007571e-01 |
-| $\alpha_1$ | cos1 | 8.050788e-02 |
-| $\alpha_1$ | cos2 | -7.171780e-02 |
-| $\alpha_1$ | cos3 | 4.324207e-02 |
-| $w_c$ | c0 | 6.742597e+00 |
-| $g_{0,c}$ | c0 | 3.022813e-01 |
-| $g_{1,c}$ | c0 | 1.815956e-01 |
-| $g_{1,c}$ | cos1 | 7.932721e-02 |
-| $g_{1,c}$ | cos2 | -5.528838e-02 |
+| $\omega_0$ | $c_0$ | 9.729824e+00 |
+| $\omega_1$ | $c_0$ | 6.155486e+00 |
+| $\omega_1$ | $c_1$ | 2.643109e+00 |
+| $\omega_1$ | $c_2$ | -8.641246e-01 |
+| $\omega_1$ | $c_3$ | 4.425637e-01 |
+| $\omega_1$ | $c_4$ | -3.709943e-01 |
+| $\omega_1$ | $c_5$ | 1.995666e-01 |
+| $\alpha_0$ | $c_0$ | -2.610773e-01 |
+| $\alpha_1$ | $c_0$ | -4.007571e-01 |
+| $\alpha_1$ | $c_1$ | 8.050788e-02 |
+| $\alpha_1$ | $c_2$ | -7.171780e-02 |
+| $\alpha_1$ | $c_3$ | 4.324207e-02 |
+| $\omega_c$ | $c_0$ | 6.742597e+00 |
+| $g_{0,c}$ | $c_0$ | 3.022813e-01 |
+| $g_{1,c}$ | $c_0$ | 1.815956e-01 |
+| $g_{1,c}$ | $c_1$ | 7.932721e-02 |
+| $g_{1,c}$ | $c_2$ | -5.528838e-02 |
 
 
 
