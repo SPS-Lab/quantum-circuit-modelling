@@ -10,7 +10,6 @@ import numpy as np
 from comparison.runtime import RuntimeBenchmarkResult
 from plotting.style import (
     add_model_figure_legend,
-    benchmark_tight_layout,
     benchmark_plot_style,
     figure_size,
     model_legend_handles,
@@ -88,6 +87,6 @@ def plot_runtime_benchmark(
             handles=model_legend_handles()[:2],
             ncol=2,
         )
-
-        benchmark_tight_layout(fig, reserve_artists=[legend])
+        legend.set_in_layout(False)
+        fig.subplots_adjust(left=0.11, right=0.97, bottom=0.24, top=0.75, wspace=0.27)
         save_benchmark_figure(fig, outfile)
