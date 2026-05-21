@@ -2,7 +2,7 @@
 
 Code used in "Which Superconducting-Qubit Model Is Good Enough?" (to be published in ICS Workshops ’26).
 
-Calibration details for the models presented in the paper is presented in [docs/calibration.md](docs/calibration.md).
+Details of the models presented in the paper is presented in [docs/model_details.md](docs/model_details.md).
 
 ## Quick Start
 
