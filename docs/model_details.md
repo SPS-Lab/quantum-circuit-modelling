@@ -18,13 +18,13 @@ $$\\{\gamma~,~c_{0}~,~c_{r_0}~,~c_{r_1}~,~c_{\mathrm{prod}}~,~c_{{r_0},\mathrm{s
 
 each as
 
-$$O(\phi) = c_{0} + c_{r_1}~r_1 + c_{r_2}~r_2 + c_{\mathrm{prod}}~(r_1~r_2) + c_{r_0,\mathrm{sq}}~r_0^2 + c_{r_1,\mathrm{sq}}~r_0^2\quad O=J,\zeta$$
+$$O(\phi) = c_{0} + c_{r_1}~r_0(\phi) + c_{r_2}~r_1(\phi) + c_{\mathrm{prod}}~(r_1(\phi)~r_2(\phi)) + c_{r_0,\mathrm{sq}}~r_0(\phi)^2 + c_{r_1,\mathrm{sq}}~r_0(\phi)^2\quad O=J,\zeta$$
 
 where
 
-* the residuals $r_j = \frac{1}{\sqrt{\Delta_j^2 + \gamma^2}}, \quad j=0,1,$
+* the residuals $r_j(\phi) = \frac{1}{\sqrt{\Delta_j(\phi)^2 + \gamma^2}}, \quad j=0,1,$
 
-* $\Delta_j=\omega_j-\omega_c$,
+* $\Delta_j(\phi)=\omega_j(\phi)-\omega_c$,
 
 * and the coupler frequency $\omega_c$ is constant.
 
