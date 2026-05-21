@@ -85,7 +85,7 @@ _FIGURE_SPECS: dict[str, tuple[float, float]] = {
 # row_count -> (width_scale, height_inches)
 _STACKED_FIGURE_SPECS: dict[str, dict[int, tuple[float, float]]] = {
     "rx_populations": {
-        2: (1.0, 2.0),
+        2: (1.0, 2.5),
     },
     "rx_diagnostics": {
         3: (1.0, 3.4),
