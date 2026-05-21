@@ -1,8 +1,30 @@
-# Full model descriptions
+# Model details
 
-## Effective fitted coefficients
-<!-- Experiment folder: 20260517_220950_static_6d83c23_dirty -->
-<!-- Git provenance: commit=6d83c2381409bccbf08dba8fed428cadf6268831 (short=6d83c23), branch=main, dirty=true -->
+In the effective model
+
+$H_{\mathrm{eff}}(\phi) = \sum_{j\in\{0,1\}} \frac{\tilde{\omega}_j(\phi)}{2} Z_j
++J(\phi)\bigl(X_1X_0+Y_1Y_0\bigr)
++\frac{\zeta(\phi)}{4} Z_1 Z_0,$
+
+the dressed qubit frequencies are modelled as harmonics
+
+$\tilde\omega_j = 2\pi x_{j,0} + \sum_{k=1}^3 a_{j,k}\cos(2\pi k\phi), \quad j=0,1.$
+
+$\omega_c$ is a constant.
+
+$J$ and $\zeta$ as
+
+$r_j = \frac{1}{\sqrt{\Delta_j^2 + \gamma^2}}, \quad j=0,1,$
+
+
+
+$O = c_{O,0}, \quad O=J,\zeta$
+
+
+The parameters used in the paper are presented below.
+
+<!-- Experiment folder: 20260518_044450_static_4c84263 -->
+<!-- Git provenance: commit=ec5eefc12b7f2d6c0ac0a52b515112259108625c (short=ec5eefc), branch=plotting-dev, dirty=true -->
 
 | Effective parameter | Coefficient | Value (GHz) |
 | --- | --- | ---: |
@@ -30,32 +52,28 @@
 | zeta | c_r2_sq | 4.327856e-02 |
 
 ## Symbolic Duffing fitted coefficients
-<!-- Experiment folder: 20260517_220950_static_6d83c23_dirty -->
-<!-- Git provenance: commit=6d83c2381409bccbf08dba8fed428cadf6268831 (short=6d83c23), branch=main, dirty=true -->
+<!-- Experiment folder: 20260518_044450_static_4c84263 -->
+<!-- Git provenance: commit=ec5eefc12b7f2d6c0ac0a52b515112259108625c (short=ec5eefc), branch=plotting-dev, dirty=true -->
 
 | Duffing parameter | Coefficient | Value (GHz) |
 | --- | --- | ---: |
-| w0 | c0 | 9.729298e+00 |
-| w1 | c0 | 6.187922e+00 |
-| w1 | cos1 | 2.574884e+00 |
-| w1 | cos2 | -9.367395e-01 |
-| w1 | cos3 | 4.824440e-01 |
-| w1 | cos4 | -2.611571e-01 |
-| w1 | cos5 | 3.387265e-01 |
-| alpha0 | c0 | -2.325522e-01 |
-| alpha1 | c0 | -4.140643e-01 |
-| alpha1 | cos1 | 1.077214e-01 |
-| alpha1 | cos2 | -1.038704e-01 |
-| alpha1 | cos3 | 7.519371e-02 |
-| alpha1 | cos4 | -4.976438e-02 |
-| alpha1 | cos5 | 4.464384e-02 |
-| g0c | c0 | 2.949338e-01 |
-| g1c | c0 | 1.982043e-01 |
-| g1c | cos1 | 4.206806e-02 |
-| g1c | cos2 | -8.518904e-02 |
-| g1c | cos3 | 2.631005e-02 |
-| g1c | cos4 | 2.256285e-02 |
-| g1c | cos5 | 1.736769e-02 |
+| w0 | c0 | 9.729824e+00 |
+| w1 | c0 | 6.155486e+00 |
+| w1 | cos1 | 2.643109e+00 |
+| w1 | cos2 | -8.641246e-01 |
+| w1 | cos3 | 4.425637e-01 |
+| w1 | cos4 | -3.709943e-01 |
+| w1 | cos5 | 1.995666e-01 |
+| alpha0 | c0 | -2.610773e-01 |
+| alpha1 | c0 | -4.007571e-01 |
+| alpha1 | cos1 | 8.050788e-02 |
+| alpha1 | cos2 | -7.171780e-02 |
+| alpha1 | cos3 | 4.324207e-02 |
+| wc | c0 | 6.742597e+00 |
+| g0c | c0 | 3.022813e-01 |
+| g1c | c0 | 1.815956e-01 |
+| g1c | cos1 | 7.932721e-02 |
+| g1c | cos2 | -5.528838e-02 |
 
 ## Duffing model calibration details
 
