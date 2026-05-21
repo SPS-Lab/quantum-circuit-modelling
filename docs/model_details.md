@@ -48,18 +48,18 @@ The parameters used in the paper are presented below.
 | $w_1$ | $a_3$ | 3.863513e-01 |
 | $J$ | $\gamma$ | 1.091991e+00 |
 | $J$ | $c_0$ | -3.445362e+05 |
-| $J$ | $c_r1$ | 2.101875e+06 |
-| $J$ | $c_r2$ | -1.315542e+03 |
+| $J$ | $c_{r_1}$ | 2.101875e+06 |
+| $J$ | $c_{r_2}$ | -1.315542e+03 |
 | $J$ | $c_\mathrm{prod}$ | 4.011514e+03 |
-| $J$ | $c_{{r_1},sq}$ | -3.205669e+06 |
-| $J$ | $c_r2_sq$ | -8.994630e-01 |
+| $J$ | $c_{r_0,\mathrm{sq}}$ | -3.205669e+06 |
+| $J$ | $c_{r_1,\mathrm{sq}}$ | -8.994630e-01 |
 | $\zeta$ | $\gamma$ | 1.031616e+00 |
-| $\zeta$ | $c0$ | 1.759212e+04 |
-| $\zeta$ | $c_r1$ | -1.065761e+05 |
-| $\zeta$ | $c_r2$ | 6.401228e+01 |
-| $\zeta$ | $c_prod$ | -1.938414e+02 |
-| $\zeta$ | $c_r1_sq$ | 1.614140e+05 |
-| $\zeta$ | $c_r2_sq$ | 4.327856e-02 |
+| $\zeta$ | $c_0$ | 1.759212e+04 |
+| $\zeta$ | $c_{r_1}$ | -1.065761e+05 |
+| $\zeta$ | $c_{r_2}$ | 6.401228e+01 |
+| $\zeta$ | $c_\mathrm{prod}$ | -1.938414e+02 |
+| $\zeta$ | $c_{r_1,\mathrm{sq}}$ | 1.614140e+05 |
+| $\zeta$ | $c_{r_2,\mathrm{sq}}$ | 4.327856e-02 |
 
 ## Symbolic Duffing fitted coefficients
 <!-- Experiment folder: 20260518_044450_static_4c84263 -->
