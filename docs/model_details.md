@@ -4,17 +4,19 @@
 
 The effective model is
 
-$H_{\mathrm{eff}}(\phi) = \sum_{j\in\{0,1\}} \frac{\tilde{\omega}_j(\phi)}{2} Z_j
+$$H_{\mathrm{eff}}(\phi) = \sum_{j\in\{0,1\}} \frac{\tilde{\omega}_j(\phi)}{2} Z_j
 +J(\phi)\bigl(X_1X_0+Y_1Y_0\bigr)
-+\frac{\zeta(\phi)}{4} Z_1 Z_0.$
++\frac{\zeta(\phi)}{4} Z_1 Z_0.$$
 
 The dressed qubit frequencies are modelled as harmonics
 
-$\tilde\omega_j(\phi) = 2\pi x_{j,0} + \sum_{k=1}^3 a_{j,k}\cos(2\pi k\phi), \quad j=0,1.$
+$$\tilde\omega_j(\phi) = 2\pi x_{j,0} + \sum_{k=1}^3 a_{j,k}\cos(2\pi k\phi), \quad j=0,1.$$
 
-$J$ and $\zeta$ is modelled with one coefficient set $\{\gamma~,~c_{0}~,~c_{r_0}~,~c_{r_1}~,~c_{\mathrm{prod}}~,~c_{{r_0},\mathrm{sq}}~,~c_{{r_1},\mathrm{sq}}\}$ each as
+$J$ and $\zeta$ is modelled with one coefficient set
+$$\{\gamma~,~c_{0}~,~c_{r_0}~,~c_{r_1}~,~c_{\mathrm{prod}}~,~c_{{r_0},\mathrm{sq}}~,~c_{{r_1},\mathrm{sq}}\}$$
+each as
 
-$O(\phi) = c_{0} + c_{r_1}~r_1 + c_{r_2}~r_2 + c_{\mathrm{prod}}~(r_1~r_2) + c_{r_0,\mathrm{sq}}~r_0^2 + c_{r_1,\mathrm{sq}}~r_0^2\quad O=J,\zeta$
+$$O(\phi) = c_{0} + c_{r_1}~r_1 + c_{r_2}~r_2 + c_{\mathrm{prod}}~(r_1~r_2) + c_{r_0,\mathrm{sq}}~r_0^2 + c_{r_1,\mathrm{sq}}~r_0^2\quad O=J,\zeta$$
 
 where
 
