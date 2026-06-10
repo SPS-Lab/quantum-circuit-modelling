@@ -16,9 +16,8 @@ from comparison.truncation import (
 from plotting.style import (
     add_column_title,
     benchmark_tight_layout,
-    benchmark_plot_style,
     figure_legend_bbox_to_anchor,
-    save_benchmark_figure,
+    render_benchmark_figures,
     stacked_figure_size,
     truncation_metric_plot_kwargs,
 )
@@ -172,7 +171,7 @@ def plot_circuit_truncation_benchmark(
     if not subplot_specs:
         raise ValueError("Circuit truncation plot requires at least one populated sweep")
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig, axes = plt.subplots(
             len(subplot_specs),
             1,
@@ -194,7 +193,9 @@ def plot_circuit_truncation_benchmark(
         fig.suptitle("Circuit static truncation convergence", y=0.982)
         legend = _add_truncation_metric_figure_legend(fig)
         benchmark_tight_layout(fig, reserve_artists=[legend])
-        save_benchmark_figure(fig, outfile)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)
 
 
 def plot_duffing_truncation_benchmark(
@@ -205,7 +206,7 @@ def plot_duffing_truncation_benchmark(
     if not subplot_specs:
         raise ValueError("Duffing truncation plot requires at least one populated sweep")
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig, axes = plt.subplots(
             len(subplot_specs),
             1,
@@ -227,7 +228,9 @@ def plot_duffing_truncation_benchmark(
         fig.suptitle("Duffing static truncation convergence", y=0.982)
         legend = _add_truncation_metric_figure_legend(fig)
         benchmark_tight_layout(fig, reserve_artists=[legend])
-        save_benchmark_figure(fig, outfile)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)
 
 
 def plot_truncation_benchmark(
@@ -242,7 +245,7 @@ def plot_truncation_benchmark(
     if not any(name in circuit_specs or name in duffing_specs for name in row_order):
         raise ValueError("Combined truncation plot requires at least one populated sweep")
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig, axes = plt.subplots(
             3,
             2,
@@ -288,4 +291,6 @@ def plot_truncation_benchmark(
             add_column_title(axes[0, 1], "Duffing")
         legend = _add_truncation_metric_figure_legend(fig)
         benchmark_tight_layout(fig, reserve_artists=[legend])
-        save_benchmark_figure(fig, outfile)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)

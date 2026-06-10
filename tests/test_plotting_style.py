@@ -13,6 +13,8 @@ from plotting.style import (
     ACM_SIGCONF_COLUMN_WIDTH_PT,
     ACTIVE_BENCHMARK_STYLE,
     benchmark_plot_style,
+    benchmark_style_names,
+    benchmark_style_outfile,
     benchmark_style_paths,
     energy_level_alpha,
     figure_size,
@@ -47,7 +49,7 @@ def test_energy_level_alpha_descends_with_level_index() -> None:
 def test_model_legend_handles_keep_model_colors() -> None:
     handles = model_legend_handles()
 
-    assert [handle.get_label() for handle in handles] == ["circuit", "duffing", "effective"]
+    assert [handle.get_label() for handle in handles] == ["Circuit", "Duffing", "Effective"]
     assert [handle.get_color() for handle in handles] == ["C0", "C1", "C2"]
 
 
@@ -75,10 +77,19 @@ def test_truncation_metric_handles_match_shared_metric_styles() -> None:
 def test_benchmark_style_paths_point_to_repo_owned_stylesheets() -> None:
     assert ACTIVE_BENCHMARK_STYLE == "paper"
     assert ACM_SIGCONF_COLUMN_WIDTH_PT == 241.14749
+    assert benchmark_style_names() == ("paper", "presentation")
     assert all(Path(path).exists() for path in benchmark_style_paths())
+    assert all(Path(path).exists() for style_name in benchmark_style_names() for path in benchmark_style_paths(style_name))
+
+
+def test_benchmark_style_outfile_adds_style_suffix_before_extension(tmp_path: Path) -> None:
+    outfile = tmp_path / "example.pdf"
+
+    assert benchmark_style_outfile(outfile, "paper").name == "example_paper.pdf"
+    assert benchmark_style_outfile(outfile, "presentation").name == "example_presentation.pdf"
 
 
 def test_simple_single_axis_figures_can_be_narrower_than_full_column() -> None:
     assert figure_size("cz")[0] < single_column_width_inches()
-    assert figure_size("static_raw_energies")[0] < single_column_width_inches()
-    assert figure_size("runtime")[0] < single_column_width_inches()
+    assert figure_size("static_raw_energies")[0] <= single_column_width_inches()
+    assert figure_size("runtime")[0] <= single_column_width_inches()

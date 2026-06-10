@@ -13,10 +13,9 @@ from plotting.style import (
     PULSE_BACKGROUND_FILL_ALPHA,
     add_model_figure_legend,
     benchmark_tight_layout,
-    benchmark_plot_style,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
-    save_benchmark_figure,
+    render_benchmark_figures,
     stacked_figure_size,
 )
 
@@ -50,7 +49,7 @@ def plot_rx_populations_benchmark(
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig, axes = plt.subplots(
             2,
             1,
@@ -87,7 +86,9 @@ def plot_rx_populations_benchmark(
 
         legend = add_model_figure_legend(fig)
         benchmark_tight_layout(fig, reserve_artists=[legend])
-        save_benchmark_figure(fig, outfile)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)
 
 
 def plot_rx_diagnostics_benchmark(
@@ -96,7 +97,7 @@ def plot_rx_diagnostics_benchmark(
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig, axes = plt.subplots(
             3,
             1,
@@ -141,4 +142,6 @@ def plot_rx_diagnostics_benchmark(
 
         legend = add_model_figure_legend(fig)
         benchmark_tight_layout(fig, reserve_artists=[legend])
-        save_benchmark_figure(fig, outfile)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)

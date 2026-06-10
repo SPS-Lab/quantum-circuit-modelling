@@ -34,6 +34,7 @@ from models.dressed import extract_effective_model_parameters_from_4x4_stack
 from plotting.cz import plot_cz_benchmark
 from plotting.leakage_flow import plot_leakage_flow_benchmark
 from plotting.rx import plot_rx_diagnostics_benchmark, plot_rx_populations_benchmark
+from plotting.style import benchmark_style_names, benchmark_style_outfile
 from benchmark_run_artifacts import get_git_info
 from static_fitted_artifacts import (
     build_static_fitted_latex_table,
@@ -77,10 +78,21 @@ def _add_required_study_sections(payload: dict[str, object]) -> None:
 def _write_small_system_params(tmp_path: Path) -> Path:
     src = _ROOT / "params" / "system_params.json"
     payload = json.loads(src.read_text(encoding="utf-8"))
-
     dst = tmp_path / "system_params_small.json"
     dst.write_text(json.dumps(payload), encoding="utf-8")
     return dst
+
+
+def _assert_benchmark_pdfs_written(outfile: Path) -> None:
+    for style_name in benchmark_style_names():
+        styled_outfile = benchmark_style_outfile(outfile, style_name)
+        assert styled_outfile.exists()
+        assert styled_outfile.stat().st_size > 0
+
+
+def _assert_benchmark_pdfs_missing(outfile: Path) -> None:
+    for style_name in benchmark_style_names():
+        assert not benchmark_style_outfile(outfile, style_name).exists()
 
 
 
@@ -546,10 +558,10 @@ def test_truncation_static_companion_materializes_artifacts(tmp_path: Path) -> N
     )
     assert paths is not None
     assert paths.results_path.exists()
-    assert paths.figure_path.exists()
-    assert not paths.raw_figure_path.exists()
-    assert not paths.overlap_figure_path.exists()
-    assert not paths.basis_amplitude_figure_path.exists()
+    _assert_benchmark_pdfs_written(paths.figure_path)
+    _assert_benchmark_pdfs_missing(paths.raw_figure_path)
+    _assert_benchmark_pdfs_missing(paths.overlap_figure_path)
+    _assert_benchmark_pdfs_missing(paths.basis_amplitude_figure_path)
     assert paths.fitted_json_path.exists()
     assert paths.fitted_table_path.exists()
     assert paths.fitted_markdown_path.exists()
@@ -579,10 +591,10 @@ def test_truncation_static_companion_extra_sideplots_are_opt_in(tmp_path: Path) 
     )
     assert paths is not None
     assert paths.results_path.exists()
-    assert paths.figure_path.exists()
-    assert paths.raw_figure_path.exists()
-    assert paths.overlap_figure_path.exists()
-    assert paths.basis_amplitude_figure_path.exists()
+    _assert_benchmark_pdfs_written(paths.figure_path)
+    _assert_benchmark_pdfs_written(paths.raw_figure_path)
+    _assert_benchmark_pdfs_written(paths.overlap_figure_path)
+    _assert_benchmark_pdfs_written(paths.basis_amplitude_figure_path)
     assert paths.fitted_json_path.exists()
     assert paths.fitted_table_path.exists()
     assert paths.fitted_markdown_path.exists()
@@ -917,7 +929,7 @@ def test_cz_plot_writes_pdf(tmp_path: Path) -> None:
     )
     outfile = tmp_path / "cz_benchmark.pdf"
     plot_cz_benchmark(out, outfile)
-    assert outfile.exists()
+    _assert_benchmark_pdfs_written(outfile)
 
 
 def test_leakage_flow_benchmark_runs_with_small_config(tmp_path: Path) -> None:
@@ -971,7 +983,7 @@ def test_leakage_flow_plot_writes_pdf(tmp_path: Path) -> None:
 
     outfile = tmp_path / "leakage_flow_benchmark.pdf"
     plot_leakage_flow_benchmark(out, outfile)
-    assert outfile.exists()
+    _assert_benchmark_pdfs_written(outfile)
 
 
 def test_rx_plots_write_pdf(tmp_path: Path) -> None:
@@ -994,5 +1006,5 @@ def test_rx_plots_write_pdf(tmp_path: Path) -> None:
     diagnostics_outfile = tmp_path / "rx_diagnostics_benchmark.pdf"
     plot_rx_populations_benchmark(out, populations_outfile)
     plot_rx_diagnostics_benchmark(out, diagnostics_outfile)
-    assert populations_outfile.exists()
-    assert diagnostics_outfile.exists()
+    _assert_benchmark_pdfs_written(populations_outfile)
+    _assert_benchmark_pdfs_written(diagnostics_outfile)

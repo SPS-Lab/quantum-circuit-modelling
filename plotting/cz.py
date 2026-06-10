@@ -10,11 +10,10 @@ import numpy as np
 from comparison.cz import CzBenchmarkResult
 from plotting.style import (
     add_model_figure_legend,
-    benchmark_plot_style,
     figure_size,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
-    save_benchmark_figure,
+    render_benchmark_figures,
 )
 
 
@@ -58,7 +57,7 @@ def plot_cz_benchmark(
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig = plt.figure(figsize=figure_size("cz"))
         ax_phase = fig.add_subplot(1, 1, 1)
         ax_flux = ax_phase.twinx()
@@ -96,4 +95,6 @@ def plot_cz_benchmark(
         legend = add_model_figure_legend(fig)
         legend.set_in_layout(False)
         fig.subplots_adjust(left=0.13, right=0.87, bottom=0.20, top=0.80)
-        save_benchmark_figure(fig, outfile)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)

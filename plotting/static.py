@@ -23,12 +23,11 @@ from plotting.style import (
     STATIC_LEVEL_LEGEND_NCOL,
     add_model_figure_legend,
     benchmark_tight_layout,
-    benchmark_plot_style,
     energy_level_alpha,
     figure_size,
     model_color,
     model_plot_kwargs,
-    save_benchmark_figure,
+    render_benchmark_figures,
 )
 
 
@@ -200,7 +199,7 @@ def plot_static_benchmark(
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig, axes = plt.subplots(2, 2, figsize=figure_size("static_main"), sharex=True)
         axE, axErr, axJ, axZeta = axes.ravel()
 
@@ -258,7 +257,9 @@ def plot_static_benchmark(
         axes[1, 1].set_xlabel(r"Flux bias ($\phi$)")
         legend = add_model_figure_legend(fig)
         benchmark_tight_layout(fig, reserve_artists=[legend])
-        save_benchmark_figure(fig, outfile)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)
 
 
 def plot_static_raw_energies(
@@ -267,7 +268,7 @@ def plot_static_raw_energies(
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig, ax = plt.subplots(1, 1, figsize=figure_size("static_raw_energies"), sharex=True)
         _plot_static_energy_panel(
             ax,
@@ -290,7 +291,9 @@ def plot_static_raw_energies(
         )
         legend = add_model_figure_legend(fig)
         benchmark_tight_layout(fig, reserve_artists=[legend])
-        save_benchmark_figure(fig, outfile)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)
 
 
 def plot_static_single_excitation_overlaps(
@@ -299,7 +302,7 @@ def plot_static_single_excitation_overlaps(
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig, axes = plt.subplots(1, 2, figsize=figure_size("static_overlaps"), sharex=True, sharey=True)
         panels = (
             ("circuit", axes[0], np.asarray(result.circuit_computational_bare_overlaps, dtype=float)),
@@ -320,7 +323,7 @@ def plot_static_single_excitation_overlaps(
                         linestyle=linestyles[branch_offset - 1],
                         linewidth=COMPARISON_LINEWIDTH,
                         label=f"{branch_label} vs {bare_label}",
-            )
+                    )
             ax.set_title(model_name)
             ax.set_xlabel(r"Flux bias ($\phi$)")
             ax.set_ylim(-0.02, 1.02)
@@ -329,7 +332,9 @@ def plot_static_single_excitation_overlaps(
         axes[0].set_ylabel(r"Bare overlap $|\langle \mathrm{bare} | \mathrm{dressed} \rangle|^2$")
         axes[1].legend(loc="upper center", bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR, ncol=2)
         benchmark_tight_layout(fig)
-        save_benchmark_figure(fig, outfile)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)
 
 
 def plot_static_computational_basis_amplitudes(
@@ -357,7 +362,7 @@ def plot_static_computational_basis_amplitudes(
         ),
     )
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig = plt.figure(figsize=figure_size("static_amplitudes"), constrained_layout=True)
         gs = fig.add_gridspec(
             4,
@@ -420,5 +425,6 @@ def plot_static_computational_basis_amplitudes(
         cbar.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
         cbar.set_ticklabels(["$-\\pi$", "$-\\frac{\\pi}{2}$", "$0$", "$\\frac{\\pi}{2}$", "$\\pi$"])
         cbar.set_label("Phase hue (rad)\nStrength ~ sqrt(population)")
+        return fig
 
-        save_benchmark_figure(fig, outfile)
+    render_benchmark_figures(outfile, _build_figure)

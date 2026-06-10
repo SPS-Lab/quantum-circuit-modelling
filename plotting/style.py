@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import warnings
+from collections.abc import Callable
 from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Iterator
 
@@ -70,6 +72,14 @@ _BENCHMARK_STYLE_STACKS: dict[str, tuple[str, ...]] = {
     "paper": ("benchmark-base", "benchmark-paper"),
     "presentation": ("benchmark-base", "benchmark-presentation"),
 }
+_BENCHMARK_FIGURE_SCALES: dict[str, tuple[float, float]] = {
+    "paper": (1.0, 1.0),
+    "presentation": (1.35, 1.35),
+}
+_CURRENT_BENCHMARK_STYLE: ContextVar[str] = ContextVar(
+    "current_benchmark_style",
+    default=ACTIVE_BENCHMARK_STYLE,
+)
 
 # (width_scale, height_inches)
 _FIGURE_SPECS: dict[str, tuple[float, float]] = {
@@ -77,7 +87,7 @@ _FIGURE_SPECS: dict[str, tuple[float, float]] = {
     "runtime": (1.0, 1.5),
     "static_main": (1.0, 2.9),
     "static_raw_energies": (1.0, 2.35),
-    "static_overlaps": (1.0, 2.1),
+    "static_overlaps": (1.25, 2.1),
     "static_amplitudes": (1.0, 9.4),
     "leakage_flow": (1.0, 3.5),
 }
@@ -91,19 +101,30 @@ _STACKED_FIGURE_SPECS: dict[str, dict[int, tuple[float, float]]] = {
         3: (1.0, 3.4),
     },
     "truncation_single_model": {
-        1: (1.0, 1.25),
-        2: (1.0, 2.1),
-        3: (1.0, 3.0),
+        1: (1.0, 2.2),
+        2: (1.0, 2.7),
+        3: (1.0, 4.0),
     },
     "truncation_combined": {
-        3: (1.0, 3.2),
+        3: (1.0, 4.2),
     },
 }
 
 
-def benchmark_style_paths() -> list[str]:
-    """Return the active repo-owned mplstyle files."""
-    return [str(_STYLE_DIR / f"{name}.mplstyle") for name in _BENCHMARK_STYLE_STACKS[ACTIVE_BENCHMARK_STYLE]]
+def benchmark_style_names() -> tuple[str, ...]:
+    """Return the repo-owned benchmark styles to materialize for every plot."""
+    return tuple(_BENCHMARK_STYLE_STACKS)
+
+
+def benchmark_style_paths(style_name: str | None = None) -> list[str]:
+    """Return the repo-owned mplstyle files for a benchmark style."""
+    style_key = ACTIVE_BENCHMARK_STYLE if style_name is None else str(style_name)
+    return [str(_STYLE_DIR / f"{name}.mplstyle") for name in _BENCHMARK_STYLE_STACKS[style_key]]
+
+
+def benchmark_style_outfile(outfile: Path, style_name: str) -> Path:
+    """Return the materialized outfile path for a specific benchmark style."""
+    return outfile.with_name(f"{outfile.stem}_{style_name}{outfile.suffix}")
 
 
 def single_column_width_inches() -> float:
@@ -112,20 +133,28 @@ def single_column_width_inches() -> float:
 
 
 def figure_size(name: str) -> tuple[float, float]:
-    """Return a named paper figure size in inches."""
+    """Return a named benchmark figure size in inches."""
     width_scale, height_inches = _FIGURE_SPECS[name]
-    return (width_scale * single_column_width_inches(), height_inches)
+    width_factor, height_factor = _BENCHMARK_FIGURE_SCALES[_CURRENT_BENCHMARK_STYLE.get()]
+    return (
+        width_factor * width_scale * single_column_width_inches(),
+        height_factor * height_inches,
+    )
 
 
 def stacked_figure_size(name: str, row_count: int) -> tuple[float, float]:
-    """Return an explicit named stacked paper figure size in inches."""
+    """Return an explicit named stacked benchmark figure size in inches."""
     if row_count <= 0:
         raise ValueError(f"row_count must be positive, got {row_count}")
     try:
         width_scale, height_inches = _STACKED_FIGURE_SPECS[name][row_count]
     except KeyError as exc:
         raise ValueError(f"No stacked figure size recipe for {name!r} with row_count={row_count}") from exc
-    return (width_scale * single_column_width_inches(), height_inches)
+    width_factor, height_factor = _BENCHMARK_FIGURE_SCALES[_CURRENT_BENCHMARK_STYLE.get()]
+    return (
+        width_factor * width_scale * single_column_width_inches(),
+        height_factor * height_inches,
+    )
 
 
 def energy_level_alpha(level_index: int) -> float:
@@ -239,18 +268,37 @@ def pulse_schedule_plot_kwargs(*, alpha: float | None = None) -> dict[str, objec
 def save_benchmark_figure(
     fig: plt.Figure,
     outfile: Path,
+    *,
+    style_name: str,
 ) -> None:
     """Persist a benchmark figure and close it."""
+    outfile = benchmark_style_outfile(outfile, style_name)
     outfile.parent.mkdir(parents=True, exist_ok=True)
     save_kwargs: dict[str, object] = {"format": "pdf"}
     fig.savefig(outfile, **save_kwargs)
     plt.close(fig)
 
 
+def render_benchmark_figures(
+    outfile: Path,
+    build_figure: Callable[[], plt.Figure],
+) -> None:
+    """Render and persist the same benchmark figure in each repo-owned style."""
+    for style_name in benchmark_style_names():
+        with benchmark_plot_style(style_name):
+            fig = build_figure()
+            save_benchmark_figure(fig, outfile, style_name=style_name)
+
+
 @contextmanager
-def benchmark_plot_style() -> Iterator[None]:
-    """Apply the active repo-owned benchmark style stack with warnings as errors."""
+def benchmark_plot_style(style_name: str | None = None) -> Iterator[None]:
+    """Apply a repo-owned benchmark style stack with warnings as errors."""
+    style_key = ACTIVE_BENCHMARK_STYLE if style_name is None else str(style_name)
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        with plt.style.context(benchmark_style_paths()):
-            yield
+        token = _CURRENT_BENCHMARK_STYLE.set(style_key)
+        try:
+            with plt.style.context(benchmark_style_paths(style_key)):
+                yield
+        finally:
+            _CURRENT_BENCHMARK_STYLE.reset(token)

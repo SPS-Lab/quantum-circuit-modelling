@@ -10,11 +10,10 @@ import numpy as np
 from comparison.runtime import RuntimeBenchmarkResult
 from plotting.style import (
     add_model_figure_legend,
-    benchmark_plot_style,
     figure_size,
     model_legend_handles,
     model_plot_kwargs,
-    save_benchmark_figure,
+    render_benchmark_figures,
 )
 
 
@@ -32,7 +31,7 @@ def plot_runtime_benchmark(
     circuit_prop = np.asarray(result.circuit_propagation_runtime_s, dtype=float)
     circuit_prop_std = np.asarray(result.circuit_propagation_runtime_std_s, dtype=float)
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig, (ax_build, ax_prop) = plt.subplots(1, 2, figsize=figure_size("runtime"), sharex=True)
 
         ax_build.errorbar(
@@ -89,4 +88,6 @@ def plot_runtime_benchmark(
         )
         legend.set_in_layout(False)
         fig.subplots_adjust(left=0.11, right=0.97, bottom=0.24, top=0.75, wspace=0.27)
-        save_benchmark_figure(fig, outfile)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)
