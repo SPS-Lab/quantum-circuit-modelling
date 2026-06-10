@@ -12,6 +12,11 @@ import matplotlib.pyplot as plt
 from plotting.style import (
     ACM_SIGCONF_COLUMN_WIDTH_PT,
     ACTIVE_BENCHMARK_STYLE,
+    BEAMER_169_SLIDE_HEIGHT_CM,
+    BEAMER_169_SLIDE_WIDTH_CM,
+    beamer_slide_height_inches,
+    beamer_slide_width_inches,
+    benchmark_reference_width_inches,
     benchmark_plot_style,
     benchmark_style_names,
     benchmark_style_outfile,
@@ -77,6 +82,8 @@ def test_truncation_metric_handles_match_shared_metric_styles() -> None:
 def test_benchmark_style_paths_point_to_repo_owned_stylesheets() -> None:
     assert ACTIVE_BENCHMARK_STYLE == "paper"
     assert ACM_SIGCONF_COLUMN_WIDTH_PT == 241.14749
+    assert BEAMER_169_SLIDE_WIDTH_CM == 16.0
+    assert BEAMER_169_SLIDE_HEIGHT_CM == 9.0
     assert benchmark_style_names() == ("paper", "presentation")
     assert all(Path(path).exists() for path in benchmark_style_paths())
     assert all(Path(path).exists() for style_name in benchmark_style_names() for path in benchmark_style_paths(style_name))
@@ -93,3 +100,11 @@ def test_simple_single_axis_figures_can_be_narrower_than_full_column() -> None:
     assert figure_size("cz")[0] < single_column_width_inches()
     assert figure_size("static_raw_energies")[0] <= single_column_width_inches()
     assert figure_size("runtime")[0] <= single_column_width_inches()
+
+
+def test_presentation_reference_width_matches_beamer_169_width() -> None:
+    assert abs(beamer_slide_width_inches() - (16.0 / 2.54)) < 1e-9
+    assert abs(beamer_slide_height_inches() - (9.0 / 2.54)) < 1e-9
+    with benchmark_plot_style("presentation"):
+        assert abs(benchmark_reference_width_inches() - beamer_slide_width_inches()) < 1e-9
+        assert abs(figure_size("runtime")[0] - beamer_slide_width_inches()) < 1e-9

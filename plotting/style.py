@@ -18,6 +18,10 @@ ACTIVE_BENCHMARK_STYLE: str = "paper"
 ACM_SIGCONF_COLUMN_WIDTH_PT: float = 241.14749
 ACM_SIGCONF_TEXT_WIDTH_PT: float = 506.295
 _TEX_POINTS_PER_INCH: float = 72.27
+_CM_PER_INCH: float = 2.54
+
+BEAMER_169_SLIDE_WIDTH_CM: float = 16.0
+BEAMER_169_SLIDE_HEIGHT_CM: float = 9.0
 
 BENCHMARK_TIGHT_LAYOUT_RECT: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 1.0)
 # In unit scale of font size, default 1.08
@@ -72,41 +76,66 @@ _BENCHMARK_STYLE_STACKS: dict[str, tuple[str, ...]] = {
     "paper": ("benchmark-base", "benchmark-paper"),
     "presentation": ("benchmark-base", "benchmark-presentation"),
 }
-_BENCHMARK_FIGURE_SCALES: dict[str, tuple[float, float]] = {
-    "paper": (1.0, 1.0),
-    "presentation": (1.35, 1.35),
-}
 _CURRENT_BENCHMARK_STYLE: ContextVar[str] = ContextVar(
     "current_benchmark_style",
     default=ACTIVE_BENCHMARK_STYLE,
 )
 
-# (width_scale, height_inches)
-_FIGURE_SPECS: dict[str, tuple[float, float]] = {
-    "cz": (0.95, 1.7),
-    "runtime": (1.0, 1.5),
-    "static_main": (1.0, 2.9),
-    "static_raw_energies": (1.0, 2.35),
-    "static_overlaps": (1.25, 2.1),
-    "static_amplitudes": (1.0, 9.4),
-    "leakage_flow": (1.0, 3.5),
+# style -> figure_name -> (width_scale, height_inches)
+_FIGURE_SPECS: dict[str, dict[str, tuple[float, float]]] = {
+    "paper": {
+        "cz": (0.95, 1.7),
+        "runtime": (1.0, 1.5),
+        "static_main": (1.0, 2.9),
+        "static_raw_energies": (1.0, 2.35),
+        "static_overlaps": (1.25, 2.1),
+        "static_amplitudes": (1.0, 9.4),
+        "leakage_flow": (1.0, 3.5),
+    },
+    "presentation": {
+        "cz": (0.95, 1.7),
+        "runtime": (1.0, 1.5),
+        "static_main": (1.0, 2.9),
+        "static_raw_energies": (1.0, 2.35),
+        "static_overlaps": (1.25, 2.1),
+        "static_amplitudes": (1.0, 9.4),
+        "leakage_flow": (1.0, 3.5),
+    },
 }
 
-# row_count -> (width_scale, height_inches)
-_STACKED_FIGURE_SPECS: dict[str, dict[int, tuple[float, float]]] = {
-    "rx_populations": {
-        2: (1.0, 2.5),
+# style -> row_count -> (width_scale, height_inches)
+_STACKED_FIGURE_SPECS: dict[str, dict[str, dict[int, tuple[float, float]]]] = {
+    "paper": {
+        "rx_populations": {
+            2: (1.0, 2.5),
+        },
+        "rx_diagnostics": {
+            3: (1.0, 3.4),
+        },
+        "truncation_single_model": {
+            1: (1.0, 2.2),
+            2: (1.0, 2.7),
+            3: (1.0, 4.0),
+        },
+        "truncation_combined": {
+            3: (1.0, 4.2),
+        },
     },
-    "rx_diagnostics": {
-        3: (1.0, 3.4),
-    },
-    "truncation_single_model": {
-        1: (1.0, 2.2),
-        2: (1.0, 2.7),
-        3: (1.0, 4.0),
-    },
-    "truncation_combined": {
-        3: (1.0, 4.2),
+    "presentation": {
+        "rx_populations": {
+            2: (1.0, 2.5),
+        },
+        "rx_diagnostics": {
+            3: (1.0, 3.4),
+        },
+        "truncation_single_model": {
+            1: (1.0, 2.8),
+            2: (1.0, 3.8),
+            3: (1.0, 5.4),
+        },
+        "truncation_combined": {
+            3: (1.0, 5.7),
+        },
     },
 }
 
@@ -132,13 +161,33 @@ def single_column_width_inches() -> float:
     return ACM_SIGCONF_COLUMN_WIDTH_PT / _TEX_POINTS_PER_INCH
 
 
+def beamer_slide_width_inches() -> float:
+    """Return the Beamer 16:9 slide width in inches."""
+    return BEAMER_169_SLIDE_WIDTH_CM / _CM_PER_INCH
+
+
+def beamer_slide_height_inches() -> float:
+    """Return the Beamer 16:9 slide height in inches."""
+    return BEAMER_169_SLIDE_HEIGHT_CM / _CM_PER_INCH
+
+
+def benchmark_reference_width_inches(style_name: str | None = None) -> float:
+    """Return the reference layout width for a benchmark style."""
+    style_key = _CURRENT_BENCHMARK_STYLE.get() if style_name is None else str(style_name)
+    if style_key == "paper":
+        return single_column_width_inches()
+    if style_key == "presentation":
+        return beamer_slide_width_inches()
+    raise KeyError(f"Unknown benchmark style {style_key!r}")
+
+
 def figure_size(name: str) -> tuple[float, float]:
     """Return a named benchmark figure size in inches."""
-    width_scale, height_inches = _FIGURE_SPECS[name]
-    width_factor, height_factor = _BENCHMARK_FIGURE_SCALES[_CURRENT_BENCHMARK_STYLE.get()]
+    style_key = _CURRENT_BENCHMARK_STYLE.get()
+    width_scale, height_inches = _FIGURE_SPECS[style_key][name]
     return (
-        width_factor * width_scale * single_column_width_inches(),
-        height_factor * height_inches,
+        width_scale * benchmark_reference_width_inches(),
+        height_inches,
     )
 
 
@@ -147,13 +196,12 @@ def stacked_figure_size(name: str, row_count: int) -> tuple[float, float]:
     if row_count <= 0:
         raise ValueError(f"row_count must be positive, got {row_count}")
     try:
-        width_scale, height_inches = _STACKED_FIGURE_SPECS[name][row_count]
+        width_scale, height_inches = _STACKED_FIGURE_SPECS[_CURRENT_BENCHMARK_STYLE.get()][name][row_count]
     except KeyError as exc:
         raise ValueError(f"No stacked figure size recipe for {name!r} with row_count={row_count}") from exc
-    width_factor, height_factor = _BENCHMARK_FIGURE_SCALES[_CURRENT_BENCHMARK_STYLE.get()]
     return (
-        width_factor * width_scale * single_column_width_inches(),
-        height_factor * height_inches,
+        width_scale * benchmark_reference_width_inches(),
+        height_inches,
     )
 
 
