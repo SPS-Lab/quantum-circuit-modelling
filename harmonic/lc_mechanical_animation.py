@@ -68,7 +68,8 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     ax_circuit.set_title("Parallel LC Oscillator", fontsize=16, pad=14)
 
     bus_color = "#3c3c3c"
-    accent = "#0b6e4f"
+    current_color = "#C0392B"
+    flux_color = "#2F9E44"
     charge_top = "#cf3f3f"
     charge_bottom = "#2b6cb0"
 
@@ -98,7 +99,7 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
                 height=0.42,
                 fill=False,
                 lw=2.6,
-                edgecolor=accent,
+                edgecolor=bus_color,
             )
         )
 
@@ -112,8 +113,8 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     ax_circuit.add_patch(top_plate_fill)
     ax_circuit.add_patch(bottom_plate_fill)
 
-    current_arrow_top = FancyArrowPatch((2.15, 6.1), (2.15, 6.9), arrowstyle="-|>", mutation_scale=18, lw=2.4, color=accent)
-    current_arrow_bottom = FancyArrowPatch((2.15, 3.1), (2.15, 3.9), arrowstyle="-|>", mutation_scale=18, lw=2.4, color=accent)
+    current_arrow_top = FancyArrowPatch((2.15, 6.1), (2.15, 6.9), arrowstyle="-|>", mutation_scale=18, lw=2.4, color=current_color)
+    current_arrow_bottom = FancyArrowPatch((2.15, 3.1), (2.15, 3.9), arrowstyle="-|>", mutation_scale=18, lw=2.4, color=current_color)
     ax_circuit.add_patch(current_arrow_top)
     ax_circuit.add_patch(current_arrow_bottom)
 
@@ -122,7 +123,7 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
         0.38,
         coil_y1 - coil_y0 - 0.7,
         boxstyle="round,pad=0.04,rounding_size=0.18",
-        facecolor=accent,
+        facecolor=flux_color,
         edgecolor="none",
         alpha=0.08,
     )
@@ -138,7 +139,7 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
             arrowstyle="-|>",
             mutation_scale=16,
             lw=2.0,
-            color=accent,
+            color=flux_color,
             alpha=0.12,
         )
         flux_arrows.append(arrow)
@@ -172,7 +173,7 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
             arrowstyle="-|>",
             mutation_scale=13,
             lw=1.8,
-            color="#19b52a",
+            color=flux_color,
             alpha=0.18,
         )
         flux_loops.append(loop)
@@ -181,10 +182,9 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     top_charge_text = ax_circuit.text(x_right + 1.2, plate_y_top, "+", ha="center", va="center", fontsize=24, color=charge_top, alpha=0.2)
     bottom_charge_text = ax_circuit.text(x_right + 1.2, plate_y_bottom, "-", ha="center", va="center", fontsize=24, color=charge_bottom, alpha=0.2)
 
-    ax_circuit.text(1.18, 7.95, "inductor current", fontsize=11, color=accent)
-    ax_circuit.text(6.1, 6.25, "capacitor charge", fontsize=11, color="#6b4f4f")
-    ax_circuit.text(1.63, 5.1, "magnetic flux", fontsize=11, color=accent)
-    ax_circuit.text(2.45, 5.1, "L", fontsize=13, color=accent, weight="bold")
+    ax_circuit.text(0.8, 8.3, "inductor current", fontsize=11, color=current_color)
+    ax_circuit.text(-1.0, 5.1, "magnetic flux", fontsize=11, color=flux_color)
+    ax_circuit.text(2.45, 5.1, "L", fontsize=13, color=current_color, weight="bold")
     ax_circuit.text(8.0, 5.0, "C", fontsize=13, color="#6b4f4f", weight="bold")
 
     ax_mech.set_xlim(0, 10)
