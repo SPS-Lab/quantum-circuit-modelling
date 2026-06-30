@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation, PillowWriter
 from matplotlib.lines import Line2D
-from matplotlib.patches import Circle, FancyArrowPatch, Rectangle
+from matplotlib.patches import Ellipse, FancyArrowPatch, FancyBboxPatch, Rectangle
 
 
 FPS = 30
@@ -43,13 +43,6 @@ def spring_points(x0: float, x1: float, y: float, turns: int = 10, amplitude: fl
         offsets[0::2] = amplitude
         offsets[1::2] = -amplitude
         ys[1:-1] += offsets
-    return xs, ys
-
-
-def coil_points(x: float, y0: float, y1: float, loops: int = 5, width: float = 0.28) -> tuple[np.ndarray, np.ndarray]:
-    t = np.linspace(0.0, 2.0 * np.pi * loops, 250)
-    ys = np.linspace(y0, y1, t.size)
-    xs = x + width * np.sin(t)
     return xs, ys
 
 
@@ -85,19 +78,29 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     y_top = 8.0
     coil_y0 = 3.0
     coil_y1 = 7.0
+    coil_turn_centers = np.linspace(3.55, 6.45, 6)
     plate_y_top = 5.45
     plate_y_bottom = 4.55
     plate_half_width = 0.82
 
     ax_circuit.add_line(Line2D([x_left, x_right], [y_top, y_top], lw=3.0, color=bus_color))
     ax_circuit.add_line(Line2D([x_left, x_right], [y_bottom, y_bottom], lw=3.0, color=bus_color))
-    ax_circuit.add_line(Line2D([x_left, x_left], [y_top, coil_y1], lw=3.0, color=bus_color))
-    ax_circuit.add_line(Line2D([x_left, x_left], [coil_y0, y_bottom], lw=3.0, color=bus_color))
+    ax_circuit.add_line(Line2D([x_left, x_left], [y_top, coil_turn_centers[-1] + 0.24], lw=3.0, color=bus_color))
+    ax_circuit.add_line(Line2D([x_left, x_left], [coil_turn_centers[0] - 0.24, y_bottom], lw=3.0, color=bus_color))
     ax_circuit.add_line(Line2D([x_right, x_right], [y_top, plate_y_top], lw=3.0, color=bus_color))
     ax_circuit.add_line(Line2D([x_right, x_right], [plate_y_bottom, y_bottom], lw=3.0, color=bus_color))
 
-    coil_xs, coil_ys = coil_points(x_left, coil_y0, coil_y1)
-    ax_circuit.plot(coil_xs, coil_ys, color=accent, lw=3.2)
+    for center_y in coil_turn_centers:
+        ax_circuit.add_patch(
+            Ellipse(
+                (x_left, center_y),
+                width=1.12,
+                height=0.42,
+                fill=False,
+                lw=2.6,
+                edgecolor=accent,
+            )
+        )
 
     top_plate = Line2D([x_right - plate_half_width, x_right + plate_half_width], [plate_y_top, plate_y_top], lw=4.0, color=charge_top)
     bottom_plate = Line2D([x_right - plate_half_width, x_right + plate_half_width], [plate_y_bottom, plate_y_bottom], lw=4.0, color=charge_bottom)
@@ -114,20 +117,75 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     ax_circuit.add_patch(current_arrow_top)
     ax_circuit.add_patch(current_arrow_bottom)
 
-    flux_rings = []
-    for radius in (0.9, 1.25, 1.6):
-        ring = Circle((x_left, 5.0), radius=radius, fill=False, lw=2.0, alpha=0.12, color=accent)
-        flux_rings.append(ring)
-        ax_circuit.add_patch(ring)
+    flux_core = FancyBboxPatch(
+        (x_left - 0.19, coil_y0 + 0.35),
+        0.38,
+        coil_y1 - coil_y0 - 0.7,
+        boxstyle="round,pad=0.04,rounding_size=0.18",
+        facecolor=accent,
+        edgecolor="none",
+        alpha=0.08,
+    )
+    ax_circuit.add_patch(flux_core)
+
+    flux_arrows = []
+    flux_arrow_specs = [(-0.24, 0.14), (0.0, 0.0), (0.24, -0.14)]
+    for x_offset, curvature in flux_arrow_specs:
+        arrow = FancyArrowPatch(
+            (x_left + x_offset, 3.8),
+            (x_left + x_offset, 6.2),
+            connectionstyle=f"arc3,rad={curvature}",
+            arrowstyle="-|>",
+            mutation_scale=16,
+            lw=2.0,
+            color=accent,
+            alpha=0.12,
+        )
+        flux_arrows.append(arrow)
+        ax_circuit.add_patch(arrow)
+
+    flux_loops = []
+    flux_loop_specs = [
+        {
+            "forward": ((x_left - 0.34, 6.15), (x_left - 0.28, 3.85), "arc3,rad=1.22"),
+            "reverse": ((x_left - 0.28, 3.85), (x_left - 0.34, 6.15), "arc3,rad=-1.22"),
+        },
+        {
+            "forward": ((x_left - 0.12, 4.1), (x_left - 0.18, 5.9), "arc3,rad=-0.92"),
+            "reverse": ((x_left - 0.18, 5.9), (x_left - 0.12, 4.1), "arc3,rad=0.92"),
+        },
+        {
+            "forward": ((x_left + 0.34, 6.15), (x_left + 0.28, 3.85), "arc3,rad=-1.22"),
+            "reverse": ((x_left + 0.28, 3.85), (x_left + 0.34, 6.15), "arc3,rad=1.22"),
+        },
+        {
+            "forward": ((x_left + 0.18, 5.9), (x_left + 0.12, 4.1), "arc3,rad=-0.92"),
+            "reverse": ((x_left + 0.12, 4.1), (x_left + 0.18, 5.9), "arc3,rad=0.92"),
+        },
+    ]
+    for spec in flux_loop_specs:
+        start, end, connection_style = spec["forward"]
+        loop = FancyArrowPatch(
+            start,
+            end,
+            connectionstyle=connection_style,
+            arrowstyle="-|>",
+            mutation_scale=13,
+            lw=1.8,
+            color="#19b52a",
+            alpha=0.18,
+        )
+        flux_loops.append(loop)
+        ax_circuit.add_patch(loop)
 
     top_charge_text = ax_circuit.text(x_right + 1.2, plate_y_top, "+", ha="center", va="center", fontsize=24, color=charge_top, alpha=0.2)
     bottom_charge_text = ax_circuit.text(x_right + 1.2, plate_y_bottom, "-", ha="center", va="center", fontsize=24, color=charge_bottom, alpha=0.2)
 
     ax_circuit.text(1.18, 7.95, "inductor current", fontsize=11, color=accent)
     ax_circuit.text(6.1, 6.25, "capacitor charge", fontsize=11, color="#6b4f4f")
+    ax_circuit.text(1.63, 5.1, "magnetic flux", fontsize=11, color=accent)
     ax_circuit.text(2.45, 5.1, "L", fontsize=13, color=accent, weight="bold")
     ax_circuit.text(8.0, 5.0, "C", fontsize=13, color="#6b4f4f", weight="bold")
-    ax_circuit.text(0.55, 0.65, "Choice of analogy: x_mech <-> inductor flux/current", fontsize=11, color="#464646")
 
     ax_mech.set_xlim(0, 10)
     ax_mech.set_ylim(0, 10)
@@ -154,7 +212,6 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     displacement_arrow = FancyArrowPatch((eq_left + mass_width / 2.0, 7.9), (eq_left + mass_width / 2.0, 7.9), arrowstyle="<|-|>", mutation_scale=16, lw=2.0, color="#8b5e34")
     ax_mech.add_patch(displacement_arrow)
     ax_mech.text(1.18, 8.3, "position x", fontsize=11, color="#8b5e34")
-    ax_mech.text(0.85, 0.65, "Peak position lines up with peak inductor current/flux", fontsize=11, color="#464646")
 
     relation_text = ax_mech.text(
         0.5,
@@ -176,7 +233,11 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
         "bottom_plate_fill": bottom_plate_fill,
         "current_arrow_top": current_arrow_top,
         "current_arrow_bottom": current_arrow_bottom,
-        "flux_rings": flux_rings,
+        "flux_core": flux_core,
+        "flux_arrows": flux_arrows,
+        "flux_arrow_specs": flux_arrow_specs,
+        "flux_loops": flux_loops,
+        "flux_loop_specs": flux_loop_specs,
         "top_charge_text": top_charge_text,
         "bottom_charge_text": bottom_charge_text,
         "spring_line": spring_line,
@@ -220,7 +281,8 @@ def update(frame: int, artists: dict[str, object]) -> list[object]:
     displacement_arrow.set_positions((eq_left + mass_width / 2.0, 7.9), (center_x, 7.9))
 
     arrow_length = 0.55 + 1.25 * abs(inductor_current)
-    direction = 1.0 if inductor_current >= 0.0 else -1.0
+    current_direction = -1.0 if inductor_current >= 0.0 else 1.0
+    field_direction = current_direction
     top_center = 6.5
     bottom_center = 3.5
 
@@ -229,19 +291,48 @@ def update(frame: int, artists: dict[str, object]) -> list[object]:
     assert isinstance(current_arrow_top, FancyArrowPatch)
     assert isinstance(current_arrow_bottom, FancyArrowPatch)
 
-    current_arrow_top.set_positions((2.15, top_center - 0.5 * arrow_length * direction), (2.15, top_center + 0.5 * arrow_length * direction))
-    current_arrow_bottom.set_positions((2.15, bottom_center - 0.5 * arrow_length * direction), (2.15, bottom_center + 0.5 * arrow_length * direction))
+    current_arrow_top.set_positions((2.15, top_center - 0.5 * arrow_length * current_direction), (2.15, top_center + 0.5 * arrow_length * current_direction))
+    current_arrow_bottom.set_positions((2.15, bottom_center - 0.5 * arrow_length * current_direction), (2.15, bottom_center + 0.5 * arrow_length * current_direction))
 
     accent_alpha = 0.2 + 0.8 * abs(inductor_current)
     current_arrow_top.set_alpha(accent_alpha)
     current_arrow_bottom.set_alpha(accent_alpha)
 
-    flux_rings = artists["flux_rings"]
-    assert isinstance(flux_rings, list)
-    for index, ring in enumerate(flux_rings, start=1):
-        assert isinstance(ring, Circle)
-        ring.set_alpha((0.1 + 0.16 * index) * abs(inductor_current) + 0.04)
-        ring.set_linewidth(1.2 + 1.0 * abs(inductor_current))
+    flux_core = artists["flux_core"]
+    flux_arrows = artists["flux_arrows"]
+    flux_arrow_specs = artists["flux_arrow_specs"]
+    assert isinstance(flux_core, FancyBboxPatch)
+    assert isinstance(flux_arrows, list)
+    assert isinstance(flux_arrow_specs, list)
+    flux_core.set_alpha(0.06 + 0.22 * abs(inductor_current))
+    for arrow, (x_offset, curvature) in zip(flux_arrows, flux_arrow_specs):
+        assert isinstance(arrow, FancyArrowPatch)
+        x_position = 3.0 + x_offset
+        field_length = 0.95 + 1.15 * abs(inductor_current)
+        horizontal_bend = 0.10 if curvature != 0.0 else 0.0
+        start = (x_position - horizontal_bend, 5.0 - 0.5 * field_length)
+        end = (x_position + horizontal_bend, 5.0 + 0.5 * field_length)
+        if field_direction > 0.0:
+            arrow.set_positions(start, end)
+        else:
+            arrow.set_positions(end, start)
+        arrow.set_alpha(0.12 + 0.7 * abs(inductor_current))
+        arrow.set_linewidth(1.4 + 1.2 * abs(inductor_current))
+
+    flux_loops = artists["flux_loops"]
+    flux_loop_specs = artists["flux_loop_specs"]
+    assert isinstance(flux_loops, list)
+    assert isinstance(flux_loop_specs, list)
+    for loop, spec in zip(flux_loops, flux_loop_specs):
+        assert isinstance(loop, FancyArrowPatch)
+        if field_direction > 0.0:
+            start, end, connection_style = spec["forward"]
+        else:
+            start, end, connection_style = spec["reverse"]
+        loop.set_connectionstyle(connection_style)
+        loop.set_positions(start, end)
+        loop.set_alpha(0.08 + 0.52 * abs(inductor_current))
+        loop.set_linewidth(1.2 + 1.1 * abs(inductor_current))
 
     top_plate = artists["top_plate"]
     bottom_plate = artists["bottom_plate"]
@@ -292,7 +383,9 @@ def update(frame: int, artists: dict[str, object]) -> list[object]:
         top_charge_text,
         bottom_charge_text,
         relation_text,
-        *flux_rings,
+        flux_core,
+        *flux_arrows,
+        *flux_loops,
     ]
 
 
