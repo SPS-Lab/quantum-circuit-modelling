@@ -182,10 +182,10 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     top_charge_text = ax_circuit.text(x_right + 1.2, plate_y_top, "+", ha="center", va="center", fontsize=24, color=charge_top, alpha=0.2)
     bottom_charge_text = ax_circuit.text(x_right + 1.2, plate_y_bottom, "-", ha="center", va="center", fontsize=24, color=charge_bottom, alpha=0.2)
 
-    ax_circuit.text(0.8, 8.3, "inductor current", fontsize=11, color=current_color)
-    ax_circuit.text(-1.0, 5.1, "magnetic flux", fontsize=11, color=flux_color)
-    ax_circuit.text(2.45, 5.1, "L", fontsize=13, color=current_color, weight="bold")
-    ax_circuit.text(8.0, 5.0, "C", fontsize=13, color="#6b4f4f", weight="bold")
+    ax_circuit.text(1.3, 6.3, r"$I$", fontsize=15, color=current_color)
+    ax_circuit.text(0.4, 5.1, r"$\phi$", fontsize=15, color=flux_color)
+    ax_circuit.text(1.45, 5.1, r"$L$", fontsize=15, color="#6b4f4f", weight="bold")
+    ax_circuit.text(8.4, 4.9, r"$C$", fontsize=15, color="#6b4f4f", weight="bold")
 
     ax_mech.set_xlim(0, 10)
     ax_mech.set_ylim(0, 10)
@@ -211,7 +211,8 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
 
     displacement_arrow = FancyArrowPatch((eq_left + mass_width / 2.0, 7.9), (eq_left + mass_width / 2.0, 7.9), arrowstyle="<|-|>", mutation_scale=16, lw=2.0, color="#8b5e34")
     ax_mech.add_patch(displacement_arrow)
-    ax_mech.text(1.18, 8.3, "position x", fontsize=11, color="#8b5e34")
+    ax_mech.text(1.18, 8.3, "x", fontsize=15, color="#8b5e34")
+    ax_mech.text(1.88, 5.3, "k", fontsize=15, color="#8b5e34")
 
     relation_text = ax_mech.text(
         0.5,
