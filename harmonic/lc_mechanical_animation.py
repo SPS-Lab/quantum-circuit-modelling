@@ -85,11 +85,11 @@ def save_pdf_frames(
 
 def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     fig, (ax_circuit, ax_mech) = plt.subplots(1, 2, figsize=(10.6, 5.2), gridspec_kw={"wspace": 0.1})
-    fig.patch.set_facecolor("#fbfaf6")
+    fig.patch.set_facecolor("#ffffff")
     fig.subplots_adjust(top=0.88, bottom=0.035, left=0.055, right=0.97)
 
     for ax in (ax_circuit, ax_mech):
-        ax.set_facecolor("#fffdf8")
+        ax.set_facecolor("#ffffff")
         ax.set_xticks([])
         ax.set_yticks([])
         ax.set_frame_on(False)
