@@ -30,3 +30,22 @@ def test_animation_builds_and_updates_multiple_frames() -> None:
     assert artists["bottom_charge_text"].get_text() in {"+", "-"}
 
     plt.close(fig)
+
+
+def test_pdf_frame_export_writes_numbered_files(tmp_path: Path) -> None:
+    animation_module = load_animation_module()
+    fig, artists = animation_module.build_figure()
+
+    frame_numbers = animation_module.export_frame_numbers(12, 5)
+    saved_paths = animation_module.save_pdf_frames(fig, artists, tmp_path, frame_numbers)
+
+    assert frame_numbers == [0, 5, 10, 11]
+    assert [path.name for path in saved_paths] == [
+        "frame_000.pdf",
+        "frame_001.pdf",
+        "frame_002.pdf",
+        "frame_003.pdf",
+    ]
+    assert all(path.exists() for path in saved_paths)
+
+    plt.close(fig)

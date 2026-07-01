@@ -52,6 +52,37 @@ def charge_color(level: float) -> tuple[str, str]:
     return "#2b6cb0", "#cf3f3f"
 
 
+def export_frame_numbers(total_frames: int, step: int) -> list[int]:
+    if total_frames <= 0:
+        return []
+    if step <= 0:
+        raise ValueError("step must be positive")
+
+    frame_numbers = list(range(0, total_frames, step))
+    if frame_numbers[-1] != total_frames - 1:
+        frame_numbers.append(total_frames - 1)
+    return frame_numbers
+
+
+def save_pdf_frames(
+    fig: plt.Figure,
+    artists: dict[str, object],
+    output_dir: Path,
+    frame_numbers: list[int],
+) -> list[Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    saved_paths: list[Path] = []
+
+    for export_index, frame_number in enumerate(frame_numbers):
+        update(frame_number, artists)
+        fig.canvas.draw()
+        outpath = output_dir / f"frame_{export_index:03d}.pdf"
+        fig.savefig(outpath, format="pdf", bbox_inches="tight")
+        saved_paths.append(outpath)
+
+    return saved_paths
+
+
 def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     fig, (ax_circuit, ax_mech) = plt.subplots(1, 2, figsize=(10.6, 5.2), gridspec_kw={"wspace": 0.1})
     fig.patch.set_facecolor("#fbfaf6")
@@ -184,7 +215,7 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     bottom_charge_text = ax_circuit.text(x_right + 1.2, plate_y_bottom, "-", ha="center", va="center", fontsize=24, color=charge_bottom, alpha=0.2)
 
     ax_circuit.text(1.4, 6.3, r"$I$", fontsize=15, color=current_color)
-    ax_circuit.text(0.5, 5.1, r"$\phi$", fontsize=15, color=flux_color)
+    ax_circuit.text(0.5, 5.1, r"$\Phi$", fontsize=15, color=flux_color)
     ax_circuit.text(1.45, 5.1, r"$L$", fontsize=15, color="#6b4f4f", weight="bold")
     ax_circuit.text(8.4, 4.9, r"$C$", fontsize=15, color="#6b4f4f", weight="bold")
 
@@ -394,6 +425,17 @@ def update(frame: int, artists: dict[str, object]) -> list[object]:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--save", type=Path, help="Optional path to save the animation, e.g. demo.gif or demo.mp4.")
+    parser.add_argument(
+        "--save-pdf-frames",
+        type=Path,
+        help="Optional directory to save numbered PDF frames for stepping through in a presentation.",
+    )
+    parser.add_argument(
+        "--pdf-step",
+        type=int,
+        default=10,
+        help="Export every Nth animation frame to PDF. The final frame is always included.",
+    )
     parser.add_argument("--fps", type=int, default=FPS, help="Frames per second for playback and saving.")
     parser.add_argument("--seconds", type=float, default=DURATION, help="Animation duration in seconds.")
     parser.add_argument("--no-show", action="store_true", help="Build the animation without opening an interactive window.")
@@ -422,6 +464,10 @@ def main() -> None:
             animation.save(args.save, writer=PillowWriter(fps=args.fps))
         else:
             animation.save(args.save, fps=args.fps)
+
+    if args.save_pdf_frames:
+        frame_numbers = export_frame_numbers(FRAMES, args.pdf_step)
+        save_pdf_frames(fig, artists, args.save_pdf_frames, frame_numbers)
 
     if args.no_show:
         plt.close(fig)
