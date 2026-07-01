@@ -86,7 +86,7 @@ def save_pdf_frames(
 def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     fig, (ax_circuit, ax_mech) = plt.subplots(1, 2, figsize=(10.6, 5.2), gridspec_kw={"wspace": 0.1})
     fig.patch.set_facecolor("#fbfaf6")
-    fig.subplots_adjust(top=0.88, bottom=0.14, left=0.055, right=0.97)
+    fig.subplots_adjust(top=0.88, bottom=0.035, left=0.055, right=0.97)
 
     for ax in (ax_circuit, ax_mech):
         ax.set_facecolor("#fffdf8")
@@ -95,7 +95,7 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
         ax.set_frame_on(False)
 
     ax_circuit.set_xlim(0, 10)
-    ax_circuit.set_ylim(0, 10)
+    ax_circuit.set_ylim(1.3, 10)
     ax_circuit.set_aspect("equal")
     ax_circuit.set_title("Parallel LC Oscillator", fontsize=16, pad=0)
 
@@ -220,7 +220,7 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     ax_circuit.text(8.4, 4.9, r"$C$", fontsize=15, color="#6b4f4f", weight="bold")
 
     ax_mech.set_xlim(0, 10)
-    ax_mech.set_ylim(0, 10)
+    ax_mech.set_ylim(1.3, 10)
     ax_mech.set_aspect("equal")
     ax_mech.set_title("Mechanical Oscillator", fontsize=16, pad=0)
 
@@ -246,17 +246,6 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     ax_mech.text(5.5, 8.3, r"$x$", fontsize=15, color="#8b5e34")
     ax_mech.text(1.88, 5.3, r"$k$", fontsize=15, color="#8b5e34")
 
-    relation_text = ax_mech.text(
-        0.5,
-        -0.12,
-        "Analytic phase relation: x(t) and i_L(t) are in phase; capacitor charge q_C(t) is shifted by 90 degrees.",
-        transform=ax_mech.transAxes,
-        ha="center",
-        va="center",
-        fontsize=11,
-        color="#4b4b4b",
-    )
-
     artists = {
         "ax_circuit": ax_circuit,
         "ax_mech": ax_mech,
@@ -276,7 +265,6 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
         "spring_line": spring_line,
         "mass": mass,
         "displacement_arrow": displacement_arrow,
-        "relation_text": relation_text,
         "wall_x": wall_x,
         "y_track": y_track,
         "mass_width": mass_width,
@@ -397,12 +385,6 @@ def update(frame: int, artists: dict[str, object]) -> list[object]:
     top_charge_text.set_color(top_color)
     bottom_charge_text.set_color(bottom_color)
 
-    relation_text = artists["relation_text"]
-    time_fraction = frame / FRAMES
-    relation_text.set_text(
-        f"phase = {time_fraction:0.2f} cycles   |   x ~ i_L = {inductor_current:+0.2f}   |   q_C = {capacitor_charge:+0.2f}"
-    )
-
     return [
         mass,
         spring_line,
@@ -415,7 +397,6 @@ def update(frame: int, artists: dict[str, object]) -> list[object]:
         bottom_plate_fill,
         top_charge_text,
         bottom_charge_text,
-        relation_text,
         flux_core,
         *flux_arrows,
         *flux_loops,
