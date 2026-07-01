@@ -242,7 +242,10 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     ax_mech.add_patch(mass)
 
     displacement_arrow = FancyArrowPatch((eq_left + mass_width / 2.0, 7.9), (eq_left + mass_width / 2.0, 7.9), arrowstyle="<|-|>", mutation_scale=16, lw=2.0, color="#8b5e34")
+    force_arrow = FancyArrowPatch((eq_left + mass_width / 2.0, 6.95), (eq_left + mass_width / 2.0, 6.95), arrowstyle="-|>", mutation_scale=18, lw=2.2, color="#b5522d")
     ax_mech.add_patch(displacement_arrow)
+    ax_mech.add_patch(force_arrow)
+    force_label = ax_mech.text(eq_left + mass_width / 2.0, 7.28, r"$F$", fontsize=15, color="#b5522d", ha="center", va="bottom")
     ax_mech.text(5.5, 8.3, r"$x$", fontsize=15, color="#8b5e34")
     ax_mech.text(1.88, 5.3, r"$k$", fontsize=15, color="#8b5e34")
 
@@ -265,6 +268,8 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
         "spring_line": spring_line,
         "mass": mass,
         "displacement_arrow": displacement_arrow,
+        "force_arrow": force_arrow,
+        "force_label": force_label,
         "wall_x": wall_x,
         "y_track": y_track,
         "mass_width": mass_width,
@@ -300,6 +305,20 @@ def update(frame: int, artists: dict[str, object]) -> list[object]:
     assert isinstance(displacement_arrow, FancyArrowPatch)
     center_x = mass_left + mass_width / 2.0
     displacement_arrow.set_positions((eq_left + mass_width / 2.0, 7.9), (center_x, 7.9))
+
+    force_arrow = artists["force_arrow"]
+    force_label = artists["force_label"]
+    assert isinstance(force_arrow, FancyArrowPatch)
+    force_length = 0.2 + 1.1 * abs(position)
+    force_direction = -1.0 if position >= 0.0 else 1.0
+    force_y = 6.95
+    force_start = center_x - 0.5 * force_length * force_direction
+    force_end = center_x + 0.5 * force_length * force_direction
+    force_arrow.set_positions((force_start, force_y), (force_end, force_y))
+    force_arrow.set_alpha(0.18 + 0.78 * abs(position))
+    force_arrow.set_linewidth(1.5 + 1.1 * abs(position))
+    force_label.set_position((center_x, 7.28))
+    force_label.set_alpha(0.35 + 0.65 * abs(position))
 
     arrow_length = 0.55 + 1.25 * abs(inductor_current)
     current_direction = -1.0 if inductor_current >= 0.0 else 1.0
@@ -389,6 +408,8 @@ def update(frame: int, artists: dict[str, object]) -> list[object]:
         mass,
         spring_line,
         displacement_arrow,
+        force_arrow,
+        force_label,
         current_arrow_top,
         current_arrow_bottom,
         top_plate,
