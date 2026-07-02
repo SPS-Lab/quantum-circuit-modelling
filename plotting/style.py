@@ -85,21 +85,21 @@ _CURRENT_BENCHMARK_STYLE: ContextVar[str] = ContextVar(
 _FIGURE_SPECS: dict[str, dict[str, tuple[float, float]]] = {
     "paper": {
         "cz": (0.95, 1.7),
-        "runtime": (1.0, 1.5),
+        "runtime": (1.0, 1.65),
         "static_main": (1.0, 2.9),
         "static_raw_energies": (1.0, 2.35),
         "static_overlaps": (1.25, 2.1),
         "static_amplitudes": (1.0, 9.4),
-        "leakage_flow": (1.0, 3.5),
+        "leakage_flow": (1.0, 3.8),
     },
     "presentation": {
         "cz": (0.95, 1.7),
-        "runtime": (1.0, 1.5),
+        "runtime": (1.0, 1.8),
         "static_main": (1.0, 2.9),
         "static_raw_energies": (1.0, 2.35),
         "static_overlaps": (1.25, 2.1),
         "static_amplitudes": (1.0, 9.4),
-        "leakage_flow": (1.0, 3.5),
+        "leakage_flow": (1.0, 4.0),
     },
 }
 
@@ -291,6 +291,7 @@ def benchmark_tight_layout(
     fig: plt.Figure,
     *,
     reserve_artists: list[Artist] | None = None,
+    w_pad: float | None = None,
 ) -> None:
     """Apply the shared tight_layout policy for benchmark figures."""
     rect = list(BENCHMARK_TIGHT_LAYOUT_RECT)
@@ -306,7 +307,7 @@ def benchmark_tight_layout(
         rect=tuple(rect),
         pad=BENCHMARK_TIGHT_LAYOUT_PAD,
         h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-        w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD
+        w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD if w_pad is None else float(w_pad)
     )
 
 

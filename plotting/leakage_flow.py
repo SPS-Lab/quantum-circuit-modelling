@@ -242,9 +242,9 @@ def plot_leakage_flow_benchmark(
             2,
             figsize=figure_size("leakage_flow"),
             sharex=True,
-            gridspec_kw={"hspace": 0.28, "wspace": 0.98},
+            gridspec_kw={"hspace": 0.34, "wspace": 0.75},
         )
-        fig.subplots_adjust(left=0.05, right=0.90, bottom=0.10, top=0.95)
+        fig.subplots_adjust(left=0.05, right=0.90, bottom=0.14, top=0.90)
         ax_pop_duf, ax_pop_cir = axes[0]
         ax_tr_duf, ax_tr_cir = axes[1]
 

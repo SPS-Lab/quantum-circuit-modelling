@@ -87,7 +87,7 @@ def plot_runtime_benchmark(
             ncol=2,
         )
         legend.set_in_layout(False)
-        fig.subplots_adjust(left=0.11, right=0.97, bottom=0.24, top=0.75, wspace=0.27)
+        fig.subplots_adjust(left=0.11, right=0.97, bottom=0.28, top=0.75, wspace=0.27)
         return fig
 
     render_benchmark_figures(outfile, _build_figure)

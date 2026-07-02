@@ -119,7 +119,7 @@ def plot_cz_benchmark(
         ax_error.grid()
 
         legend = add_model_figure_legend(fig)
-        benchmark_tight_layout(fig, reserve_artists=[legend])
+        benchmark_tight_layout(fig, reserve_artists=[legend], w_pad=2.5)
         return fig
 
     render_benchmark_figures(outfile, _build_figure)
