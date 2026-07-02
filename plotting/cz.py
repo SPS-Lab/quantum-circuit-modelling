@@ -10,6 +10,7 @@ import numpy as np
 from comparison.cz import CzBenchmarkResult
 from plotting.style import (
     add_model_figure_legend,
+    benchmark_tight_layout,
     figure_size,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
@@ -58,8 +59,12 @@ def plot_cz_benchmark(
     t = np.asarray(result.times_ns, dtype=float)
 
     def _build_figure() -> plt.Figure:
-        fig = plt.figure(figsize=figure_size("cz"))
-        ax_phase = fig.add_subplot(1, 1, 1)
+        fig, (ax_phase, ax_error) = plt.subplots(
+            1,
+            2,
+            figsize=figure_size("cz"),
+            sharex=True,
+        )
         ax_flux = ax_phase.twinx()
 
         ax_phase.plot(t, result.circuit_conditional_phase, **model_plot_kwargs("circuit"))
@@ -92,9 +97,22 @@ def plot_cz_benchmark(
         )
         flux_legend.set_in_layout(False)
 
+        ax_error.plot(
+            t,
+            np.abs(result.duffing_conditional_phase - result.circuit_conditional_phase),
+            **model_plot_kwargs("duffing"),
+        )
+        ax_error.plot(
+            t,
+            np.abs(result.effective_conditional_phase - result.circuit_conditional_phase),
+            **model_plot_kwargs("effective"),
+        )
+        ax_error.set_xlabel("Time (ns)")
+        ax_error.set_ylabel(r"Absolute CPhase error (rad)")
+        ax_error.grid()
+
         legend = add_model_figure_legend(fig)
-        legend.set_in_layout(False)
-        fig.subplots_adjust(left=0.13, right=0.87, bottom=0.20, top=0.80)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
         return fig
 
     render_benchmark_figures(outfile, _build_figure)
