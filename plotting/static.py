@@ -9,7 +9,10 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 from comparison.static import StaticBenchmarkResult
-from plotting.errors import sweep_normalized_absolute_error_percent
+from plotting.errors import (
+    sweep_normalized_absolute_error_percent,
+    sweep_normalized_error_percent,
+)
 from plotting.leakage_flow import _phase_population_rgb
 from plotting.style import (
     ANCILLARY_LEVEL_LINEWIDTH,
@@ -24,6 +27,7 @@ from plotting.style import (
     STATIC_LEVEL_LEGEND_NCOL,
     add_model_figure_legend,
     benchmark_tight_layout,
+    current_benchmark_style,
     energy_level_alpha,
     figure_size,
     model_color,
@@ -235,9 +239,27 @@ def plot_static_benchmark(
             title="Computational branches",
         )
 
-        axErr.plot(flux, result.effective_error_rmse, **model_plot_kwargs("effective"))
-        axErr.plot(flux, result.duffing_error_rmse, **model_plot_kwargs("duffing"))
-        axErr.set_ylabel("Per-flux RMSE")
+        if current_benchmark_style() == "presentation":
+            circuit_energy_reference = np.asarray(
+                result.circuit_relative_energies[:, 1:4],
+                dtype=float,
+            )
+            effective_error = sweep_normalized_error_percent(
+                result.effective_error_rmse,
+                circuit_energy_reference,
+            )
+            duffing_error = sweep_normalized_error_percent(
+                result.duffing_error_rmse,
+                circuit_energy_reference,
+            )
+            error_ylabel = "Energy RMSE (%)"
+        else:
+            effective_error = result.effective_error_rmse
+            duffing_error = result.duffing_error_rmse
+            error_ylabel = "Energy RMSE (GHz)"
+        axErr.plot(flux, effective_error, **model_plot_kwargs("effective"))
+        axErr.plot(flux, duffing_error, **model_plot_kwargs("duffing"))
+        axErr.set_ylabel(error_ylabel)
         axErr.grid()
 
         axE.set_xlabel(r"Flux bias ($\phi$)")
@@ -282,7 +304,7 @@ def plot_static_j_zz_benchmark(
             ),
             **model_plot_kwargs("effective"),
         )
-        axJErr.set_ylabel(r"Normalized $|\Delta J|$ (\%)")
+        axJErr.set_ylabel("Error (%)")
         axJErr.grid()
 
         axZeta.plot(flux, result.circuit_parameters["zeta"], **model_plot_kwargs("circuit"))
@@ -308,7 +330,7 @@ def plot_static_j_zz_benchmark(
             ),
             **model_plot_kwargs("effective"),
         )
-        axZetaErr.set_ylabel(r"Normalized $|\Delta \zeta|$ (\%)")
+        axZetaErr.set_ylabel("Error (%)")
         axZetaErr.grid()
 
         axes[1, 0].set_xlabel(r"Flux bias ($\phi$)")

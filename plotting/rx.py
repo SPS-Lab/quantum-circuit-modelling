@@ -91,7 +91,7 @@ def plot_rx_populations_benchmark(
             **model_plot_kwargs("effective"),
         )
         ax_00_error.set_title(r"Population error $|00\rangle \rightarrow |01\rangle$")
-        ax_00_error.set_ylabel("Normalized error (%)")
+        ax_00_error.set_ylabel("Error (%)")
         ax_00_error.grid()
 
         for model, y in (
@@ -124,7 +124,7 @@ def plot_rx_populations_benchmark(
         )
         ax_10_error.set_title(r"Population error $|10\rangle \rightarrow |11\rangle$")
         ax_10_error.set_xlabel("Time (ns)")
-        ax_10_error.set_ylabel("Normalized error (%)")
+        ax_10_error.set_ylabel("Error (%)")
         ax_10_error.grid()
 
         legend = add_model_figure_legend(fig)
@@ -187,7 +187,7 @@ def plot_rx_diagnostics_benchmark(
             **model_plot_kwargs("effective"),
         )
         ax_leak_00_error.set_title(r"Leakage Error From $|00\rangle$")
-        ax_leak_00_error.set_ylabel("Normalized error (%)")
+        ax_leak_00_error.set_ylabel("Error (%)")
         ax_leak_00_error.grid()
 
         for model, y in (
@@ -217,7 +217,7 @@ def plot_rx_diagnostics_benchmark(
             **model_plot_kwargs("effective"),
         )
         ax_leak_10_error.set_title(r"Leakage Error From $|10\rangle$")
-        ax_leak_10_error.set_ylabel("Normalized error (%)")
+        ax_leak_10_error.set_ylabel("Error (%)")
         ax_leak_10_error.grid()
 
         for model, y in (
@@ -226,7 +226,7 @@ def plot_rx_diagnostics_benchmark(
             ("effective", result.effective_spectator_population_delta),
         ):
             ax_delta.plot(t, y, **model_plot_kwargs(model))
-        ax_delta.set_title(r"Spectator Mismatch $|P_{00\rightarrow01} - P_{10\rightarrow11}|$")
+        ax_delta.set_title("Spectator Mismatch")
         ax_delta.set_xlabel("Time (ns)")
         ax_delta.set_ylabel("Magnitude")
         ax_delta.grid()
@@ -249,7 +249,7 @@ def plot_rx_diagnostics_benchmark(
         )
         ax_delta_error.set_title("Spectator-Mismatch Error")
         ax_delta_error.set_xlabel("Time (ns)")
-        ax_delta_error.set_ylabel("Normalized error (%)")
+        ax_delta_error.set_ylabel("Error (%)")
         ax_delta_error.grid()
 
         legend = add_model_figure_legend(fig)

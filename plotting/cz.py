@@ -115,7 +115,7 @@ def plot_cz_benchmark(
             **model_plot_kwargs("effective"),
         )
         ax_error.set_xlabel("Time (ns)")
-        ax_error.set_ylabel("Normalized absolute CPhase error (%)")
+        ax_error.set_ylabel("Error (%)")
         ax_error.grid()
 
         legend = add_model_figure_legend(fig)

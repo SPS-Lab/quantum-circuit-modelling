@@ -145,6 +145,11 @@ def benchmark_style_names() -> tuple[str, ...]:
     return tuple(_BENCHMARK_STYLE_STACKS)
 
 
+def current_benchmark_style() -> str:
+    """Return the style active while the current figure is being built."""
+    return _CURRENT_BENCHMARK_STYLE.get()
+
+
 def benchmark_style_paths(style_name: str | None = None) -> list[str]:
     """Return the repo-owned mplstyle files for a benchmark style."""
     style_key = ACTIVE_BENCHMARK_STYLE if style_name is None else str(style_name)
