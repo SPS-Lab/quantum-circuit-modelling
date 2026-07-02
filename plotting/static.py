@@ -9,6 +9,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 from comparison.static import StaticBenchmarkResult
+from plotting.errors import sweep_normalized_absolute_error_percent
 from plotting.leakage_flow import _phase_population_rgb
 from plotting.style import (
     ANCILLARY_LEVEL_LINEWIDTH,
@@ -267,15 +268,21 @@ def plot_static_j_zz_benchmark(
 
         axJErr.plot(
             flux,
-            np.abs(result.duffing_parameters["J"] - result.circuit_parameters["J"]),
+            sweep_normalized_absolute_error_percent(
+                result.duffing_parameters["J"],
+                result.circuit_parameters["J"],
+            ),
             **model_plot_kwargs("duffing"),
         )
         axJErr.plot(
             flux,
-            np.abs(result.effective_parameters["J"] - result.circuit_parameters["J"]),
+            sweep_normalized_absolute_error_percent(
+                result.effective_parameters["J"],
+                result.circuit_parameters["J"],
+            ),
             **model_plot_kwargs("effective"),
         )
-        axJErr.set_ylabel(r"Error $|\Delta J|$")
+        axJErr.set_ylabel(r"Normalized $|\Delta J|$ (\%)")
         axJErr.grid()
 
         axZeta.plot(flux, result.circuit_parameters["zeta"], **model_plot_kwargs("circuit"))
@@ -287,15 +294,21 @@ def plot_static_j_zz_benchmark(
 
         axZetaErr.plot(
             flux,
-            np.abs(result.duffing_parameters["zeta"] - result.circuit_parameters["zeta"]),
+            sweep_normalized_absolute_error_percent(
+                result.duffing_parameters["zeta"],
+                result.circuit_parameters["zeta"],
+            ),
             **model_plot_kwargs("duffing"),
         )
         axZetaErr.plot(
             flux,
-            np.abs(result.effective_parameters["zeta"] - result.circuit_parameters["zeta"]),
+            sweep_normalized_absolute_error_percent(
+                result.effective_parameters["zeta"],
+                result.circuit_parameters["zeta"],
+            ),
             **model_plot_kwargs("effective"),
         )
-        axZetaErr.set_ylabel(r"Error $|\Delta \zeta|$")
+        axZetaErr.set_ylabel(r"Normalized $|\Delta \zeta|$ (\%)")
         axZetaErr.grid()
 
         axes[1, 0].set_xlabel(r"Flux bias ($\phi$)")

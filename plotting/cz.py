@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from comparison.cz import CzBenchmarkResult
+from plotting.errors import sweep_normalized_absolute_error_percent
 from plotting.style import (
     add_model_figure_legend,
     benchmark_tight_layout,
@@ -99,16 +100,22 @@ def plot_cz_benchmark(
 
         ax_error.plot(
             t,
-            np.abs(result.duffing_conditional_phase - result.circuit_conditional_phase),
+            sweep_normalized_absolute_error_percent(
+                result.duffing_conditional_phase,
+                result.circuit_conditional_phase,
+            ),
             **model_plot_kwargs("duffing"),
         )
         ax_error.plot(
             t,
-            np.abs(result.effective_conditional_phase - result.circuit_conditional_phase),
+            sweep_normalized_absolute_error_percent(
+                result.effective_conditional_phase,
+                result.circuit_conditional_phase,
+            ),
             **model_plot_kwargs("effective"),
         )
         ax_error.set_xlabel("Time (ns)")
-        ax_error.set_ylabel(r"Absolute CPhase error (rad)")
+        ax_error.set_ylabel("Normalized absolute CPhase error (%)")
         ax_error.grid()
 
         legend = add_model_figure_legend(fig)

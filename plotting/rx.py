@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from comparison.rx import RxBenchmarkResult
+from plotting.errors import sweep_normalized_absolute_error_percent
 from plotting.style import (
     PULSE_BACKGROUND_ALPHA,
     PULSE_BACKGROUND_FILL_ALPHA,
@@ -75,16 +76,22 @@ def plot_rx_populations_benchmark(
 
         ax_00_error.plot(
             t,
-            np.abs(result.duffing_pop_00_to_01 - result.circuit_pop_00_to_01),
+            sweep_normalized_absolute_error_percent(
+                result.duffing_pop_00_to_01,
+                result.circuit_pop_00_to_01,
+            ),
             **model_plot_kwargs("duffing"),
         )
         ax_00_error.plot(
             t,
-            np.abs(result.effective_pop_00_to_01 - result.circuit_pop_00_to_01),
+            sweep_normalized_absolute_error_percent(
+                result.effective_pop_00_to_01,
+                result.circuit_pop_00_to_01,
+            ),
             **model_plot_kwargs("effective"),
         )
-        ax_00_error.set_title(r"Absolute population error $|00\rangle \rightarrow |01\rangle$")
-        ax_00_error.set_ylabel("Absolute error")
+        ax_00_error.set_title(r"Population error $|00\rangle \rightarrow |01\rangle$")
+        ax_00_error.set_ylabel("Normalized error (%)")
         ax_00_error.grid()
 
         for model, y in (
@@ -101,17 +108,23 @@ def plot_rx_populations_benchmark(
 
         ax_10_error.plot(
             t,
-            np.abs(result.duffing_pop_10_to_11 - result.circuit_pop_10_to_11),
+            sweep_normalized_absolute_error_percent(
+                result.duffing_pop_10_to_11,
+                result.circuit_pop_10_to_11,
+            ),
             **model_plot_kwargs("duffing"),
         )
         ax_10_error.plot(
             t,
-            np.abs(result.effective_pop_10_to_11 - result.circuit_pop_10_to_11),
+            sweep_normalized_absolute_error_percent(
+                result.effective_pop_10_to_11,
+                result.circuit_pop_10_to_11,
+            ),
             **model_plot_kwargs("effective"),
         )
-        ax_10_error.set_title(r"Absolute population error $|10\rangle \rightarrow |11\rangle$")
+        ax_10_error.set_title(r"Population error $|10\rangle \rightarrow |11\rangle$")
         ax_10_error.set_xlabel("Time (ns)")
-        ax_10_error.set_ylabel("Absolute error")
+        ax_10_error.set_ylabel("Normalized error (%)")
         ax_10_error.grid()
 
         legend = add_model_figure_legend(fig)
@@ -159,16 +172,22 @@ def plot_rx_diagnostics_benchmark(
 
         ax_leak_00_error.plot(
             t,
-            np.abs(result.duffing_leakage_from_00 - result.circuit_leakage_from_00),
+            sweep_normalized_absolute_error_percent(
+                result.duffing_leakage_from_00,
+                result.circuit_leakage_from_00,
+            ),
             **model_plot_kwargs("duffing"),
         )
         ax_leak_00_error.plot(
             t,
-            np.abs(result.effective_leakage_from_00 - result.circuit_leakage_from_00),
+            sweep_normalized_absolute_error_percent(
+                result.effective_leakage_from_00,
+                result.circuit_leakage_from_00,
+            ),
             **model_plot_kwargs("effective"),
         )
-        ax_leak_00_error.set_title(r"Absolute Leakage Error From $|00\rangle$")
-        ax_leak_00_error.set_ylabel("Absolute error")
+        ax_leak_00_error.set_title(r"Leakage Error From $|00\rangle$")
+        ax_leak_00_error.set_ylabel("Normalized error (%)")
         ax_leak_00_error.grid()
 
         for model, y in (
@@ -183,16 +202,22 @@ def plot_rx_diagnostics_benchmark(
 
         ax_leak_10_error.plot(
             t,
-            np.abs(result.duffing_leakage_from_10 - result.circuit_leakage_from_10),
+            sweep_normalized_absolute_error_percent(
+                result.duffing_leakage_from_10,
+                result.circuit_leakage_from_10,
+            ),
             **model_plot_kwargs("duffing"),
         )
         ax_leak_10_error.plot(
             t,
-            np.abs(result.effective_leakage_from_10 - result.circuit_leakage_from_10),
+            sweep_normalized_absolute_error_percent(
+                result.effective_leakage_from_10,
+                result.circuit_leakage_from_10,
+            ),
             **model_plot_kwargs("effective"),
         )
-        ax_leak_10_error.set_title(r"Absolute Leakage Error From $|10\rangle$")
-        ax_leak_10_error.set_ylabel("Absolute error")
+        ax_leak_10_error.set_title(r"Leakage Error From $|10\rangle$")
+        ax_leak_10_error.set_ylabel("Normalized error (%)")
         ax_leak_10_error.grid()
 
         for model, y in (
@@ -208,23 +233,23 @@ def plot_rx_diagnostics_benchmark(
 
         ax_delta_error.plot(
             t,
-            np.abs(
-                result.duffing_spectator_population_delta
-                - result.circuit_spectator_population_delta
+            sweep_normalized_absolute_error_percent(
+                result.duffing_spectator_population_delta,
+                result.circuit_spectator_population_delta,
             ),
             **model_plot_kwargs("duffing"),
         )
         ax_delta_error.plot(
             t,
-            np.abs(
-                result.effective_spectator_population_delta
-                - result.circuit_spectator_population_delta
+            sweep_normalized_absolute_error_percent(
+                result.effective_spectator_population_delta,
+                result.circuit_spectator_population_delta,
             ),
             **model_plot_kwargs("effective"),
         )
-        ax_delta_error.set_title("Absolute Spectator-Mismatch Error")
+        ax_delta_error.set_title("Spectator-Mismatch Error")
         ax_delta_error.set_xlabel("Time (ns)")
-        ax_delta_error.set_ylabel("Absolute error")
+        ax_delta_error.set_ylabel("Normalized error (%)")
         ax_delta_error.grid()
 
         legend = add_model_figure_legend(fig)
