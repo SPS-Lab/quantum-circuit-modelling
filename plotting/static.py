@@ -200,8 +200,8 @@ def plot_static_benchmark(
     flux = np.asarray(result.flux_values, dtype=float)
 
     def _build_figure() -> plt.Figure:
-        fig, axes = plt.subplots(2, 2, figsize=figure_size("static_main"), sharex=True)
-        axE, axErr, axJ, axZeta = axes.ravel()
+        fig, axes = plt.subplots(1, 2, figsize=figure_size("static_main"), sharex=True)
+        axE, axErr = axes
 
         _plot_static_energy_panel(
             axE,
@@ -239,6 +239,25 @@ def plot_static_benchmark(
         axErr.set_ylabel("Per-flux RMSE")
         axErr.grid()
 
+        axE.set_xlabel(r"Flux bias ($\phi$)")
+        axErr.set_xlabel(r"Flux bias ($\phi$)")
+        legend = add_model_figure_legend(fig)
+        benchmark_tight_layout(fig, reserve_artists=[legend])
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)
+
+
+def plot_static_j_zz_benchmark(
+    result: StaticBenchmarkResult,
+    outfile: Path,
+) -> None:
+    flux = np.asarray(result.flux_values, dtype=float)
+
+    def _build_figure() -> plt.Figure:
+        fig, axes = plt.subplots(2, 2, figsize=figure_size("static_main"), sharex=True)
+        axJ, axJErr, axZeta, axZetaErr = axes.ravel()
+
         axJ.plot(flux, result.circuit_parameters["J"], **model_plot_kwargs("circuit"))
         axJ.plot(flux, result.duffing_parameters["J"], **model_plot_kwargs("duffing"))
         axJ.plot(flux, result.effective_parameters["J"], **model_plot_kwargs("effective"))
@@ -246,12 +265,38 @@ def plot_static_benchmark(
         axJ.set_ylabel(r"Exchange $J$")
         axJ.grid()
 
+        axJErr.plot(
+            flux,
+            np.abs(result.duffing_parameters["J"] - result.circuit_parameters["J"]),
+            **model_plot_kwargs("duffing"),
+        )
+        axJErr.plot(
+            flux,
+            np.abs(result.effective_parameters["J"] - result.circuit_parameters["J"]),
+            **model_plot_kwargs("effective"),
+        )
+        axJErr.set_ylabel(r"Error $|\Delta J|$")
+        axJErr.grid()
+
         axZeta.plot(flux, result.circuit_parameters["zeta"], **model_plot_kwargs("circuit"))
         axZeta.plot(flux, result.duffing_parameters["zeta"], **model_plot_kwargs("duffing"))
         axZeta.plot(flux, result.effective_parameters["zeta"], **model_plot_kwargs("effective"))
         axZeta.axhline(0.0, color=REFERENCE_LINE_COLOR, linewidth=REFERENCE_LINEWIDTH)
         axZeta.set_ylabel(r"Residual ZZ $\zeta$")
         axZeta.grid()
+
+        axZetaErr.plot(
+            flux,
+            np.abs(result.duffing_parameters["zeta"] - result.circuit_parameters["zeta"]),
+            **model_plot_kwargs("duffing"),
+        )
+        axZetaErr.plot(
+            flux,
+            np.abs(result.effective_parameters["zeta"] - result.circuit_parameters["zeta"]),
+            **model_plot_kwargs("effective"),
+        )
+        axZetaErr.set_ylabel(r"Error $|\Delta \zeta|$")
+        axZetaErr.grid()
 
         axes[1, 0].set_xlabel(r"Flux bias ($\phi$)")
         axes[1, 1].set_xlabel(r"Flux bias ($\phi$)")

@@ -6,6 +6,7 @@ from plotting.runtime import plot_runtime_benchmark
 from plotting.rx import plot_rx_diagnostics_benchmark, plot_rx_populations_benchmark
 from plotting.static import (
     plot_static_benchmark,
+    plot_static_j_zz_benchmark,
     plot_static_computational_basis_amplitudes,
     plot_static_raw_energies,
     plot_static_single_excitation_overlaps,
@@ -18,6 +19,7 @@ __all__ = [
     "ACM_SIGCONF_COLUMN_WIDTH_PT",
     "ACM_SIGCONF_TEXT_WIDTH_PT",
     "plot_static_benchmark",
+    "plot_static_j_zz_benchmark",
     "plot_static_computational_basis_amplitudes",
     "plot_static_raw_energies",
     "plot_static_single_excitation_overlaps",
