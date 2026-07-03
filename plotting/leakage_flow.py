@@ -16,6 +16,7 @@ import numpy as np
 
 from comparison.leakage_flow import LeakageFlowBenchmarkResult
 from plotting.style import (
+    current_benchmark_style,
     figure_size,
     pulse_schedule_plot_kwargs,
     render_benchmark_figures,
@@ -226,7 +227,12 @@ def plot_leakage_flow_benchmark(
         )
     )
     def _build_figure() -> plt.Figure:
-        tick_font_size = 6.1
+        if current_benchmark_style() == "presentation":
+            state_tick_font_size = 3.4
+            transition_tick_font_size = 3.4
+        else:
+            state_tick_font_size = 6.1
+            transition_tick_font_size = 6.1
         transition_cmap = mcolors.LinearSegmentedColormap.from_list(
             "transition_blue_gray_red",
             [
@@ -364,7 +370,7 @@ def plot_leakage_flow_benchmark(
             ax_pop_cir,
             pop_labels,
             transition=False,
-            tick_font_size=tick_font_size,
+            tick_font_size=state_tick_font_size,
         )
         _set_center_shared_y_labels(
             fig,
@@ -372,7 +378,7 @@ def plot_leakage_flow_benchmark(
             ax_tr_cir,
             tr_labels,
             transition=True,
-            tick_font_size=tick_font_size,
+            tick_font_size=transition_tick_font_size,
         )
         _add_row_side_label(fig, ax_pop_duf, "States")
         _add_row_side_label(fig, ax_tr_duf, "Transitions")

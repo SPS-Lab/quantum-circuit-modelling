@@ -81,6 +81,9 @@ _CURRENT_BENCHMARK_STYLE: ContextVar[str] = ContextVar(
     default=ACTIVE_BENCHMARK_STYLE,
 )
 
+PRESENTATION_FIGURE_WIDTH_SCALE_MAX: float = 0.8
+PRESENTATION_FIGURE_HEIGHT_INCHES_MAX: float = 2.5
+
 # style -> figure_name -> (width_scale, height_inches)
 _FIGURE_SPECS: dict[str, dict[str, tuple[float, float]]] = {
     "paper": {
@@ -93,13 +96,13 @@ _FIGURE_SPECS: dict[str, dict[str, tuple[float, float]]] = {
         "leakage_flow": (1.0, 3.8),
     },
     "presentation": {
-        "cz": (0.534375, 0.95625),
-        "runtime": (0.5625, 1.0125),
-        "static_main": (0.5625, 1.63125),
-        "static_raw_energies": (0.5625, 1.321875),
-        "static_overlaps": (0.703125, 1.18125),
-        "static_amplitudes": (0.5625, 5.2875),
-        "leakage_flow": (0.5625, 2.25),
+        "cz": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
+        "runtime": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
+        "static_main": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
+        "static_raw_energies": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
+        "static_overlaps": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
+        "static_amplitudes": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
+        "leakage_flow": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
     },
 }
 
@@ -123,18 +126,18 @@ _STACKED_FIGURE_SPECS: dict[str, dict[str, dict[int, tuple[float, float]]]] = {
     },
     "presentation": {
         "rx_populations": {
-            3: (0.5625, 1.9125),
+            3: (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
         },
         "rx_diagnostics": {
-            2: (0.5625, 1.40625),
+            2: (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
         },
         "truncation_single_model": {
-            1: (0.5625, 1.575),
-            2: (0.5625, 2.1375),
-            3: (0.5625, 3.0375),
+            1: (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
+            2: (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
+            3: (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
         },
         "truncation_combined": {
-            3: (0.5625, 3.20625),
+            3: (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
         },
     },
 }
