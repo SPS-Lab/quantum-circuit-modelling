@@ -107,10 +107,10 @@ _FIGURE_SPECS: dict[str, dict[str, tuple[float, float]]] = {
 _STACKED_FIGURE_SPECS: dict[str, dict[str, dict[int, tuple[float, float]]]] = {
     "paper": {
         "rx_populations": {
-            2: (1.0, 2.5),
+            3: (1.0, 3.4),
         },
         "rx_diagnostics": {
-            3: (1.0, 3.4),
+            2: (1.0, 2.5),
         },
         "truncation_single_model": {
             1: (1.0, 2.2),
@@ -123,10 +123,10 @@ _STACKED_FIGURE_SPECS: dict[str, dict[str, dict[int, tuple[float, float]]]] = {
     },
     "presentation": {
         "rx_populations": {
-            2: (1.0, 2.5),
+            3: (1.0, 3.4),
         },
         "rx_diagnostics": {
-            3: (1.0, 3.4),
+            2: (1.0, 2.5),
         },
         "truncation_single_model": {
             1: (1.0, 2.8),
@@ -240,7 +240,7 @@ def model_plot_kwargs(
 def model_legend_handles() -> list[Line2D]:
     """Legend handles that encode model identity consistently across plots."""
     return [
-        Line2D([0], [0], label="Circuit", **model_plot_kwargs("circuit")),
+        Line2D([0], [0], label="Circuit (reference)", **model_plot_kwargs("circuit")),
         Line2D([0], [0], label="Duffing", **model_plot_kwargs("duffing")),
         Line2D([0], [0], label="Effective", **model_plot_kwargs("effective")),
     ]
