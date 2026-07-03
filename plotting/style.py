@@ -81,7 +81,7 @@ _CURRENT_BENCHMARK_STYLE: ContextVar[str] = ContextVar(
     default=ACTIVE_BENCHMARK_STYLE,
 )
 
-PRESENTATION_FIGURE_WIDTH_SCALE_MAX: float = 0.8
+PRESENTATION_FIGURE_WIDTH_SCALE_MAX: float = 0.9
 PRESENTATION_FIGURE_HEIGHT_INCHES_MAX: float = 2.5
 
 # style -> figure_name -> (width_scale, height_inches)

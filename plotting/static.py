@@ -265,7 +265,11 @@ def plot_static_benchmark(
         axE.set_xlabel(r"Flux bias ($\phi$)")
         axErr.set_xlabel(r"Flux bias ($\phi$)")
         legend = add_model_figure_legend(fig)
-        benchmark_tight_layout(fig, reserve_artists=[legend])
+        benchmark_tight_layout(
+            fig,
+            reserve_artists=[legend],
+            w_pad=3.0 if current_benchmark_style() == "presentation" else None,
+        )
         return fig
 
     render_benchmark_figures(outfile, _build_figure)
@@ -336,7 +340,13 @@ def plot_static_j_zz_benchmark(
         axes[1, 0].set_xlabel(r"Flux bias ($\phi$)")
         axes[1, 1].set_xlabel(r"Flux bias ($\phi$)")
         legend = add_model_figure_legend(fig)
-        benchmark_tight_layout(fig, reserve_artists=[legend])
+        benchmark_tight_layout(
+            fig,
+            reserve_artists=[legend],
+            w_pad=3.0 if current_benchmark_style() == "presentation" else None,
+        )
+        if current_benchmark_style() == "presentation":
+            fig.subplots_adjust(left=0.16, right=0.97, wspace=0.42)
         return fig
 
     render_benchmark_figures(outfile, _build_figure)

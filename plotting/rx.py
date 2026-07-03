@@ -14,6 +14,7 @@ from plotting.style import (
     PULSE_BACKGROUND_FILL_ALPHA,
     add_model_figure_legend,
     benchmark_tight_layout,
+    current_benchmark_style,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
     render_benchmark_figures,
@@ -158,7 +159,11 @@ def plot_rx_populations_benchmark(
         ax_delta_error.grid()
 
         legend = add_model_figure_legend(fig)
-        benchmark_tight_layout(fig, reserve_artists=[legend])
+        benchmark_tight_layout(
+            fig,
+            reserve_artists=[legend],
+            w_pad=3.0 if current_benchmark_style() == "presentation" else None,
+        )
         return fig
 
     render_benchmark_figures(outfile, _build_figure)
@@ -246,7 +251,11 @@ def plot_rx_diagnostics_benchmark(
         ax_leak_10_error.grid()
 
         legend = add_model_figure_legend(fig)
-        benchmark_tight_layout(fig, reserve_artists=[legend])
+        benchmark_tight_layout(
+            fig,
+            reserve_artists=[legend],
+            w_pad=3.0 if current_benchmark_style() == "presentation" else None,
+        )
         return fig
 
     render_benchmark_figures(outfile, _build_figure)

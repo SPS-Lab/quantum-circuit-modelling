@@ -7,7 +7,7 @@ axes.titlesize: 5.91
 axes.labelsize: 5.91
 xtick.labelsize: 5.34
 ytick.labelsize: 5.34
-legend.fontsize: 5.18
+legend.fontsize: 7.18
 legend.title_fontsize: 5.18
 lines.linewidth: 1.1
 lines.markersize: 3.0

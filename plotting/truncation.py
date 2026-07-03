@@ -16,6 +16,7 @@ from comparison.truncation import (
 from plotting.style import (
     add_column_title,
     benchmark_tight_layout,
+    current_benchmark_style,
     figure_legend_bbox_to_anchor,
     render_benchmark_figures,
     stacked_figure_size,
@@ -290,7 +291,11 @@ def plot_truncation_benchmark(
         if axes[0, 1].axison:
             add_column_title(axes[0, 1], "Duffing")
         legend = _add_truncation_metric_figure_legend(fig)
-        benchmark_tight_layout(fig, reserve_artists=[legend])
+        benchmark_tight_layout(
+            fig,
+            reserve_artists=[legend],
+            w_pad=3.0 if current_benchmark_style() == "presentation" else None,
+        )
         return fig
 
     render_benchmark_figures(outfile, _build_figure)
