@@ -64,11 +64,18 @@ def export_frame_numbers(total_frames: int, step: int) -> list[int]:
     return frame_numbers
 
 
+def strategic_frame_numbers(total_frames: int) -> list[float]:
+    """Return one full cycle sampled at the displacement extrema and zeroes."""
+    if total_frames <= 0:
+        return []
+    return [total_frames * quarter / 4.0 for quarter in range(5)]
+
+
 def save_pdf_frames(
     fig: plt.Figure,
     artists: dict[str, object],
     output_dir: Path,
-    frame_numbers: list[int],
+    frame_numbers: list[int | float],
 ) -> list[Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     saved_paths: list[Path] = []
@@ -279,7 +286,7 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     return fig, artists
 
 
-def update(frame: int, artists: dict[str, object]) -> list[object]:
+def update(frame: int | float, artists: dict[str, object]) -> list[object]:
     phase = 2.0 * np.pi * frame / FRAMES
     position = float(np.cos(phase))
     inductor_current = position
@@ -438,6 +445,11 @@ def parse_args() -> argparse.Namespace:
         default=10,
         help="Export every Nth animation frame to PDF. The final frame is always included.",
     )
+    parser.add_argument(
+        "--strategic-frames",
+        action="store_true",
+        help="Export only five PDF frames at x=max, x=0, x=-max, x=0, and x=max.",
+    )
     parser.add_argument("--fps", type=int, default=FPS, help="Frames per second for playback and saving.")
     parser.add_argument("--seconds", type=float, default=DURATION, help="Animation duration in seconds.")
     parser.add_argument("--no-show", action="store_true", help="Build the animation without opening an interactive window.")
@@ -468,7 +480,11 @@ def main() -> None:
             animation.save(args.save, fps=args.fps)
 
     if args.save_pdf_frames:
-        frame_numbers = export_frame_numbers(FRAMES, args.pdf_step)
+        frame_numbers = (
+            strategic_frame_numbers(FRAMES)
+            if args.strategic_frames
+            else export_frame_numbers(FRAMES, args.pdf_step)
+        )
         save_pdf_frames(fig, artists, args.save_pdf_frames, frame_numbers)
 
     if args.no_show:

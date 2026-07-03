@@ -49,3 +49,9 @@ def test_pdf_frame_export_writes_numbered_files(tmp_path: Path) -> None:
     assert all(path.exists() for path in saved_paths)
 
     plt.close(fig)
+
+
+def test_strategic_frames_cover_one_complete_cycle() -> None:
+    animation_module = load_animation_module()
+
+    assert animation_module.strategic_frame_numbers(10) == [0.0, 2.5, 5.0, 7.5, 10.0]
