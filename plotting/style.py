@@ -93,13 +93,13 @@ _FIGURE_SPECS: dict[str, dict[str, tuple[float, float]]] = {
         "leakage_flow": (1.0, 3.8),
     },
     "presentation": {
-        "cz": (0.95, 1.7),
-        "runtime": (1.0, 1.8),
-        "static_main": (1.0, 2.9),
-        "static_raw_energies": (1.0, 2.35),
-        "static_overlaps": (1.25, 2.1),
-        "static_amplitudes": (1.0, 9.4),
-        "leakage_flow": (1.0, 4.0),
+        "cz": (0.534375, 0.95625),
+        "runtime": (0.5625, 1.0125),
+        "static_main": (0.5625, 1.63125),
+        "static_raw_energies": (0.5625, 1.321875),
+        "static_overlaps": (0.703125, 1.18125),
+        "static_amplitudes": (0.5625, 5.2875),
+        "leakage_flow": (0.5625, 2.25),
     },
 }
 
@@ -123,18 +123,18 @@ _STACKED_FIGURE_SPECS: dict[str, dict[str, dict[int, tuple[float, float]]]] = {
     },
     "presentation": {
         "rx_populations": {
-            3: (1.0, 3.4),
+            3: (0.5625, 1.9125),
         },
         "rx_diagnostics": {
-            2: (1.0, 2.5),
+            2: (0.5625, 1.40625),
         },
         "truncation_single_model": {
-            1: (1.0, 2.8),
-            2: (1.0, 3.8),
-            3: (1.0, 5.4),
+            1: (0.5625, 1.575),
+            2: (0.5625, 2.1375),
+            3: (0.5625, 3.0375),
         },
         "truncation_combined": {
-            3: (1.0, 5.7),
+            3: (0.5625, 3.20625),
         },
     },
 }
