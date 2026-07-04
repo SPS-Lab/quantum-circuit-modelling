@@ -1007,4 +1007,10 @@ def test_rx_plots_write_pdf(tmp_path: Path) -> None:
     plot_rx_populations_benchmark(out, populations_outfile)
     plot_rx_diagnostics_benchmark(out, diagnostics_outfile)
     _assert_benchmark_pdfs_written(populations_outfile)
+    _assert_benchmark_pdfs_written(
+        populations_outfile.with_name(f"{populations_outfile.stem}_rows_1.pdf")
+    )
+    _assert_benchmark_pdfs_written(
+        populations_outfile.with_name(f"{populations_outfile.stem}_rows_2.pdf")
+    )
     _assert_benchmark_pdfs_written(diagnostics_outfile)

@@ -51,7 +51,7 @@ def plot_rx_populations_benchmark(
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    def _build_figure() -> plt.Figure:
+    def _build_figure(visible_rows: int) -> plt.Figure:
         fig, axes = plt.subplots(
             3,
             2,
@@ -61,7 +61,7 @@ def plot_rx_populations_benchmark(
         )
         ax_00, ax_00_error, ax_10, ax_10_error, ax_delta, ax_delta_error = axes.ravel()
 
-        for ax in axes.ravel():
+        for ax in axes[:visible_rows].ravel():
             _add_drive_background(ax, t, result.pulse_envelope, result.drive_amplitude)
 
         for model, y in (
@@ -164,9 +164,27 @@ def plot_rx_populations_benchmark(
             reserve_artists=[legend],
             w_pad=3.0 if current_benchmark_style() == "presentation" else None,
         )
+        # Make every layout decision using the complete figure, then expose the
+        # current bottom x-axis and hide later rows.  This preserves identical
+        # positions for the rows shared by Beamer overlays.
+        axes[visible_rows - 1, 0].set_xlabel("Time (ns)")
+        axes[visible_rows - 1, 1].set_xlabel("Time (ns)")
+        for ax in axes[visible_rows - 1]:
+            ax.tick_params(axis="x", labelbottom=True)
+        for ax in axes[visible_rows:].ravel():
+            ax.set_visible(False)
         return fig
 
-    render_benchmark_figures(outfile, _build_figure)
+    for visible_rows in range(1, 4):
+        cumulative_outfile = (
+            outfile
+            if visible_rows == 3
+            else outfile.with_name(f"{outfile.stem}_rows_{visible_rows}{outfile.suffix}")
+        )
+        render_benchmark_figures(
+            cumulative_outfile,
+            lambda visible_rows=visible_rows: _build_figure(visible_rows),
+        )
 
 
 def plot_rx_diagnostics_benchmark(
