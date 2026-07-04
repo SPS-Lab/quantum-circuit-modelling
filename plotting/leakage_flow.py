@@ -105,6 +105,8 @@ def _set_center_shared_y_labels(
     *,
     transition: bool,
     tick_font_size: float,
+    emphasized_labels: set[str] | None = None,
+    emphasized_tick_font_size: float | None = None,
 ) -> None:
     n = len(labels)
     if n == 0:
@@ -154,16 +156,23 @@ def _set_center_shared_y_labels(
     bbox_right = ax_right.get_position()
     x_center = 0.5 * (bbox_left.x1 + bbox_right.x0)
     inv_fig = fig.transFigure.inverted()
-    for y, label in zip(yticks, tick_labels):
+    emphasized_labels = set() if emphasized_labels is None else emphasized_labels
+    for y, raw_label, label in zip(yticks, labels, tick_labels):
         y_disp = ax_left.transData.transform((0.0, float(y)))[1]
         y_fig = inv_fig.transform((0.0, y_disp))[1]
+        normalized_raw_label = "".join(raw_label.split())
+        font_size = (
+            emphasized_tick_font_size
+            if normalized_raw_label in emphasized_labels and emphasized_tick_font_size is not None
+            else tick_font_size
+        )
         fig.text(
             x_center,
             y_fig,
             label,
             ha="center",
             va="center",
-            fontsize=tick_font_size,
+            fontsize=font_size,
         )
 
 
@@ -228,11 +237,19 @@ def plot_leakage_flow_benchmark(
     )
     def _build_figure() -> plt.Figure:
         if current_benchmark_style() == "presentation":
-            state_tick_font_size = 3.4
-            transition_tick_font_size = 3.4
+            state_tick_font_size = 4.5
+            transition_tick_font_size = 4.0
+            emphasized_state_tick_font_size = 6.0
+            emphasized_transition_tick_font_size = 5.7
+            emphasized_state_labels = {"|1,0,1>", "|0,1,1>"}
+            emphasized_transition_labels = {"|1,0,1>->|0,1,1>"}
         else:
             state_tick_font_size = 6.1
             transition_tick_font_size = 6.1
+            emphasized_state_tick_font_size = None
+            emphasized_transition_tick_font_size = None
+            emphasized_state_labels = set()
+            emphasized_transition_labels = set()
         transition_cmap = mcolors.LinearSegmentedColormap.from_list(
             "transition_blue_gray_red",
             [
@@ -379,6 +396,8 @@ def plot_leakage_flow_benchmark(
             pop_labels,
             transition=False,
             tick_font_size=state_tick_font_size,
+            emphasized_labels=emphasized_state_labels,
+            emphasized_tick_font_size=emphasized_state_tick_font_size,
         )
         _set_center_shared_y_labels(
             fig,
@@ -387,6 +406,8 @@ def plot_leakage_flow_benchmark(
             tr_labels,
             transition=True,
             tick_font_size=transition_tick_font_size,
+            emphasized_labels=emphasized_transition_labels,
+            emphasized_tick_font_size=emphasized_transition_tick_font_size,
         )
         _add_row_side_label(fig, ax_pop_duf, "States")
         _add_row_side_label(fig, ax_tr_duf, "Transitions")
