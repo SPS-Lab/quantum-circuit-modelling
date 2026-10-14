@@ -13,7 +13,6 @@ from benchmark_results_io import save_cli_report_hdf5
 from runtime_utils import format_elapsed_compact, log_progress
 from study_config import StudyConfig
 
-
 # CLI output is for human inspection; compact array reprs are easier to scan.
 np.set_printoptions(precision=2)
 
@@ -24,7 +23,9 @@ class CliReporter:
 
     benchmark_name: str
     script_name: str
-    started_utc_iso: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    started_utc_iso: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds")
+    )
     _started_perf: float = field(default_factory=time.perf_counter)
     lines: list[str] = field(default_factory=list)
 
@@ -78,7 +79,12 @@ def build_common_truncation_lines(config: StudyConfig) -> list[str]:
             f"selection_mode={str(sb.dressed_subspace.selection_mode)}"
         ),
     ]
-    if calibration_mode in ("fixed", "per-flux", "fitted-static", "symbolic-fitted-static"):
+    if calibration_mode in (
+        "fixed",
+        "per-flux",
+        "fitted-static",
+        "symbolic-fitted-static",
+    ):
         lines.insert(
             6,
             (
@@ -95,8 +101,12 @@ def build_circuit_truncation_benchmark_extra_lines(config: StudyConfig) -> list[
     tb = config.circuit_truncation_benchmark
     flux_values = ", ".join(f"{float(v):.6f}" for v in tb.flux_values)
     circuit_ncut_values = ", ".join(str(int(v)) for v in tb.circuit_ncut_values)
-    circuit_qubit_dims = ", ".join(str(int(v)) for v in tb.circuit_qubit_truncated_dim_values)
-    circuit_coupler_dims = ", ".join(str(int(v)) for v in tb.circuit_coupler_truncated_dim_values)
+    circuit_qubit_dims = ", ".join(
+        str(int(v)) for v in tb.circuit_qubit_truncated_dim_values
+    )
+    circuit_coupler_dims = ", ".join(
+        str(int(v)) for v in tb.circuit_coupler_truncated_dim_values
+    )
     lines = [
         "Circuit truncation benchmark sweep settings:",
         f"  flux_values=[{flux_values}]",
@@ -118,8 +128,12 @@ def build_duffing_truncation_benchmark_extra_lines(config: StudyConfig) -> list[
     tb = config.duffing_truncation_benchmark
     flux_values = ", ".join(f"{float(v):.6f}" for v in tb.flux_values)
     duffing_ncut_values = ", ".join(str(int(v)) for v in tb.duffing_ncut_values)
-    duffing_hilbert_qubit_dims = ", ".join(str(int(v)) for v in tb.duffing_hilbert_qubit_dim_values)
-    duffing_hilbert_coupler_dims = ", ".join(str(int(v)) for v in tb.duffing_hilbert_coupler_dim_values)
+    duffing_hilbert_qubit_dims = ", ".join(
+        str(int(v)) for v in tb.duffing_hilbert_qubit_dim_values
+    )
+    duffing_hilbert_coupler_dims = ", ".join(
+        str(int(v)) for v in tb.duffing_hilbert_coupler_dim_values
+    )
     mode = str(tb.duffing_calibration_mode)
     lines = [
         "Duffing truncation benchmark sweep settings:",

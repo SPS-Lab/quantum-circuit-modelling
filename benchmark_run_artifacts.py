@@ -15,7 +15,6 @@ import subprocess
 import sys
 from typing import Any
 
-
 _SCHEMA_VERSION = "benchmark_run_v1"
 _DEFAULT_OUTPUT_ROOT = Path("results/experiments")
 _THREAD_ENV_VARS = (
@@ -121,7 +120,9 @@ def _resolve_plot_only_results_path(
     figure_paths: dict[str, Path],
     output_root: Path,
 ) -> Path:
-    latest = find_latest_results_path(output_root=output_root, benchmark_name=benchmark_name)
+    latest = find_latest_results_path(
+        output_root=output_root, benchmark_name=benchmark_name
+    )
     if latest is not None:
         return latest
     first_figure = next(iter(figure_paths.values()))
@@ -174,7 +175,9 @@ def _materialize_run_metadata(
 ) -> None:
     paths.run_dir.mkdir(parents=True, exist_ok=True)
     _write_git_head_summary(outfile=paths.git_head_path, git_info=git_info)
-    git_snapshot = _write_git_snapshot(repo_root=repo_root, outfile=paths.git_snapshot_path)
+    git_snapshot = _write_git_snapshot(
+        repo_root=repo_root, outfile=paths.git_snapshot_path
+    )
     inputs_payload: dict[str, Any] = {}
     for name, source_path in input_files.items():
         src = _resolve_repo_relative(repo_root, Path(source_path))
@@ -212,11 +215,14 @@ def _materialize_run_metadata(
         "artifacts": {
             "results_path": _display_path(paths.results_path, repo_root),
             "figures": {
-                name: _display_path(path, repo_root) for name, path in paths.figure_paths.items()
+                name: _display_path(path, repo_root)
+                for name, path in paths.figure_paths.items()
             },
         },
     }
-    paths.metadata_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    paths.metadata_path.write_text(
+        json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def get_git_info(repo_root: Path) -> dict[str, Any]:
@@ -224,7 +230,9 @@ def get_git_info(repo_root: Path) -> dict[str, Any]:
         "commit": _run_git(repo_root, "rev-parse", "HEAD"),
         "commit_short": _run_git(repo_root, "rev-parse", "--short", "HEAD"),
         "branch": _run_git(repo_root, "rev-parse", "--abbrev-ref", "HEAD"),
-        "dirty": bool(_run_git(repo_root, "status", "--porcelain", "--untracked-files=no")),
+        "dirty": bool(
+            _run_git(repo_root, "status", "--porcelain", "--untracked-files=no")
+        ),
     }
 
 
@@ -236,7 +244,9 @@ def _collect_hardware_snapshot() -> dict[str, Any]:
         "logical_cpu_count": int(os.cpu_count() or 0),
         "affinity_cpu_count": _detect_affinity_cpu_count(),
         "physical_core_count": _detect_physical_core_count(),
-        "total_memory_bytes": int(total_memory_bytes) if total_memory_bytes is not None else None,
+        "total_memory_bytes": (
+            int(total_memory_bytes) if total_memory_bytes is not None else None
+        ),
         "total_memory_gib": (
             round(float(total_memory_bytes) / float(1 << 30), 3)
             if total_memory_bytes is not None
@@ -304,7 +314,12 @@ def _detect_total_memory_bytes() -> int | None:
     try:
         page_size = os.sysconf("SC_PAGE_SIZE")
         phys_pages = os.sysconf("SC_PHYS_PAGES")
-        if isinstance(page_size, int) and isinstance(phys_pages, int) and page_size > 0 and phys_pages > 0:
+        if (
+            isinstance(page_size, int)
+            and isinstance(phys_pages, int)
+            and page_size > 0
+            and phys_pages > 0
+        ):
             return int(page_size * phys_pages)
     except (AttributeError, OSError, ValueError):
         pass
@@ -373,7 +388,9 @@ def _detect_physical_core_count() -> int | None:
 def _write_git_snapshot(*, repo_root: Path, outfile: Path) -> dict[str, Any]:
     staged = _run_git_text(repo_root, "diff", "--cached", "--", ".")
     unstaged = _run_git_text(repo_root, "diff", "--", ".")
-    untracked = _run_git_text(repo_root, "ls-files", "--others", "--exclude-standard", "--", ".")
+    untracked = _run_git_text(
+        repo_root, "ls-files", "--others", "--exclude-standard", "--", "."
+    )
     untracked_files = [line.strip() for line in untracked.splitlines() if line.strip()]
 
     lines = [

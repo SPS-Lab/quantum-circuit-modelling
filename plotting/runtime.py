@@ -32,7 +32,9 @@ def plot_runtime_benchmark(
     circuit_prop_std = np.asarray(result.circuit_propagation_runtime_std_s, dtype=float)
 
     def _build_figure() -> plt.Figure:
-        fig, (ax_build, ax_prop) = plt.subplots(1, 2, figsize=figure_size("runtime"), sharex=True)
+        fig, (ax_build, ax_prop) = plt.subplots(
+            1, 2, figsize=figure_size("runtime"), sharex=True
+        )
 
         ax_build.errorbar(
             x,

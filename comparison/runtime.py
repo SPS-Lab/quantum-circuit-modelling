@@ -53,8 +53,10 @@ def _config_with_qubit_truncation(
 ) -> StudyConfig:
     trunc_int = int(qubit_truncation)
     max_circuit_trunc = min(
-        2 * int(config.static_benchmark.circuit_model.transmon_charge_basis.q0_ncut) + 1,
-        2 * int(config.static_benchmark.circuit_model.transmon_charge_basis.q1_ncut) + 1,
+        2 * int(config.static_benchmark.circuit_model.transmon_charge_basis.q0_ncut)
+        + 1,
+        2 * int(config.static_benchmark.circuit_model.transmon_charge_basis.q1_ncut)
+        + 1,
     )
     if trunc_int > max_circuit_trunc:
         raise ValueError(
@@ -220,27 +222,51 @@ def run_runtime_benchmark(
             n_time_point_samples[i, j] = float(summary["n_time_points"])
             duffing_dim_samples[i, j] = float(summary["duffing_hilbert_dim"])
             circuit_dim_samples[i, j] = float(summary["circuit_hilbert_dim"])
-            duffing_build_samples[i, j] = float(summary["duffing_model_build_runtime_s"])
+            duffing_build_samples[i, j] = float(
+                summary["duffing_model_build_runtime_s"]
+            )
             duffing_prop_samples[i, j] = float(summary["duffing_propagation_runtime_s"])
             duffing_dyn_samples[i, j] = float(summary["duffing_dynamics_runtime_s"])
-            circuit_build_samples[i, j] = float(summary["circuit_model_build_runtime_s"])
+            circuit_build_samples[i, j] = float(
+                summary["circuit_model_build_runtime_s"]
+            )
             circuit_prop_samples[i, j] = float(summary["circuit_propagation_runtime_s"])
             circuit_dyn_samples[i, j] = float(summary["circuit_dynamics_runtime_s"])
-            shared_static_samples[i, j] = float(summary["shared_static_precompute_runtime_s"])
-            shared_hold_scan_samples[i, j] = float(summary["shared_hold_scan_runtime_s"])
+            shared_static_samples[i, j] = float(
+                summary["shared_static_precompute_runtime_s"]
+            )
+            shared_hold_scan_samples[i, j] = float(
+                summary["shared_hold_scan_runtime_s"]
+            )
 
     hold_ns, hold_std_ns = _aggregate_samples(hold_samples)
     n_time_points, _ = _aggregate_samples(n_time_point_samples)
     duffing_dims, _ = _aggregate_samples(duffing_dim_samples)
     circuit_dims, _ = _aggregate_samples(circuit_dim_samples)
-    duffing_build_runtime_s, duffing_build_runtime_std_s = _aggregate_samples(duffing_build_samples)
-    duffing_propagation_runtime_s, duffing_propagation_runtime_std_s = _aggregate_samples(duffing_prop_samples)
-    duffing_dynamics_runtime_s, duffing_dynamics_runtime_std_s = _aggregate_samples(duffing_dyn_samples)
-    circuit_build_runtime_s, circuit_build_runtime_std_s = _aggregate_samples(circuit_build_samples)
-    circuit_propagation_runtime_s, circuit_propagation_runtime_std_s = _aggregate_samples(circuit_prop_samples)
-    circuit_dynamics_runtime_s, circuit_dynamics_runtime_std_s = _aggregate_samples(circuit_dyn_samples)
-    shared_static_runtime_s, shared_static_runtime_std_s = _aggregate_samples(shared_static_samples)
-    shared_hold_scan_runtime_s, shared_hold_scan_runtime_std_s = _aggregate_samples(shared_hold_scan_samples)
+    duffing_build_runtime_s, duffing_build_runtime_std_s = _aggregate_samples(
+        duffing_build_samples
+    )
+    duffing_propagation_runtime_s, duffing_propagation_runtime_std_s = (
+        _aggregate_samples(duffing_prop_samples)
+    )
+    duffing_dynamics_runtime_s, duffing_dynamics_runtime_std_s = _aggregate_samples(
+        duffing_dyn_samples
+    )
+    circuit_build_runtime_s, circuit_build_runtime_std_s = _aggregate_samples(
+        circuit_build_samples
+    )
+    circuit_propagation_runtime_s, circuit_propagation_runtime_std_s = (
+        _aggregate_samples(circuit_prop_samples)
+    )
+    circuit_dynamics_runtime_s, circuit_dynamics_runtime_std_s = _aggregate_samples(
+        circuit_dyn_samples
+    )
+    shared_static_runtime_s, shared_static_runtime_std_s = _aggregate_samples(
+        shared_static_samples
+    )
+    shared_hold_scan_runtime_s, shared_hold_scan_runtime_std_s = _aggregate_samples(
+        shared_hold_scan_samples
+    )
 
     summary = {
         "repeats": float(repeats_int),
@@ -253,18 +279,38 @@ def run_runtime_benchmark(
         "selected_hold_time_ns_std_max": float(np.max(hold_std_ns)),
         "duffing_build_runtime_s_median_min": float(np.min(duffing_build_runtime_s)),
         "duffing_build_runtime_s_median_max": float(np.max(duffing_build_runtime_s)),
-        "duffing_propagation_runtime_s_median_min": float(np.min(duffing_propagation_runtime_s)),
-        "duffing_propagation_runtime_s_median_max": float(np.max(duffing_propagation_runtime_s)),
-        "duffing_dynamics_runtime_s_median_min": float(np.min(duffing_dynamics_runtime_s)),
-        "duffing_dynamics_runtime_s_median_max": float(np.max(duffing_dynamics_runtime_s)),
+        "duffing_propagation_runtime_s_median_min": float(
+            np.min(duffing_propagation_runtime_s)
+        ),
+        "duffing_propagation_runtime_s_median_max": float(
+            np.max(duffing_propagation_runtime_s)
+        ),
+        "duffing_dynamics_runtime_s_median_min": float(
+            np.min(duffing_dynamics_runtime_s)
+        ),
+        "duffing_dynamics_runtime_s_median_max": float(
+            np.max(duffing_dynamics_runtime_s)
+        ),
         "circuit_build_runtime_s_median_min": float(np.min(circuit_build_runtime_s)),
         "circuit_build_runtime_s_median_max": float(np.max(circuit_build_runtime_s)),
-        "circuit_propagation_runtime_s_median_min": float(np.min(circuit_propagation_runtime_s)),
-        "circuit_propagation_runtime_s_median_max": float(np.max(circuit_propagation_runtime_s)),
-        "circuit_dynamics_runtime_s_median_min": float(np.min(circuit_dynamics_runtime_s)),
-        "circuit_dynamics_runtime_s_median_max": float(np.max(circuit_dynamics_runtime_s)),
-        "shared_static_precompute_runtime_s_median_min": float(np.min(shared_static_runtime_s)),
-        "shared_static_precompute_runtime_s_median_max": float(np.max(shared_static_runtime_s)),
+        "circuit_propagation_runtime_s_median_min": float(
+            np.min(circuit_propagation_runtime_s)
+        ),
+        "circuit_propagation_runtime_s_median_max": float(
+            np.max(circuit_propagation_runtime_s)
+        ),
+        "circuit_dynamics_runtime_s_median_min": float(
+            np.min(circuit_dynamics_runtime_s)
+        ),
+        "circuit_dynamics_runtime_s_median_max": float(
+            np.max(circuit_dynamics_runtime_s)
+        ),
+        "shared_static_precompute_runtime_s_median_min": float(
+            np.min(shared_static_runtime_s)
+        ),
+        "shared_static_precompute_runtime_s_median_max": float(
+            np.max(shared_static_runtime_s)
+        ),
     }
 
     return RuntimeBenchmarkResult(
@@ -280,20 +326,42 @@ def run_runtime_benchmark(
         duffing_hilbert_dims=np.asarray(np.rint(duffing_dims), dtype=int),
         circuit_hilbert_dims=np.asarray(np.rint(circuit_dims), dtype=int),
         duffing_build_runtime_s=np.asarray(duffing_build_runtime_s, dtype=float),
-        duffing_build_runtime_std_s=np.asarray(duffing_build_runtime_std_s, dtype=float),
-        duffing_propagation_runtime_s=np.asarray(duffing_propagation_runtime_s, dtype=float),
-        duffing_propagation_runtime_std_s=np.asarray(duffing_propagation_runtime_std_s, dtype=float),
+        duffing_build_runtime_std_s=np.asarray(
+            duffing_build_runtime_std_s, dtype=float
+        ),
+        duffing_propagation_runtime_s=np.asarray(
+            duffing_propagation_runtime_s, dtype=float
+        ),
+        duffing_propagation_runtime_std_s=np.asarray(
+            duffing_propagation_runtime_std_s, dtype=float
+        ),
         duffing_dynamics_runtime_s=np.asarray(duffing_dynamics_runtime_s, dtype=float),
-        duffing_dynamics_runtime_std_s=np.asarray(duffing_dynamics_runtime_std_s, dtype=float),
+        duffing_dynamics_runtime_std_s=np.asarray(
+            duffing_dynamics_runtime_std_s, dtype=float
+        ),
         circuit_build_runtime_s=np.asarray(circuit_build_runtime_s, dtype=float),
-        circuit_build_runtime_std_s=np.asarray(circuit_build_runtime_std_s, dtype=float),
-        circuit_propagation_runtime_s=np.asarray(circuit_propagation_runtime_s, dtype=float),
-        circuit_propagation_runtime_std_s=np.asarray(circuit_propagation_runtime_std_s, dtype=float),
+        circuit_build_runtime_std_s=np.asarray(
+            circuit_build_runtime_std_s, dtype=float
+        ),
+        circuit_propagation_runtime_s=np.asarray(
+            circuit_propagation_runtime_s, dtype=float
+        ),
+        circuit_propagation_runtime_std_s=np.asarray(
+            circuit_propagation_runtime_std_s, dtype=float
+        ),
         circuit_dynamics_runtime_s=np.asarray(circuit_dynamics_runtime_s, dtype=float),
-        circuit_dynamics_runtime_std_s=np.asarray(circuit_dynamics_runtime_std_s, dtype=float),
-        shared_static_precompute_runtime_s=np.asarray(shared_static_runtime_s, dtype=float),
-        shared_static_precompute_runtime_std_s=np.asarray(shared_static_runtime_std_s, dtype=float),
+        circuit_dynamics_runtime_std_s=np.asarray(
+            circuit_dynamics_runtime_std_s, dtype=float
+        ),
+        shared_static_precompute_runtime_s=np.asarray(
+            shared_static_runtime_s, dtype=float
+        ),
+        shared_static_precompute_runtime_std_s=np.asarray(
+            shared_static_runtime_std_s, dtype=float
+        ),
         shared_hold_scan_runtime_s=np.asarray(shared_hold_scan_runtime_s, dtype=float),
-        shared_hold_scan_runtime_std_s=np.asarray(shared_hold_scan_runtime_std_s, dtype=float),
+        shared_hold_scan_runtime_std_s=np.asarray(
+            shared_hold_scan_runtime_std_s, dtype=float
+        ),
         summary=summary,
     )

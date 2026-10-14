@@ -1,4 +1,5 @@
 """Plotting for circuit and Duffing static truncation-convergence benchmarks."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -23,11 +24,27 @@ from plotting.style import (
     truncation_metric_plot_kwargs,
 )
 
+
 def _truncation_metric_legend_handles() -> list[Line2D]:
     return [
-        Line2D([0], [0], label=r"$RMSE_{E,\mathrm{comp}}$", **truncation_metric_plot_kwargs("energy_rmse")),
-        Line2D([0], [0], label=r"$|\Delta J|$", **truncation_metric_plot_kwargs("j_abs_error")),
-        Line2D([0], [0], label=r"$|\Delta \zeta|$", **truncation_metric_plot_kwargs("zeta_abs_error")),
+        Line2D(
+            [0],
+            [0],
+            label=r"$RMSE_{E,\mathrm{comp}}$",
+            **truncation_metric_plot_kwargs("energy_rmse"),
+        ),
+        Line2D(
+            [0],
+            [0],
+            label=r"$|\Delta J|$",
+            **truncation_metric_plot_kwargs("j_abs_error"),
+        ),
+        Line2D(
+            [0],
+            [0],
+            label=r"$|\Delta \zeta|$",
+            **truncation_metric_plot_kwargs("zeta_abs_error"),
+        ),
     ]
 
 
@@ -36,7 +53,7 @@ def _add_truncation_metric_figure_legend(fig: plt.Figure):
         handles=_truncation_metric_legend_handles(),
         loc="upper center",
         bbox_to_anchor=figure_legend_bbox_to_anchor(fig),
-        ncol=3
+        ncol=3,
     )
 
 
@@ -67,7 +84,9 @@ def _plot_metric_sweeps(
         np.asarray(j_abs_error, dtype=float),
         np.asarray(zeta_abs_error, dtype=float),
     )
-    y_max = max(float(np.nanmax(np.abs(values))) for values in y_series if values.size > 0)
+    y_max = max(
+        float(np.nanmax(np.abs(values))) for values in y_series if values.size > 0
+    )
     ax.plot(x, energy_rmse, **truncation_metric_plot_kwargs("energy_rmse"))
     ax.plot(x, j_abs_error, **truncation_metric_plot_kwargs("j_abs_error"))
     ax.plot(x, zeta_abs_error, **truncation_metric_plot_kwargs("zeta_abs_error"))
@@ -77,7 +96,9 @@ def _plot_metric_sweeps(
         ax.set_title(title)
     ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
     if y_max > 0.0:
-        ax.yaxis.set_major_locator(MultipleLocator(3.0 * 10.0 ** np.floor(np.log10(y_max))))
+        ax.yaxis.set_major_locator(
+            MultipleLocator(3.0 * 10.0 ** np.floor(np.log10(y_max)))
+        )
     ax.grid()
     if xticklabels is not None:
         ax.set_xticks(x)
@@ -86,8 +107,16 @@ def _plot_metric_sweeps(
 
 def _circuit_subplot_specs(
     result: CircuitTruncationBenchmarkResult,
-) -> dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None]]:
-    specs: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None]] = {}
+) -> dict[
+    str,
+    tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None],
+]:
+    specs: dict[
+        str,
+        tuple[
+            np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None
+        ],
+    ] = {}
     if np.asarray(result.circuit_ncut_values).size > 0:
         n_q_values = _charge_basis_dim_from_ncut(result.circuit_ncut_values)
         specs["ncut"] = (
@@ -111,7 +140,9 @@ def _circuit_subplot_specs(
             _integer_ticklabels(qubit_dims),
         )
     if np.asarray(result.circuit_coupler_truncated_dim_values).size > 0:
-        coupler_dims = np.asarray(result.circuit_coupler_truncated_dim_values, dtype=float)
+        coupler_dims = np.asarray(
+            result.circuit_coupler_truncated_dim_values, dtype=float
+        )
         specs["coupler"] = (
             coupler_dims,
             np.asarray(result.circuit_coupler_truncation_energy_rmse, dtype=float),
@@ -126,8 +157,16 @@ def _circuit_subplot_specs(
 
 def _duffing_subplot_specs(
     result: DuffingTruncationBenchmarkResult,
-) -> dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None]]:
-    specs: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None]] = {}
+) -> dict[
+    str,
+    tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None],
+]:
+    specs: dict[
+        str,
+        tuple[
+            np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, str, list[str] | None
+        ],
+    ] = {}
     if np.asarray(result.duffing_ncut_values).size > 0:
         n_q_values = _charge_basis_dim_from_ncut(result.duffing_ncut_values)
         specs["ncut"] = (
@@ -151,7 +190,9 @@ def _duffing_subplot_specs(
             _integer_ticklabels(qubit_dims),
         )
     if np.asarray(result.duffing_hilbert_coupler_dim_values).size > 0:
-        coupler_dims = np.asarray(result.duffing_hilbert_coupler_dim_values, dtype=float)
+        coupler_dims = np.asarray(
+            result.duffing_hilbert_coupler_dim_values, dtype=float
+        )
         specs["coupler"] = (
             coupler_dims,
             np.asarray(result.duffing_hilbert_coupler_energy_rmse, dtype=float),
@@ -170,7 +211,9 @@ def plot_circuit_truncation_benchmark(
 ) -> None:
     subplot_specs = list(_circuit_subplot_specs(result).values())
     if not subplot_specs:
-        raise ValueError("Circuit truncation plot requires at least one populated sweep")
+        raise ValueError(
+            "Circuit truncation plot requires at least one populated sweep"
+        )
 
     def _build_figure() -> plt.Figure:
         fig, axes = plt.subplots(
@@ -180,7 +223,15 @@ def plot_circuit_truncation_benchmark(
         )
         if not isinstance(axes, np.ndarray):
             axes = np.asarray([axes], dtype=object)
-        for ax, (x, energy_rmse, j_abs_error, zeta_abs_error, xlabel, title, xticklabels) in zip(axes, subplot_specs):
+        for ax, (
+            x,
+            energy_rmse,
+            j_abs_error,
+            zeta_abs_error,
+            xlabel,
+            title,
+            xticklabels,
+        ) in zip(axes, subplot_specs):
             _plot_metric_sweeps(
                 ax,
                 x=x,
@@ -205,7 +256,9 @@ def plot_duffing_truncation_benchmark(
 ) -> None:
     subplot_specs = list(_duffing_subplot_specs(result).values())
     if not subplot_specs:
-        raise ValueError("Duffing truncation plot requires at least one populated sweep")
+        raise ValueError(
+            "Duffing truncation plot requires at least one populated sweep"
+        )
 
     def _build_figure() -> plt.Figure:
         fig, axes = plt.subplots(
@@ -215,7 +268,15 @@ def plot_duffing_truncation_benchmark(
         )
         if not isinstance(axes, np.ndarray):
             axes = np.asarray([axes], dtype=object)
-        for ax, (x, energy_rmse, j_abs_error, zeta_abs_error, xlabel, title, xticklabels) in zip(axes, subplot_specs):
+        for ax, (
+            x,
+            energy_rmse,
+            j_abs_error,
+            zeta_abs_error,
+            xlabel,
+            title,
+            xticklabels,
+        ) in zip(axes, subplot_specs):
             _plot_metric_sweeps(
                 ax,
                 x=x,
@@ -244,7 +305,9 @@ def plot_truncation_benchmark(
     duffing_specs = _duffing_subplot_specs(duffing_result)
     row_order = ("ncut", "qubit", "coupler")
     if not any(name in circuit_specs or name in duffing_specs for name in row_order):
-        raise ValueError("Combined truncation plot requires at least one populated sweep")
+        raise ValueError(
+            "Combined truncation plot requires at least one populated sweep"
+        )
 
     def _build_figure() -> plt.Figure:
         fig, axes = plt.subplots(
@@ -257,7 +320,15 @@ def plot_truncation_benchmark(
             left_ax = axes[row_index, 0]
             right_ax = axes[row_index, 1]
             if sweep_name in circuit_specs:
-                x, energy_rmse, j_abs_error, zeta_abs_error, xlabel, title, xticklabels = circuit_specs[sweep_name]
+                (
+                    x,
+                    energy_rmse,
+                    j_abs_error,
+                    zeta_abs_error,
+                    xlabel,
+                    title,
+                    xticklabels,
+                ) = circuit_specs[sweep_name]
                 _plot_metric_sweeps(
                     left_ax,
                     x=x,
@@ -272,7 +343,15 @@ def plot_truncation_benchmark(
             else:
                 left_ax.axis("off")
             if sweep_name in duffing_specs:
-                x, energy_rmse, j_abs_error, zeta_abs_error, xlabel, title, xticklabels = duffing_specs[sweep_name]
+                (
+                    x,
+                    energy_rmse,
+                    j_abs_error,
+                    zeta_abs_error,
+                    xlabel,
+                    title,
+                    xticklabels,
+                ) = duffing_specs[sweep_name]
                 _plot_metric_sweeps(
                     right_ax,
                     x=x,

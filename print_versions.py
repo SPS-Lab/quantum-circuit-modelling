@@ -1,4 +1,6 @@
 import sys
+
+
 def safe_import(name, attr="__version__"):
     try:
         module = __import__(name)
@@ -6,6 +8,8 @@ def safe_import(name, attr="__version__"):
         print(f"{name}: {version}")
     except Exception as e:
         print(f"{name}: not available ({e})")
+
+
 print(f"Python: {sys.version.split()[0]}")
 safe_import("numpy")
 safe_import("scipy")

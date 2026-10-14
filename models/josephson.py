@@ -5,12 +5,8 @@ from __future__ import annotations
 import numpy as np
 
 
-
 def flux_dependent_EJ(
-    *,
-    EJ_max: float,
-    flux_bias: np.ndarray | float,
-    d: float
+    *, EJ_max: float, flux_bias: np.ndarray | float, d: float
 ) -> np.ndarray:
     """Return SQUID effective Josephson energy vs reduced flux bias.
 

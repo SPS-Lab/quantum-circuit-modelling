@@ -25,7 +25,6 @@ from static_fitted_artifacts import (
 from study_config import load_study_config
 
 
-
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -102,7 +101,9 @@ def main() -> None:
         else resolve_static_fitted_artifact_path(args.from_fitted)
     )
     precomputed_static_result = (
-        None if fitted_source_path is None else load_static_fitted_models_artifact(fitted_source_path)
+        None
+        if fitted_source_path is None
+        else load_static_fitted_models_artifact(fitted_source_path)
     )
 
     if args.plot_only:
@@ -169,7 +170,9 @@ def main() -> None:
     )
     if result.scan_hold_times_ns.size > 0:
         reporter.line("Hold scan (ns, phase_err_to_pi_rad, score):")
-        for h, err, score in zip(result.scan_hold_times_ns, result.scan_phase_error_rad, result.scan_scores):
+        for h, err, score in zip(
+            result.scan_hold_times_ns, result.scan_phase_error_rad, result.scan_scores
+        ):
             reporter.line(f"  {h:.6f}, {err:.6e}, {score:.6e}")
     if args.plot_only:
         reporter.line(f"Loaded results: {results_path}")

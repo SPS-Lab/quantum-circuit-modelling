@@ -96,13 +96,34 @@ _FIGURE_SPECS: dict[str, dict[str, tuple[float, float]]] = {
         "leakage_flow": (1.0, 3.8),
     },
     "presentation": {
-        "cz": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
-        "runtime": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
-        "static_main": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
-        "static_raw_energies": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
-        "static_overlaps": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
-        "static_amplitudes": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
-        "leakage_flow": (PRESENTATION_FIGURE_WIDTH_SCALE_MAX + 0.1, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX + 0.5),
+        "cz": (
+            PRESENTATION_FIGURE_WIDTH_SCALE_MAX,
+            PRESENTATION_FIGURE_HEIGHT_INCHES_MAX,
+        ),
+        "runtime": (
+            PRESENTATION_FIGURE_WIDTH_SCALE_MAX,
+            PRESENTATION_FIGURE_HEIGHT_INCHES_MAX,
+        ),
+        "static_main": (
+            PRESENTATION_FIGURE_WIDTH_SCALE_MAX,
+            PRESENTATION_FIGURE_HEIGHT_INCHES_MAX,
+        ),
+        "static_raw_energies": (
+            PRESENTATION_FIGURE_WIDTH_SCALE_MAX,
+            PRESENTATION_FIGURE_HEIGHT_INCHES_MAX,
+        ),
+        "static_overlaps": (
+            PRESENTATION_FIGURE_WIDTH_SCALE_MAX,
+            PRESENTATION_FIGURE_HEIGHT_INCHES_MAX,
+        ),
+        "static_amplitudes": (
+            PRESENTATION_FIGURE_WIDTH_SCALE_MAX,
+            PRESENTATION_FIGURE_HEIGHT_INCHES_MAX,
+        ),
+        "leakage_flow": (
+            PRESENTATION_FIGURE_WIDTH_SCALE_MAX + 0.1,
+            PRESENTATION_FIGURE_HEIGHT_INCHES_MAX + 0.5,
+        ),
     },
 }
 
@@ -126,18 +147,36 @@ _STACKED_FIGURE_SPECS: dict[str, dict[str, dict[int, tuple[float, float]]]] = {
     },
     "presentation": {
         "rx_populations": {
-            3: (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
+            3: (
+                PRESENTATION_FIGURE_WIDTH_SCALE_MAX,
+                PRESENTATION_FIGURE_HEIGHT_INCHES_MAX,
+            ),
         },
         "rx_diagnostics": {
-            2: (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
+            2: (
+                PRESENTATION_FIGURE_WIDTH_SCALE_MAX,
+                PRESENTATION_FIGURE_HEIGHT_INCHES_MAX,
+            ),
         },
         "truncation_single_model": {
-            1: (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
-            2: (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
-            3: (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
+            1: (
+                PRESENTATION_FIGURE_WIDTH_SCALE_MAX,
+                PRESENTATION_FIGURE_HEIGHT_INCHES_MAX,
+            ),
+            2: (
+                PRESENTATION_FIGURE_WIDTH_SCALE_MAX,
+                PRESENTATION_FIGURE_HEIGHT_INCHES_MAX,
+            ),
+            3: (
+                PRESENTATION_FIGURE_WIDTH_SCALE_MAX,
+                PRESENTATION_FIGURE_HEIGHT_INCHES_MAX,
+            ),
         },
         "truncation_combined": {
-            3: (PRESENTATION_FIGURE_WIDTH_SCALE_MAX, PRESENTATION_FIGURE_HEIGHT_INCHES_MAX),
+            3: (
+                PRESENTATION_FIGURE_WIDTH_SCALE_MAX,
+                PRESENTATION_FIGURE_HEIGHT_INCHES_MAX,
+            ),
         },
     },
 }
@@ -156,7 +195,10 @@ def current_benchmark_style() -> str:
 def benchmark_style_paths(style_name: str | None = None) -> list[str]:
     """Return the repo-owned mplstyle files for a benchmark style."""
     style_key = ACTIVE_BENCHMARK_STYLE if style_name is None else str(style_name)
-    return [str(_STYLE_DIR / f"{name}.mplstyle") for name in _BENCHMARK_STYLE_STACKS[style_key]]
+    return [
+        str(_STYLE_DIR / f"{name}.mplstyle")
+        for name in _BENCHMARK_STYLE_STACKS[style_key]
+    ]
 
 
 def benchmark_style_outfile(outfile: Path, style_name: str) -> Path:
@@ -181,7 +223,9 @@ def beamer_slide_height_inches() -> float:
 
 def benchmark_reference_width_inches(style_name: str | None = None) -> float:
     """Return the reference layout width for a benchmark style."""
-    style_key = _CURRENT_BENCHMARK_STYLE.get() if style_name is None else str(style_name)
+    style_key = (
+        _CURRENT_BENCHMARK_STYLE.get() if style_name is None else str(style_name)
+    )
     if style_key == "paper":
         return single_column_width_inches()
     if style_key == "presentation":
@@ -204,9 +248,13 @@ def stacked_figure_size(name: str, row_count: int) -> tuple[float, float]:
     if row_count <= 0:
         raise ValueError(f"row_count must be positive, got {row_count}")
     try:
-        width_scale, height_inches = _STACKED_FIGURE_SPECS[_CURRENT_BENCHMARK_STYLE.get()][name][row_count]
+        width_scale, height_inches = _STACKED_FIGURE_SPECS[
+            _CURRENT_BENCHMARK_STYLE.get()
+        ][name][row_count]
     except KeyError as exc:
-        raise ValueError(f"No stacked figure size recipe for {name!r} with row_count={row_count}") from exc
+        raise ValueError(
+            f"No stacked figure size recipe for {name!r} with row_count={row_count}"
+        ) from exc
     return (
         width_scale * benchmark_reference_width_inches(),
         height_inches,
@@ -269,7 +317,11 @@ def add_model_figure_legend(
         handles=model_legend_handles() if handles is None else handles,
         loc="upper center",
         ncol=ncol,
-        bbox_to_anchor=figure_legend_bbox_to_anchor(fig) if bbox_to_anchor is None else bbox_to_anchor,
+        bbox_to_anchor=(
+            figure_legend_bbox_to_anchor(fig)
+            if bbox_to_anchor is None
+            else bbox_to_anchor
+        ),
     )
 
 
@@ -281,14 +333,35 @@ def truncation_metric_plot_kwargs(metric: str) -> dict[str, object]:
 def truncation_metric_legend_handles() -> list[Line2D]:
     """Legend handles for truncation benchmark metric traces."""
     return [
-        Line2D([0], [0], label=r"$RMSE_{E,\mathrm{comp}}$", **truncation_metric_plot_kwargs("energy_rmse")),
-        Line2D([0], [0], label=r"$|\Delta J|$", **truncation_metric_plot_kwargs("j_abs_error")),
-        Line2D([0], [0], label=r"$|\Delta \zeta|$", **truncation_metric_plot_kwargs("zeta_abs_error")),
+        Line2D(
+            [0],
+            [0],
+            label=r"$RMSE_{E,\mathrm{comp}}$",
+            **truncation_metric_plot_kwargs("energy_rmse"),
+        ),
+        Line2D(
+            [0],
+            [0],
+            label=r"$|\Delta J|$",
+            **truncation_metric_plot_kwargs("j_abs_error"),
+        ),
+        Line2D(
+            [0],
+            [0],
+            label=r"$|\Delta \zeta|$",
+            **truncation_metric_plot_kwargs("zeta_abs_error"),
+        ),
     ]
+
 
 def add_column_title(axes: plt.Axes, title: str) -> None:
     """Add larger title to top Axes of column"""
-    axes.set_title(title, pad=COLUMN_TITLE_PAD, fontsize=plt.rcParams['axes.titlesize']+COLUMN_TITLE_FONTSIZE_EXTRA)
+    axes.set_title(
+        title,
+        pad=COLUMN_TITLE_PAD,
+        fontsize=plt.rcParams["axes.titlesize"] + COLUMN_TITLE_FONTSIZE_EXTRA,
+    )
+
 
 def benchmark_tight_layout(
     fig: plt.Figure,
@@ -303,14 +376,16 @@ def benchmark_tight_layout(
         renderer = fig.canvas.get_renderer()
         top_limit = rect[3]
         for artist in reserve_artists:
-            bbox = artist.get_window_extent(renderer=renderer).transformed(fig.transFigure.inverted())
+            bbox = artist.get_window_extent(renderer=renderer).transformed(
+                fig.transFigure.inverted()
+            )
             top_limit = min(top_limit, float(bbox.y0) - BENCHMARK_TIGHT_LAYOUT_TOP_GAP)
         rect[3] = max(rect[1] + 0.1, top_limit)
     fig.tight_layout(
         rect=tuple(rect),
         pad=BENCHMARK_TIGHT_LAYOUT_PAD,
         h_pad=BENCHMARK_TIGHT_LAYOUT_H_PAD,
-        w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD if w_pad is None else float(w_pad)
+        w_pad=BENCHMARK_TIGHT_LAYOUT_W_PAD if w_pad is None else float(w_pad),
     )
 
 

@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 
 
 def load_animation_module():
-    module_path = Path(__file__).resolve().parents[1] / "harmonic" / "lc_mechanical_animation.py"
+    module_path = (
+        Path(__file__).resolve().parents[1] / "harmonic" / "lc_mechanical_animation.py"
+    )
     spec = spec_from_file_location("lc_mechanical_animation", module_path)
     assert spec is not None
     assert spec.loader is not None
@@ -21,7 +23,9 @@ def test_animation_builds_and_updates_multiple_frames() -> None:
     fig, artists = animation_module.build_figure()
 
     first_frame_artists = animation_module.update(0, artists)
-    quarter_frame_artists = animation_module.update(animation_module.FRAMES // 4, artists)
+    quarter_frame_artists = animation_module.update(
+        animation_module.FRAMES // 4, artists
+    )
 
     assert len(first_frame_artists) >= 10
     assert len(quarter_frame_artists) == len(first_frame_artists)
@@ -37,7 +41,9 @@ def test_pdf_frame_export_writes_numbered_files(tmp_path: Path) -> None:
     fig, artists = animation_module.build_figure()
 
     frame_numbers = animation_module.export_frame_numbers(12, 5)
-    saved_paths = animation_module.save_pdf_frames(fig, artists, tmp_path, frame_numbers)
+    saved_paths = animation_module.save_pdf_frames(
+        fig, artists, tmp_path, frame_numbers
+    )
 
     assert frame_numbers == [0, 5, 10, 11]
     assert [path.name for path in saved_paths] == [

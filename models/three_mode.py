@@ -32,16 +32,9 @@ class ThreeModeHamiltonianKwargs(ThreeModeHamiltonianCommonKwargs):
     w_c: float
 
 
-
-def coupler_frequency(
-    *,
-    wc0: float,
-    A: float,
-    flux: np.ndarray | float
-) -> np.ndarray:
+def coupler_frequency(*, wc0: float, A: float, flux: np.ndarray | float) -> np.ndarray:
     """Return coupler frequency ``w_c = wc0 + A cos(2pi flux)``."""
     return float(wc0) + float(A) * np.cos(2.0 * np.pi * flux)
-
 
 
 def three_mode_hamiltonian(
@@ -97,11 +90,8 @@ def three_mode_hamiltonian(
     )
 
 
-
 def computational_state_indices(
-    *,
-    nlevels_qubit: int,
-    nlevels_coupler: int
+    *, nlevels_qubit: int, nlevels_coupler: int
 ) -> np.ndarray:
     """Flat indices for computational states in ``|q1,0_c,q0>`` order with ``q0`` as LSB."""
     q1_significance = int(nlevels_coupler) * int(nlevels_qubit)
@@ -124,11 +114,14 @@ def canonical_state_order_qcq(
             for q1 in range(nq1):
                 triples.append((q1, c, q0))
 
-    triples_sorted = sorted(triples, key=lambda t: (t[0] + t[1] + t[2], t[0], t[1], t[2]))
-    flat_idx = np.array([(q1 * nc + c) * nq0 + q0 for (q1, c, q0) in triples_sorted], dtype=int)
+    triples_sorted = sorted(
+        triples, key=lambda t: (t[0] + t[1] + t[2], t[0], t[1], t[2])
+    )
+    flat_idx = np.array(
+        [(q1 * nc + c) * nq0 + q0 for (q1, c, q0) in triples_sorted], dtype=int
+    )
     labels = np.array([f"|{q1},{c},{q0}>" for (q1, c, q0) in triples_sorted], dtype=str)
     return flat_idx, labels
-
 
 
 def three_mode_hamiltonian_from_kwargs(
@@ -151,7 +144,6 @@ def three_mode_hamiltonian_from_kwargs(
     )
 
 
-
 def three_mode_hamiltonian_stack_vs_flux(
     flux_values: np.ndarray,
     *,
@@ -161,13 +153,14 @@ def three_mode_hamiltonian_stack_vs_flux(
 ) -> np.ndarray:
     """Return ``(n_flux, d, d)`` three-mode Hamiltonian stack for a flux sweep."""
     flux_values = np.asarray(flux_values, dtype=float).ravel()
-    wc_arr = np.asarray(coupler_frequency(wc0=wc0, A=A, flux=flux_values), dtype=float).ravel()
+    wc_arr = np.asarray(
+        coupler_frequency(wc0=wc0, A=A, flux=flux_values), dtype=float
+    ).ravel()
     mats = [
         three_mode_hamiltonian_from_kwargs(ham_kwargs, w_c=float(wc_arr[k]))
         for k in range(flux_values.shape[0])
     ]
     return np.stack(mats, axis=0)
-
 
 
 def computational_subspace_block(
@@ -180,8 +173,7 @@ def computational_subspace_block(
     """Extract computational ``4x4`` block from one Hamiltonian or a stack."""
     H = np.asarray(H, dtype=complex)
     idx = computational_state_indices(
-        nlevels_qubit=int(nlevels_qubit),
-        nlevels_coupler=int(nlevels_coupler)
+        nlevels_qubit=int(nlevels_qubit), nlevels_coupler=int(nlevels_coupler)
     )
 
     if H.ndim == 2:

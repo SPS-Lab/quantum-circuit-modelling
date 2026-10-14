@@ -58,7 +58,11 @@ def _fit_even_three_harmonic_parameter(
     design = _even_three_harmonic_design_matrix(flux_values)
     y_arr = np.asarray(y, dtype=float).ravel()
     beta, *_ = np.linalg.lstsq(design, y_arr, rcond=None)
-    return ("x0", "a1", "a2", "a3"), np.asarray(beta, dtype=float), np.asarray(design @ beta, dtype=float)
+    return (
+        ("x0", "a1", "a2", "a3"),
+        np.asarray(beta, dtype=float),
+        np.asarray(design @ beta, dtype=float),
+    )
 
 
 def _fit_magnitude_exchange_single_parameter(
@@ -96,7 +100,9 @@ def _fit_magnitude_exchange_single_parameter(
         rmse = float(np.sqrt(np.mean((fitted - y_arr) ** 2)))
         if rmse < best_rmse:
             best_rmse = rmse
-            best_coeffs = np.asarray([float(gamma), *linear_coeffs.tolist()], dtype=float)
+            best_coeffs = np.asarray(
+                [float(gamma), *linear_coeffs.tolist()], dtype=float
+            )
             best_fit = np.asarray(fitted, dtype=float)
 
     return coeff_names, best_coeffs, best_fit
@@ -158,10 +164,14 @@ def derive_effective_model_from_dressed_stack(
     """Extract effective parameters from a dressed stack and fit compact flux laws."""
     extracted = extract_effective_model_parameters_from_4x4_stack(dressed_stack)
     if fit_basis == "single-harmonic":
-        parameter_fit = fit_single_harmonic_parameters(flux_values, extracted_parameters=extracted)
+        parameter_fit = fit_single_harmonic_parameters(
+            flux_values, extracted_parameters=extracted
+        )
     elif fit_basis == "magnitude-exchange-like":
         if coupler_frequency_values is None:
-            raise ValueError("coupler_frequency_values are required for fit_basis 'magnitude-exchange-like'")
+            raise ValueError(
+                "coupler_frequency_values are required for fit_basis 'magnitude-exchange-like'"
+            )
         parameter_fit = fit_magnitude_exchange_parameters(
             flux_values,
             extracted_parameters=extracted,

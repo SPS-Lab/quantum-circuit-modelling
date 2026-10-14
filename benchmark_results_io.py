@@ -38,7 +38,9 @@ def save_result_hdf5(
         h5.attrs["schema_version"] = _SCHEMA_VERSION
         h5.attrs["benchmark_name"] = str(benchmark_name)
         h5.attrs["result_class"] = type(result).__name__
-        h5.attrs["saved_utc_iso"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        h5.attrs["saved_utc_iso"] = datetime.now(timezone.utc).isoformat(
+            timespec="seconds"
+        )
         root = h5.create_group(_RESULT_GROUP)
         for f in fields(result):
             _write_value(root, f.name, getattr(result, f.name))
@@ -77,7 +79,9 @@ def save_cli_report_hdf5(
         if "last_cli_report_text" in meta:
             del meta["last_cli_report_text"]
         meta.create_dataset("last_cli_report_lines", data=line_array)
-        meta.create_dataset("last_cli_report_text", data=np.array(text_blob, dtype=utf8))
+        meta.create_dataset(
+            "last_cli_report_text", data=np.array(text_blob, dtype=utf8)
+        )
         meta.attrs["last_cli_report_benchmark_name"] = str(benchmark_name)
         meta.attrs["last_cli_report_script_name"] = str(script_name)
         meta.attrs["last_cli_report_started_utc_iso"] = str(started_utc_iso)
@@ -97,7 +101,9 @@ def load_result_hdf5(
 
     with h5py.File(infile, "r") as h5:
         if "schema_version" not in h5.attrs:
-            raise ValueError(f"Missing required file attribute 'schema_version' in {infile}")
+            raise ValueError(
+                f"Missing required file attribute 'schema_version' in {infile}"
+            )
         schema_version = _attr_text(h5.attrs["schema_version"])
         if schema_version != _SCHEMA_VERSION:
             raise ValueError(
@@ -105,7 +111,9 @@ def load_result_hdf5(
             )
 
         if "benchmark_name" not in h5.attrs:
-            raise ValueError(f"Missing required file attribute 'benchmark_name' in {infile}")
+            raise ValueError(
+                f"Missing required file attribute 'benchmark_name' in {infile}"
+            )
         benchmark_name = _attr_text(h5.attrs["benchmark_name"])
         if benchmark_name != expected_benchmark_name:
             raise ValueError(
@@ -113,7 +121,9 @@ def load_result_hdf5(
                 f"expected {expected_benchmark_name!r}"
             )
         if "result_class" not in h5.attrs:
-            raise ValueError(f"Missing required file attribute 'result_class' in {infile}")
+            raise ValueError(
+                f"Missing required file attribute 'result_class' in {infile}"
+            )
         result_class = _attr_text(h5.attrs["result_class"])
         expected_class = result_type.__name__
         if result_class != expected_class:
@@ -150,7 +160,9 @@ def _write_value(group: h5py.Group, key: str, value: Any) -> None:
     if isinstance(value, np.ndarray):
         if value.dtype.kind in {"U", "S"}:
             utf8 = h5py.string_dtype(encoding="utf-8")
-            group.create_dataset(str(key), data=np.asarray(value, dtype=object), dtype=utf8)
+            group.create_dataset(
+                str(key), data=np.asarray(value, dtype=object), dtype=utf8
+            )
             return
         compression = "gzip" if value.size > 0 else None
         if compression is None:
@@ -169,7 +181,9 @@ def _write_value(group: h5py.Group, key: str, value: Any) -> None:
         group.create_dataset(str(key), data=value)
         return
 
-    raise TypeError(f"Unsupported value type for HDF5 serialization: key={key!r}, type={type(value)!r}")
+    raise TypeError(
+        f"Unsupported value type for HDF5 serialization: key={key!r}, type={type(value)!r}"
+    )
 
 
 def _read_value(node: h5py.Group | h5py.Dataset) -> Any:
@@ -186,7 +200,9 @@ def _read_value(node: h5py.Group | h5py.Dataset) -> Any:
         if value.size == 0:
             return value
         if all(isinstance(item, (bytes, np.bytes_)) for item in value.flat):
-            return np.asarray([item.decode("utf-8") for item in value.flat], dtype=str).reshape(value.shape)
+            return np.asarray(
+                [item.decode("utf-8") for item in value.flat], dtype=str
+            ).reshape(value.shape)
     if isinstance(value, bytes):
         return value.decode("utf-8")
     if isinstance(value, np.generic):

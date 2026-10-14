@@ -53,7 +53,6 @@ from models.effective import (
 from toolkit.spectrum import track_energy_levels_stack
 
 
-
 def _add_required_study_sections(payload: dict[str, object]) -> None:
     payload.setdefault(
         "leakage_benchmark",
@@ -95,7 +94,6 @@ def _assert_benchmark_pdfs_missing(outfile: Path) -> None:
         assert not benchmark_style_outfile(outfile, style_name).exists()
 
 
-
 def _write_small_study_params(
     tmp_path: Path,
     *,
@@ -126,10 +124,11 @@ def _write_small_study_params(
     rb["dt_ns"] = 0.1
     rb["rise_time_ns"] = 1.0
 
-    dst = tmp_path / f"study_params_small_{sweep_target}_{duffing_calibration_mode}.json"
+    dst = (
+        tmp_path / f"study_params_small_{sweep_target}_{duffing_calibration_mode}.json"
+    )
     dst.write_text(json.dumps(payload), encoding="utf-8")
     return dst
-
 
 
 def test_load_study_config(tmp_path: Path) -> None:
@@ -139,11 +138,23 @@ def test_load_study_config(tmp_path: Path) -> None:
     )
     assert cfg.system.q0.EJmax > 0.0
     assert cfg.static_benchmark.flux_sweep.num_points > 2
-    assert cfg.static_benchmark.effective_model.derivation_source in {"duffing", "circuit"}
-    assert cfg.static_benchmark.effective_model.fit_basis in {"single-harmonic", "magnitude-exchange-like"}
+    assert cfg.static_benchmark.effective_model.derivation_source in {
+        "duffing",
+        "circuit",
+    }
+    assert cfg.static_benchmark.effective_model.fit_basis in {
+        "single-harmonic",
+        "magnitude-exchange-like",
+    }
     assert cfg.static_benchmark.flux_control.sweep_target in {"q0", "q1"}
-    assert cfg.static_benchmark.dressed_subspace.selection_mode in {"continuous", "bare"}
-    assert cfg.static_benchmark.dressed_subspace.energy_tracking_mode in {"continuous", "bare"}
+    assert cfg.static_benchmark.dressed_subspace.selection_mode in {
+        "continuous",
+        "bare",
+    }
+    assert cfg.static_benchmark.dressed_subspace.energy_tracking_mode in {
+        "continuous",
+        "bare",
+    }
     assert cfg.static_benchmark.other_levels_to_plot >= 0
     assert cfg.static_benchmark.duffing_model.calibration_mode in {
         "fixed",
@@ -163,7 +174,9 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.static_benchmark.circuit_model.transmon_charge_basis.q1_ncut > 0
     assert len(cfg.circuit_truncation_benchmark.circuit_ncut_values) > 0
     assert len(cfg.circuit_truncation_benchmark.circuit_qubit_truncated_dim_values) > 0
-    assert len(cfg.circuit_truncation_benchmark.circuit_coupler_truncated_dim_values) > 0
+    assert (
+        len(cfg.circuit_truncation_benchmark.circuit_coupler_truncated_dim_values) > 0
+    )
     assert cfg.circuit_truncation_benchmark.lowest_excited_levels_to_plot >= 1
     assert cfg.circuit_truncation_benchmark.circuit_reference_ncut > 0
     assert cfg.circuit_truncation_benchmark.circuit_reference_qubit_truncated_dim > 0
@@ -195,8 +208,13 @@ def test_load_study_config(tmp_path: Path) -> None:
         "symbolic-fitted-static",
     }
     assert cfg.runtime_benchmark.repeats >= 1
-    assert cfg.runtime_benchmark.hold_time_ns is None or cfg.runtime_benchmark.hold_time_ns >= 0.0
-    assert cfg.cz_benchmark.total_time_ns is None or cfg.cz_benchmark.total_time_ns > 0.0
+    assert (
+        cfg.runtime_benchmark.hold_time_ns is None
+        or cfg.runtime_benchmark.hold_time_ns >= 0.0
+    )
+    assert (
+        cfg.cz_benchmark.total_time_ns is None or cfg.cz_benchmark.total_time_ns > 0.0
+    )
     assert cfg.cz_benchmark.hold_time_ns is None or cfg.cz_benchmark.hold_time_ns >= 0.0
     assert cfg.cz_benchmark.ramp_time_ns > 0.0
     assert cfg.cz_benchmark.dt_ns > 0.0
@@ -216,7 +234,6 @@ def test_load_study_config(tmp_path: Path) -> None:
     assert cfg.leakage_flow_benchmark.transition_min_integrated_abs >= 0.0
     assert cfg.leakage_flow_benchmark.max_population_rows >= 1
     assert cfg.leakage_flow_benchmark.max_transition_rows >= 1
-
 
 
 def test_effective_fit_is_compact_global_model() -> None:
@@ -241,8 +258,12 @@ def test_extract_effective_model_parameters_gauge_fixes_exchange_phase() -> None
         H[k, 1, 2] = 2.0 * j
         H[k, 2, 1] = 2.0 * j
 
-    params_raw = extract_effective_model_parameters_from_4x4_stack(H, gauge_fix_exchange=False)
-    params_fixed = extract_effective_model_parameters_from_4x4_stack(H, gauge_fix_exchange=True)
+    params_raw = extract_effective_model_parameters_from_4x4_stack(
+        H, gauge_fix_exchange=False
+    )
+    params_fixed = extract_effective_model_parameters_from_4x4_stack(
+        H, gauge_fix_exchange=True
+    )
 
     assert np.any(params_raw["J"] < 0.0)
     assert np.all(params_fixed["J"] >= 0.0)
@@ -251,7 +272,9 @@ def test_extract_effective_model_parameters_gauge_fixes_exchange_phase() -> None
     assert np.allclose(params_fixed["zeta"], params_raw["zeta"])
 
 
-def test_track_energy_levels_stack_supports_separate_bare_and_continuous_modes() -> None:
+def test_track_energy_levels_stack_supports_separate_bare_and_continuous_modes() -> (
+    None
+):
     theta0 = 0.2
     theta1 = 1.2
     evals = np.diag([1.0, 2.0])
@@ -264,7 +287,9 @@ def test_track_energy_levels_stack_supports_separate_bare_and_continuous_modes()
         H_stack.append(rot @ evals @ rot.T)
     H_stack = np.asarray(H_stack, dtype=float)
 
-    continuous = track_energy_levels_stack(H_stack, n_track=2, tracking_mode="continuous")
+    continuous = track_energy_levels_stack(
+        H_stack, n_track=2, tracking_mode="continuous"
+    )
     bare = track_energy_levels_stack(H_stack, n_track=2, tracking_mode="bare")
 
     assert np.allclose(continuous[0], [1.0, 2.0])
@@ -273,11 +298,12 @@ def test_track_energy_levels_stack_supports_separate_bare_and_continuous_modes()
     assert np.allclose(bare[-1], [2.0, 1.0])
 
 
-
 def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_static_benchmark(cfg)
 
@@ -304,7 +330,9 @@ def test_static_benchmark_runs_with_small_config(tmp_path: Path) -> None:
 def test_static_benchmark_extra_sideplot_data_can_be_requested(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_static_benchmark(cfg, include_extra_sideplot_data=True)
 
@@ -314,8 +342,14 @@ def test_static_benchmark_extra_sideplot_data_can_be_requested(tmp_path: Path) -
     assert out.duffing_tracked_branch_bare_amplitudes.shape[0] == 9
     assert out.circuit_tracked_branch_bare_amplitudes.shape[2] == 4
     assert out.duffing_tracked_branch_bare_amplitudes.shape[2] == 4
-    assert out.circuit_bare_state_labels.shape[0] == out.circuit_tracked_branch_bare_amplitudes.shape[1]
-    assert out.duffing_bare_state_labels.shape[0] == out.duffing_tracked_branch_bare_amplitudes.shape[1]
+    assert (
+        out.circuit_bare_state_labels.shape[0]
+        == out.circuit_tracked_branch_bare_amplitudes.shape[1]
+    )
+    assert (
+        out.duffing_bare_state_labels.shape[0]
+        == out.duffing_tracked_branch_bare_amplitudes.shape[1]
+    )
     assert out.circuit_computational_bare_amplitudes.shape == (9, 4, 4)
     assert out.duffing_computational_bare_amplitudes.shape == (9, 4, 4)
     assert np.iscomplexobj(out.circuit_computational_bare_amplitudes)
@@ -326,13 +360,25 @@ def test_static_benchmark_extra_sideplot_data_can_be_requested(tmp_path: Path) -
     assert "duffing_truncation_style_energy_rmse" in out.metric_notes
     assert set(out.effective_fit_coefficient_names) == {"w0", "w1", "J", "zeta"}
     assert set(out.effective_fit_coefficients) == {"w0", "w1", "J", "zeta"}
-    assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
+    assert set(out.duffing_mode_parameters) == {
+        "w0",
+        "w1",
+        "alpha0",
+        "alpha1",
+        "wc",
+        "g0c",
+        "g1c",
+    }
 
 
-def test_static_benchmark_can_skip_full_spectrum_context_and_truncation_style_metric(tmp_path: Path) -> None:
+def test_static_benchmark_can_skip_full_spectrum_context_and_truncation_style_metric(
+    tmp_path: Path,
+) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_static_benchmark(
         cfg,
@@ -347,43 +393,84 @@ def test_static_benchmark_can_skip_full_spectrum_context_and_truncation_style_me
     assert "duffing_truncation_style_energy_rmse" not in out.summary
     assert "duffing_truncation_style_excited_levels_compared" not in out.summary
     assert "duffing_truncation_style_energy_rmse" not in out.metric_notes
-    assert len(out.effective_fit_coefficient_names["w0"]) == out.effective_fit_coefficients["w0"].shape[0]
-    assert len(out.effective_fit_coefficient_names["w1"]) == out.effective_fit_coefficients["w1"].shape[0]
-    assert len(out.effective_fit_coefficient_names["J"]) == out.effective_fit_coefficients["J"].shape[0]
-    assert len(out.effective_fit_coefficient_names["zeta"]) == out.effective_fit_coefficients["zeta"].shape[0]
+    assert (
+        len(out.effective_fit_coefficient_names["w0"])
+        == out.effective_fit_coefficients["w0"].shape[0]
+    )
+    assert (
+        len(out.effective_fit_coefficient_names["w1"])
+        == out.effective_fit_coefficients["w1"].shape[0]
+    )
+    assert (
+        len(out.effective_fit_coefficient_names["J"])
+        == out.effective_fit_coefficients["J"].shape[0]
+    )
+    assert (
+        len(out.effective_fit_coefficient_names["zeta"])
+        == out.effective_fit_coefficients["zeta"].shape[0]
+    )
     assert out.effective_fit_coefficients["w0"].shape[0] >= 3
     assert out.effective_fit_coefficients["w1"].shape[0] >= 3
     assert out.effective_fit_coefficients["J"].shape[0] >= 3
     assert out.effective_fit_coefficients["zeta"].shape[0] >= 3
 
 
-def test_static_benchmark_fit_coefficients_roundtrip_through_hdf5(tmp_path: Path) -> None:
+def test_static_benchmark_fit_coefficients_roundtrip_through_hdf5(
+    tmp_path: Path,
+) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_static_benchmark(cfg)
     results_path = tmp_path / "static_results.h5"
     save_result_hdf5(out, results_path, benchmark_name="static")
-    loaded = load_result_hdf5(results_path, StaticBenchmarkResult, expected_benchmark_name="static")
+    loaded = load_result_hdf5(
+        results_path, StaticBenchmarkResult, expected_benchmark_name="static"
+    )
 
     for key in ("w0", "w1", "J", "zeta"):
-        assert np.array_equal(loaded.effective_fit_coefficient_names[key], out.effective_fit_coefficient_names[key])
-        assert np.allclose(loaded.effective_fit_coefficients[key], out.effective_fit_coefficients[key])
-    assert loaded.duffing_symbolic_coefficient_names.keys() == out.duffing_symbolic_coefficient_names.keys()
-    assert loaded.duffing_symbolic_coefficients.keys() == out.duffing_symbolic_coefficients.keys()
+        assert np.array_equal(
+            loaded.effective_fit_coefficient_names[key],
+            out.effective_fit_coefficient_names[key],
+        )
+        assert np.allclose(
+            loaded.effective_fit_coefficients[key], out.effective_fit_coefficients[key]
+        )
+    assert (
+        loaded.duffing_symbolic_coefficient_names.keys()
+        == out.duffing_symbolic_coefficient_names.keys()
+    )
+    assert (
+        loaded.duffing_symbolic_coefficients.keys()
+        == out.duffing_symbolic_coefficients.keys()
+    )
     for key in loaded.duffing_symbolic_coefficient_names:
-        assert np.array_equal(loaded.duffing_symbolic_coefficient_names[key], out.duffing_symbolic_coefficient_names[key])
+        assert np.array_equal(
+            loaded.duffing_symbolic_coefficient_names[key],
+            out.duffing_symbolic_coefficient_names[key],
+        )
     for key in loaded.duffing_symbolic_coefficients:
-        assert np.allclose(loaded.duffing_symbolic_coefficients[key], out.duffing_symbolic_coefficients[key])
+        assert np.allclose(
+            loaded.duffing_symbolic_coefficients[key],
+            out.duffing_symbolic_coefficients[key],
+        )
     assert loaded.metric_notes == out.metric_notes
     assert loaded.summary.keys() == out.summary.keys()
 
 
-def test_static_duffing_truncation_style_rmse_uses_sorted_full_spectra(tmp_path: Path) -> None:
+def test_static_duffing_truncation_style_rmse_uses_sorted_full_spectra(
+    tmp_path: Path,
+) -> None:
     system_path = _write_small_system_params(tmp_path)
-    study_path = _write_small_study_params(tmp_path, duffing_calibration_mode="analytic-per-flux")
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    study_path = _write_small_study_params(
+        tmp_path, duffing_calibration_mode="analytic-per-flux"
+    )
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_static_benchmark(cfg)
     circuit = build_circuit_model_stack(
@@ -423,14 +510,20 @@ def test_static_duffing_truncation_style_rmse_uses_sorted_full_spectra(tmp_path:
         n_excited=n_excited,
     )
 
-    assert out.summary["duffing_truncation_style_excited_levels_compared"] == float(n_excited)
-    assert out.summary["duffing_truncation_style_energy_rmse"] == pytest.approx(expected_rmse)
+    assert out.summary["duffing_truncation_style_excited_levels_compared"] == float(
+        n_excited
+    )
+    assert out.summary["duffing_truncation_style_energy_rmse"] == pytest.approx(
+        expected_rmse
+    )
 
 
 def test_effective_fit_reconstructs_static_grid(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_static_benchmark(cfg)
     reconstructed = effective_parameters_for_flux(out, cfg, out.flux_values)
@@ -439,23 +532,51 @@ def test_effective_fit_reconstructs_static_grid(tmp_path: Path) -> None:
         assert np.allclose(reconstructed[key], out.effective_parameters[key])
 
 
-def test_magnitude_exchange_fit_reconstructs_asymmetric_exchange_targets(tmp_path: Path) -> None:
+def test_magnitude_exchange_fit_reconstructs_asymmetric_exchange_targets(
+    tmp_path: Path,
+) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
     flux_values = np.linspace(-0.2, 0.2, 17)
     theta = 2.0 * np.pi * flux_values
     wc = np.full_like(flux_values, float(cfg.system.c.E_osc), dtype=float)
-    w0 = 4.95 + 0.22 * np.cos(theta) - 0.06 * np.cos(2.0 * theta) + 0.01 * np.cos(3.0 * theta)
-    w1 = 5.35 - 0.18 * np.cos(theta) + 0.04 * np.cos(2.0 * theta) - 0.015 * np.cos(3.0 * theta)
+    w0 = (
+        4.95
+        + 0.22 * np.cos(theta)
+        - 0.06 * np.cos(2.0 * theta)
+        + 0.01 * np.cos(3.0 * theta)
+    )
+    w1 = (
+        5.35
+        - 0.18 * np.cos(theta)
+        + 0.04 * np.cos(2.0 * theta)
+        - 0.015 * np.cos(3.0 * theta)
+    )
 
     gamma = float(np.geomspace(1e-3, 5.0, 600)[240])
     delta1 = w0 - wc
     delta2 = w1 - wc
     r1 = 1.0 / np.sqrt(delta1 * delta1 + gamma * gamma)
     r2 = 1.0 / np.sqrt(delta2 * delta2 + gamma * gamma)
-    j_target = 0.018 + 0.009 * r1 - 0.013 * r2 + 0.022 * r1 * r2 + 0.006 * r1 * r1 - 0.004 * r2 * r2
-    zeta_target = -0.001 + 0.002 * r1 + 0.003 * r2 - 0.0025 * r1 * r2 + 0.0015 * r1 * r1 + 0.0008 * r2 * r2
+    j_target = (
+        0.018
+        + 0.009 * r1
+        - 0.013 * r2
+        + 0.022 * r1 * r2
+        + 0.006 * r1 * r1
+        - 0.004 * r2 * r2
+    )
+    zeta_target = (
+        -0.001
+        + 0.002 * r1
+        + 0.003 * r2
+        - 0.0025 * r1 * r2
+        + 0.0015 * r1 * r1
+        + 0.0008 * r2 * r2
+    )
 
     fit = fit_magnitude_exchange_parameters(
         flux_values,
@@ -475,7 +596,12 @@ def test_magnitude_exchange_fit_reconstructs_asymmetric_exchange_targets(tmp_pat
         coefficients=fit.coefficients,
     )
 
-    for key, expected in (("w0", w0), ("w1", w1), ("J", j_target), ("zeta", zeta_target)):
+    for key, expected in (
+        ("w0", w0),
+        ("w1", w1),
+        ("J", j_target),
+        ("zeta", zeta_target),
+    ):
         assert np.allclose(reconstructed[key], expected, atol=1e-10, rtol=1e-10)
 
 
@@ -485,7 +611,9 @@ def test_symbolic_duffing_fit_reconstructs_static_grid(tmp_path: Path) -> None:
         tmp_path,
         duffing_calibration_mode="symbolic-fitted-static",
     )
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_static_benchmark(cfg)
     reconstructed = duffing_mode_parameters_for_flux(out, cfg, out.flux_values)
@@ -500,7 +628,9 @@ def test_static_fitted_models_artifact_roundtrip_and_latex(tmp_path: Path) -> No
         tmp_path,
         duffing_calibration_mode="symbolic-fitted-static",
     )
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_static_benchmark(cfg)
     artifact = build_static_fitted_models_artifact(out, config=cfg)
@@ -511,15 +641,27 @@ def test_static_fitted_models_artifact_roundtrip_and_latex(tmp_path: Path) -> No
 
     assert np.allclose(loaded_json.flux_values, artifact.flux_values)
     assert set(loaded_json.effective_parameters) == {"w0", "w1", "J", "zeta"}
-    assert set(loaded_json.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
-    assert loaded_json.sweep_target == str(cfg.static_benchmark.flux_control.sweep_target)
+    assert set(loaded_json.duffing_mode_parameters) == {
+        "w0",
+        "w1",
+        "alpha0",
+        "alpha1",
+        "wc",
+        "g0c",
+        "g1c",
+    }
+    assert loaded_json.sweep_target == str(
+        cfg.static_benchmark.flux_control.sweep_target
+    )
     assert loaded_json.duffing_calibration_mode == "symbolic-fitted-static"
 
     results_path = tmp_path / "static_results.h5"
     save_result_hdf5(out, results_path, benchmark_name="static")
     loaded_h5 = load_static_fitted_models_artifact(results_path)
     assert np.allclose(loaded_h5.flux_values, artifact.flux_values)
-    assert np.allclose(loaded_h5.circuit_parameters["zeta"], artifact.circuit_parameters["zeta"])
+    assert np.allclose(
+        loaded_h5.circuit_parameters["zeta"], artifact.circuit_parameters["zeta"]
+    )
 
     latex = build_static_fitted_latex_table(
         loaded_json,
@@ -541,13 +683,18 @@ def test_static_fitted_models_artifact_roundtrip_and_latex(tmp_path: Path) -> No
     assert "| Effective parameter | Coefficient | Value (GHz) |" in markdown
     assert "## Symbolic Duffing fitted coefficients" in markdown
     assert markdown.count("<!-- Git provenance: commit=") == 2
-    assert markdown.count("<!-- Experiment folder: 20260513_123550_static_2b0daa0 -->") == 2
+    assert (
+        markdown.count("<!-- Experiment folder: 20260513_123550_static_2b0daa0 -->")
+        == 2
+    )
 
 
 def test_truncation_static_companion_materializes_artifacts(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     run_dir = tmp_path / "truncation_run"
     paths = materialize_static_companion_artifacts(
@@ -578,7 +725,9 @@ def test_truncation_static_companion_materializes_artifacts(tmp_path: Path) -> N
 def test_truncation_static_companion_extra_sideplots_are_opt_in(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     run_dir = tmp_path / "truncation_run_extra"
     paths = materialize_static_companion_artifacts(
@@ -600,26 +749,38 @@ def test_truncation_static_companion_extra_sideplots_are_opt_in(tmp_path: Path) 
     assert paths.fitted_markdown_path.exists()
 
 
-def test_static_benchmark_uses_fixed_coupler_frequency_from_system_params(tmp_path: Path) -> None:
+def test_static_benchmark_uses_fixed_coupler_frequency_from_system_params(
+    tmp_path: Path,
+) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path, sweep_target="q1")
 
-    baseline = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
+    baseline = run_static_benchmark(
+        load_study_config(system_params_path=system_path, study_params_path=study_path)
+    )
 
     payload = json.loads(system_path.read_text(encoding="utf-8"))
     payload["parameters"]["c"]["E_osc"] = 7.321
     system_path.write_text(json.dumps(payload), encoding="utf-8")
-    shifted = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
+    shifted = run_static_benchmark(
+        load_study_config(system_params_path=system_path, study_params_path=study_path)
+    )
 
     # Changing the fixed bus frequency in system params must change the benchmark outputs.
-    assert not np.allclose(baseline.circuit_parameters["w0"], shifted.circuit_parameters["w0"])
+    assert not np.allclose(
+        baseline.circuit_parameters["w0"], shifted.circuit_parameters["w0"]
+    )
 
 
-def test_static_benchmark_q0_sweep_varies_spectrum_with_fixed_coupler(tmp_path: Path) -> None:
+def test_static_benchmark_q0_sweep_varies_spectrum_with_fixed_coupler(
+    tmp_path: Path,
+) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path, sweep_target="q0")
 
-    out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
+    out = run_static_benchmark(
+        load_study_config(system_params_path=system_path, study_params_path=study_path)
+    )
 
     assert float(np.ptp(out.circuit_relative_energies[:, 1])) > 1e-6
 
@@ -631,7 +792,9 @@ def test_duffing_fixed_calibration_is_not_recomputed_per_flux(tmp_path: Path) ->
         sweep_target="q0",
         duffing_calibration_mode="fixed",
     )
-    out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
+    out = run_static_benchmark(
+        load_study_config(system_params_path=system_path, study_params_path=study_path)
+    )
     assert float(np.ptp(out.duffing_relative_energies[:, 1])) < 1e-10
 
 
@@ -642,7 +805,9 @@ def test_duffing_per_flux_calibration_can_be_enabled_explicitly(tmp_path: Path) 
         sweep_target="q0",
         duffing_calibration_mode="per-flux",
     )
-    out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
+    out = run_static_benchmark(
+        load_study_config(system_params_path=system_path, study_params_path=study_path)
+    )
     assert float(np.ptp(out.duffing_relative_energies[:, 1])) > 1e-6
 
 
@@ -653,38 +818,87 @@ def test_duffing_analytic_per_flux_calibration_varies_with_flux(tmp_path: Path) 
         sweep_target="q0",
         duffing_calibration_mode="analytic-per-flux",
     )
-    out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
+    out = run_static_benchmark(
+        load_study_config(system_params_path=system_path, study_params_path=study_path)
+    )
     assert float(np.ptp(out.duffing_relative_energies[:, 1])) > 1e-6
 
 
-def test_duffing_fitted_static_calibration_runs_and_exposes_mode_parameters(tmp_path: Path) -> None:
+def test_duffing_fitted_static_calibration_runs_and_exposes_mode_parameters(
+    tmp_path: Path,
+) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(
         tmp_path,
         sweep_target="q0",
         duffing_calibration_mode="fitted-static",
     )
-    out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
-    assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
-    assert all(np.all(np.isfinite(values)) for values in out.duffing_mode_parameters.values())
+    out = run_static_benchmark(
+        load_study_config(system_params_path=system_path, study_params_path=study_path)
+    )
+    assert set(out.duffing_mode_parameters) == {
+        "w0",
+        "w1",
+        "alpha0",
+        "alpha1",
+        "wc",
+        "g0c",
+        "g1c",
+    }
+    assert all(
+        np.all(np.isfinite(values)) for values in out.duffing_mode_parameters.values()
+    )
     assert out.duffing_mode_parameters["w0"].shape == out.flux_values.shape
     assert out.duffing_symbolic_coefficient_names == {}
     assert out.duffing_symbolic_coefficients == {}
 
 
-def test_duffing_symbolic_fitted_static_runs_and_exposes_symbolic_coefficients(tmp_path: Path) -> None:
+def test_duffing_symbolic_fitted_static_runs_and_exposes_symbolic_coefficients(
+    tmp_path: Path,
+) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(
         tmp_path,
         sweep_target="q0",
         duffing_calibration_mode="symbolic-fitted-static",
     )
-    out = run_static_benchmark(load_study_config(system_params_path=system_path, study_params_path=study_path))
-    assert set(out.duffing_mode_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
-    assert set(out.duffing_symbolic_coefficient_names) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
-    assert set(out.duffing_symbolic_coefficients) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
-    assert all(np.all(np.isfinite(values)) for values in out.duffing_mode_parameters.values())
-    assert all(np.all(np.isfinite(values)) for values in out.duffing_symbolic_coefficients.values())
+    out = run_static_benchmark(
+        load_study_config(system_params_path=system_path, study_params_path=study_path)
+    )
+    assert set(out.duffing_mode_parameters) == {
+        "w0",
+        "w1",
+        "alpha0",
+        "alpha1",
+        "wc",
+        "g0c",
+        "g1c",
+    }
+    assert set(out.duffing_symbolic_coefficient_names) == {
+        "w0",
+        "w1",
+        "alpha0",
+        "alpha1",
+        "wc",
+        "g0c",
+        "g1c",
+    }
+    assert set(out.duffing_symbolic_coefficients) == {
+        "w0",
+        "w1",
+        "alpha0",
+        "alpha1",
+        "wc",
+        "g0c",
+        "g1c",
+    }
+    assert all(
+        np.all(np.isfinite(values)) for values in out.duffing_mode_parameters.values()
+    )
+    assert all(
+        np.all(np.isfinite(values))
+        for values in out.duffing_symbolic_coefficients.values()
+    )
     for key, values in out.duffing_symbolic_coefficients.items():
         assert values.shape == out.duffing_symbolic_coefficient_names[key].shape
     assert out.duffing_symbolic_coefficient_names["wc"].shape == (1,)
@@ -700,7 +914,9 @@ def test_duffing_symbolic_fitted_static_reuses_initial_mode_parameter_arrays(
         sweep_target="q0",
         duffing_calibration_mode="symbolic-fitted-static",
     )
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     original = duffing_calibration_module._build_mode_parameter_arrays
     call_count = 0
@@ -730,7 +946,9 @@ def test_duffing_symbolic_fitted_static_does_not_use_manual_flux_to_ej_mapping(
         sweep_target="q0",
         duffing_calibration_mode="symbolic-fitted-static",
     )
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     original = duffing_calibration_module.flux_dependent_EJ
     call_count = 0
@@ -751,14 +969,18 @@ def test_duffing_symbolic_fitted_static_does_not_use_manual_flux_to_ej_mapping(
     assert call_count == 0
 
 
-def test_symbolic_duffing_evaluator_returns_symbolic_parameters_only(tmp_path: Path) -> None:
+def test_symbolic_duffing_evaluator_returns_symbolic_parameters_only(
+    tmp_path: Path,
+) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(
         tmp_path,
         sweep_target="q0",
         duffing_calibration_mode="symbolic-fitted-static",
     )
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
     out = run_static_benchmark(cfg)
 
     symbolic_parameters = duffing_module.evaluate_symbolic_duffing_parameter_fit(
@@ -767,7 +989,15 @@ def test_symbolic_duffing_evaluator_returns_symbolic_parameters_only(tmp_path: P
         coefficient_names=out.duffing_symbolic_coefficient_names,
         coefficients=out.duffing_symbolic_coefficients,
     )
-    assert set(symbolic_parameters) == {"w0", "w1", "alpha0", "alpha1", "wc", "g0c", "g1c"}
+    assert set(symbolic_parameters) == {
+        "w0",
+        "w1",
+        "alpha0",
+        "alpha1",
+        "wc",
+        "g0c",
+        "g1c",
+    }
 
     full_parameters = evaluate_symbolic_duffing_mode_parameters(
         out.flux_values,
@@ -783,7 +1013,9 @@ def test_symbolic_duffing_evaluator_returns_symbolic_parameters_only(tmp_path: P
 def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_cz_benchmark(
         cfg,
@@ -795,13 +1027,17 @@ def test_cz_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.times_ns.shape == (21,)
 
 
-def test_cz_benchmark_ignores_sampled_static_arrays_when_fit_laws_exist(tmp_path: Path) -> None:
+def test_cz_benchmark_ignores_sampled_static_arrays_when_fit_laws_exist(
+    tmp_path: Path,
+) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(
         tmp_path,
         duffing_calibration_mode="symbolic-fitted-static",
     )
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
     static_out = run_static_benchmark(cfg)
 
     baseline = run_cz_benchmark(
@@ -842,21 +1078,33 @@ def test_cz_benchmark_ignores_sampled_static_arrays_when_fit_laws_exist(tmp_path
         precomputed_static_runtime_s=0.0,
     )
 
-    assert np.allclose(rebuilt.effective_conditional_phase, baseline.effective_conditional_phase)
-    assert np.allclose(rebuilt.duffing_conditional_phase, baseline.duffing_conditional_phase)
-    assert np.allclose(rebuilt.effective_populations_11, baseline.effective_populations_11)
+    assert np.allclose(
+        rebuilt.effective_conditional_phase, baseline.effective_conditional_phase
+    )
+    assert np.allclose(
+        rebuilt.duffing_conditional_phase, baseline.duffing_conditional_phase
+    )
+    assert np.allclose(
+        rebuilt.effective_populations_11, baseline.effective_populations_11
+    )
     assert np.allclose(rebuilt.duffing_populations_11, baseline.duffing_populations_11)
 
 
 def test_rx_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_rx_benchmark(
         cfg,
         drive_qubit=str(cfg.rx_benchmark.drive_qubit),
-        drive_frequency=None if cfg.rx_benchmark.drive_frequency is None else float(cfg.rx_benchmark.drive_frequency),
+        drive_frequency=(
+            None
+            if cfg.rx_benchmark.drive_frequency is None
+            else float(cfg.rx_benchmark.drive_frequency)
+        ),
         drive_amplitude=float(cfg.rx_benchmark.drive_amplitude),
         drive_phase_rad=float(cfg.rx_benchmark.drive_phase_rad),
         total_time_ns=float(cfg.rx_benchmark.total_time_ns),
@@ -880,10 +1128,14 @@ def test_rx_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.drive_frequency > 0.0
 
 
-def test_rx_benchmark_derives_drive_frequency_from_circuit_when_omitted(tmp_path: Path) -> None:
+def test_rx_benchmark_derives_drive_frequency_from_circuit_when_omitted(
+    tmp_path: Path,
+) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_rx_benchmark(
         cfg,
@@ -911,14 +1163,18 @@ def test_rx_benchmark_derives_drive_frequency_from_circuit_when_omitted(tmp_path
     )
     params = extract_effective_model_parameters_from_4x4_stack(H_circuit_eff)
 
-    assert np.isclose(out.drive_frequency, float(np.asarray(params["w0"], dtype=float).ravel()[0]))
+    assert np.isclose(
+        out.drive_frequency, float(np.asarray(params["w0"], dtype=float).ravel()[0])
+    )
     assert np.isclose(out.summary["drive_frequency"], out.drive_frequency)
 
 
 def test_cz_plot_writes_pdf(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_cz_benchmark(
         cfg,
@@ -935,7 +1191,9 @@ def test_cz_plot_writes_pdf(tmp_path: Path) -> None:
 def test_leakage_flow_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_leakage_flow_benchmark(
         cfg,
@@ -955,10 +1213,22 @@ def test_leakage_flow_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert out.circuit_transition_signed_currents_11.shape[0] == out.times_ns.size
     assert out.population_state_labels_11.size > 0
     assert out.transition_labels_11.size > 0
-    assert out.duffing_population_state_amplitudes_11.shape[1] == out.population_state_labels_11.size
-    assert out.circuit_population_state_amplitudes_11.shape[1] == out.population_state_labels_11.size
-    assert out.duffing_transition_signed_currents_11.shape[1] == out.transition_labels_11.size
-    assert out.circuit_transition_signed_currents_11.shape[1] == out.transition_labels_11.size
+    assert (
+        out.duffing_population_state_amplitudes_11.shape[1]
+        == out.population_state_labels_11.size
+    )
+    assert (
+        out.circuit_population_state_amplitudes_11.shape[1]
+        == out.population_state_labels_11.size
+    )
+    assert (
+        out.duffing_transition_signed_currents_11.shape[1]
+        == out.transition_labels_11.size
+    )
+    assert (
+        out.circuit_transition_signed_currents_11.shape[1]
+        == out.transition_labels_11.size
+    )
     assert np.all(np.isfinite(out.duffing_leakage_11))
     assert np.all(np.isfinite(out.circuit_leakage_11))
     assert np.all(out.duffing_leakage_11 >= -1e-12)
@@ -968,7 +1238,9 @@ def test_leakage_flow_benchmark_runs_with_small_config(tmp_path: Path) -> None:
 def test_leakage_flow_plot_writes_pdf(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_leakage_flow_benchmark(
         cfg,
@@ -989,12 +1261,18 @@ def test_leakage_flow_plot_writes_pdf(tmp_path: Path) -> None:
 def test_rx_plots_write_pdf(tmp_path: Path) -> None:
     system_path = _write_small_system_params(tmp_path)
     study_path = _write_small_study_params(tmp_path)
-    cfg = load_study_config(system_params_path=system_path, study_params_path=study_path)
+    cfg = load_study_config(
+        system_params_path=system_path, study_params_path=study_path
+    )
 
     out = run_rx_benchmark(
         cfg,
         drive_qubit=str(cfg.rx_benchmark.drive_qubit),
-        drive_frequency=None if cfg.rx_benchmark.drive_frequency is None else float(cfg.rx_benchmark.drive_frequency),
+        drive_frequency=(
+            None
+            if cfg.rx_benchmark.drive_frequency is None
+            else float(cfg.rx_benchmark.drive_frequency)
+        ),
         drive_amplitude=float(cfg.rx_benchmark.drive_amplitude),
         drive_phase_rad=float(cfg.rx_benchmark.drive_phase_rad),
         total_time_ns=float(cfg.rx_benchmark.total_time_ns),

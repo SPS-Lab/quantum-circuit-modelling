@@ -35,7 +35,6 @@ from static_fitted_artifacts import (
 from study_config import load_study_config
 
 
-
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -85,11 +84,15 @@ def _parse_args() -> argparse.Namespace:
 
 def _format_fit_line(name: str, coeff_names: object, coeffs: object) -> str:
     if not hasattr(coeff_names, "__len__") or not hasattr(coeffs, "__len__"):
-        raise ValueError(f"Expected sequence-like coefficient names and values for {name}")
+        raise ValueError(
+            f"Expected sequence-like coefficient names and values for {name}"
+        )
     labels = [str(label) for label in coeff_names]
     values = [float(value) for value in coeffs]
     if len(labels) != len(values):
-        raise ValueError(f"Coefficient name/value mismatch for {name}: {labels!r} vs {values!r}")
+        raise ValueError(
+            f"Coefficient name/value mismatch for {name}: {labels!r} vs {values!r}"
+        )
     parts = ", ".join(f"{label}={value:.6e}" for label, value in zip(labels, values))
     return f"  {name}: {parts}"
 
@@ -113,8 +116,7 @@ def main() -> None:
     study_params_path = repo_root / "params" / "benchmark_params.json"
 
     config = load_study_config(
-        system_params_path=system_params_path,
-        study_params_path=study_params_path
+        system_params_path=system_params_path, study_params_path=study_params_path
     )
     run_paths = prepare_benchmark_run(
         repo_root=repo_root,
@@ -133,8 +135,12 @@ def main() -> None:
     figure_path = run_paths.figure_paths["figure"]
     j_zz_figure_path = figure_path.with_name(f"{figure_path.stem}_j_zz.pdf")
     raw_figure_path = figure_path.with_name(f"{figure_path.stem}_raw_energies.pdf")
-    overlap_figure_path = figure_path.with_name(f"{figure_path.stem}_single_excitation_overlaps.pdf")
-    basis_amplitude_figure_path = figure_path.with_name(f"{figure_path.stem}_computational_basis_amplitudes.pdf")
+    overlap_figure_path = figure_path.with_name(
+        f"{figure_path.stem}_single_excitation_overlaps.pdf"
+    )
+    basis_amplitude_figure_path = figure_path.with_name(
+        f"{figure_path.stem}_computational_basis_amplitudes.pdf"
+    )
     results_path = run_paths.results_path
 
     if args.plot_only:
@@ -227,7 +233,10 @@ def main() -> None:
         reporter.line("Duffing symbolic calibration coefficients (GHz):")
         ordered_names = ("w0", "w1", "alpha0", "alpha1", "g0c", "g1c")
         for name in ordered_names:
-            if name in result.duffing_symbolic_coefficients and name in result.duffing_symbolic_coefficient_names:
+            if (
+                name in result.duffing_symbolic_coefficients
+                and name in result.duffing_symbolic_coefficient_names
+            ):
                 reporter.line(
                     _format_fit_line(
                         name,
@@ -244,7 +253,9 @@ def main() -> None:
     if args.extra_sideplots:
         reporter.line(f"Wrote raw-energy figure: {raw_figure_path}")
         reporter.line(f"Wrote single-excitation overlap figure: {overlap_figure_path}")
-        reporter.line(f"Wrote computational-basis amplitude figure: {basis_amplitude_figure_path}")
+        reporter.line(
+            f"Wrote computational-basis amplitude figure: {basis_amplitude_figure_path}"
+        )
     reporter.line(f"Wrote fitted-parameter artifact: {fitted_json_path}")
     reporter.line(f"Wrote LaTeX table: {fitted_table_path}")
     reporter.line(f"Wrote Markdown table: {fitted_markdown_path}")

@@ -20,12 +20,12 @@ from toolkit.helpers import destroy
 w: angular frequency in GHz
 nlevels: number of levels
 """
+
+
 def harmonic_oscillator_hamiltonian(w, nlevels):
     a = destroy(nlevels)
-    n = a.conj().T @ a + 1/2 * np.eye(nlevels)
+    n = a.conj().T @ a + 1 / 2 * np.eye(nlevels)
     return w * n
-
-
 
 
 H = harmonic_oscillator_hamiltonian(w=5.0, nlevels=4)

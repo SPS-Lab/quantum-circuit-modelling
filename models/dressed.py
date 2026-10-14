@@ -9,7 +9,6 @@ from toolkit.spectrum import overlap_row_to_col_assignment
 from models.three_mode import computational_state_indices
 
 
-
 def lowdin_orthonormalize_columns(
     vectors: np.ndarray,
     *,
@@ -67,7 +66,9 @@ def _assignment_with_projector_blocks(
 
         available_cols = np.flatnonzero(~used_cols)
         if available_cols.size < block_size:
-            raise ValueError("Not enough candidate columns left for projector-block assignment")
+            raise ValueError(
+                "Not enough candidate columns left for projector-block assignment"
+            )
 
         prev_block = np.asarray(prev_selected_full[:, block_rows], dtype=complex)
         cand_available = np.asarray(evecs_cand[:, available_cols], dtype=complex)
@@ -120,7 +121,9 @@ def build_dressed_effective_stack(
     if m < 1:
         raise ValueError("subspace_indices must be non-empty")
     if np.any(subspace_indices < 0) or np.any(subspace_indices >= d):
-        raise ValueError(f"subspace_indices out of bounds for d={d}: {subspace_indices}")
+        raise ValueError(
+            f"subspace_indices out of bounds for d={d}: {subspace_indices}"
+        )
 
     mode = str(selection_mode).strip().lower()
     if mode not in {"continuous", "bare"}:
@@ -186,7 +189,9 @@ def tracked_subspace_bare_overlaps(
     if m < 1:
         raise ValueError("subspace_indices must be non-empty")
     if np.any(subspace_indices < 0) or np.any(subspace_indices >= d):
-        raise ValueError(f"subspace_indices out of bounds for d={d}: {subspace_indices}")
+        raise ValueError(
+            f"subspace_indices out of bounds for d={d}: {subspace_indices}"
+        )
 
     mode = str(selection_mode).strip().lower()
     if mode not in {"continuous", "bare"}:
@@ -249,13 +254,17 @@ def tracked_bare_state_amplitudes(
     if m < 1:
         raise ValueError("tracked_state_indices must be non-empty")
     if np.any(tracked_state_indices < 0) or np.any(tracked_state_indices >= d):
-        raise ValueError(f"tracked_state_indices out of bounds for d={d}: {tracked_state_indices}")
+        raise ValueError(
+            f"tracked_state_indices out of bounds for d={d}: {tracked_state_indices}"
+        )
 
     if output_state_indices is None:
         output_state_indices = np.arange(d, dtype=int)
     output_state_indices = np.asarray(output_state_indices, dtype=int).ravel()
     if np.any(output_state_indices < 0) or np.any(output_state_indices >= d):
-        raise ValueError(f"output_state_indices out of bounds for d={d}: {output_state_indices}")
+        raise ValueError(
+            f"output_state_indices out of bounds for d={d}: {output_state_indices}"
+        )
 
     mode = str(selection_mode).strip().lower()
     if mode not in {"continuous", "bare"}:
@@ -317,7 +326,6 @@ def tracked_subspace_bare_amplitudes(
     )
 
 
-
 def build_dressed_effective_computational_stack(
     H_stack: np.ndarray,
     *,
@@ -328,8 +336,12 @@ def build_dressed_effective_computational_stack(
     projector_track_single_excitation: bool = True,
 ) -> np.ndarray:
     """Return dressed effective computational ``4x4`` Hamiltonians from full stacks."""
-    idx = computational_state_indices(nlevels_qubit=int(nlevels_qubit), nlevels_coupler=int(nlevels_coupler))
-    projector_blocks: tuple[tuple[int, ...], ...] | None = ((1, 2),) if projector_track_single_excitation else None
+    idx = computational_state_indices(
+        nlevels_qubit=int(nlevels_qubit), nlevels_coupler=int(nlevels_coupler)
+    )
+    projector_blocks: tuple[tuple[int, ...], ...] | None = (
+        ((1, 2),) if projector_track_single_excitation else None
+    )
     return build_dressed_effective_stack(
         H_stack,
         subspace_indices=idx,
@@ -337,7 +349,6 @@ def build_dressed_effective_computational_stack(
         selection_mode=selection_mode,
         projector_blocks=projector_blocks,
     )
-
 
 
 def extract_effective_model_parameters_from_4x4_stack(
@@ -366,7 +377,9 @@ def extract_effective_model_parameters_from_4x4_stack(
             phase = np.conjugate(h12) / mag
             d = np.ones(4, dtype=complex)
             d[2] = phase
-            H_param[k] = (np.conjugate(d)[:, np.newaxis] * H_param[k]) * d[np.newaxis, :]
+            H_param[k] = (np.conjugate(d)[:, np.newaxis] * H_param[k]) * d[
+                np.newaxis, :
+            ]
 
     d00 = np.real(H_param[:, 0, 0])
     d01 = np.real(H_param[:, 1, 1])

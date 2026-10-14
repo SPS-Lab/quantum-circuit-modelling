@@ -112,9 +112,7 @@ def plot_energy_levels(
             parts.append(energy_unit)
         if subtract_ground:
             parts.append("rel. ground")
-        ax.set_ylabel(
-            "Energy (" + ", ".join(parts) + ")" if parts else "Energy"
-        )
+        ax.set_ylabel("Energy (" + ", ".join(parts) + ")" if parts else "Energy")
     else:
         ax.set_ylabel(ylabel)
 
@@ -235,7 +233,9 @@ def plot_energy_levels_vs_flux(
     flux_values = np.asarray(flux_values, dtype=float).ravel()
     n_flux = flux_values.shape[0]
 
-    H_stack = _stack_hamiltonians_vs_flux(flux_values=flux_values, hamiltonian=hamiltonian)
+    H_stack = _stack_hamiltonians_vs_flux(
+        flux_values=flux_values, hamiltonian=hamiltonian
+    )
     dim = H_stack.shape[1]
 
     n_track = int(n_show) if n_show is not None else dim
@@ -278,9 +278,7 @@ def plot_energy_levels_vs_flux(
             parts.append(energy_unit)
         if subtract_ground:
             parts.append("rel. ground at each flux")
-        ax.set_ylabel(
-            "Energy (" + ", ".join(parts) + ")" if parts else "Energy"
-        )
+        ax.set_ylabel("Energy (" + ", ".join(parts) + ")" if parts else "Energy")
     else:
         ax.set_ylabel(ylabel)
 
@@ -297,7 +295,9 @@ def plot_energy_levels_vs_flux(
     return evals_plot
 
 
-def evolve_state(psi0: np.ndarray, H: np.ndarray, t_values: np.ndarray) -> list[np.ndarray]:
+def evolve_state(
+    psi0: np.ndarray, H: np.ndarray, t_values: np.ndarray
+) -> list[np.ndarray]:
     """Schrödinger evolution |psi(t)> = exp(-i H t) |psi0> for fixed H."""
     H = np.asarray(H, dtype=complex)
     psi0 = np.asarray(psi0, dtype=complex).ravel()
@@ -381,7 +381,7 @@ def plot_evolve_state(
 
     # (dim, n_times)
     psi_arr = np.array(psi_t).T
-    prob = np.abs(psi_arr)**2  # probability |c_k|^2
+    prob = np.abs(psi_arr) ** 2  # probability |c_k|^2
     phase = np.angle(psi_arr)
 
     labels = (

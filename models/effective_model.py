@@ -111,11 +111,18 @@ def evaluate_effective_parameter_fit(
                 raise ValueError(
                     f"Expected 7 magnitude-exchange coefficients for {name!r}, got {beta.size}"
                 )
-            gamma, c0, c_r1, c_r2, c_prod, c_r1_sq, c_r2_sq = [float(value) for value in beta]
+            gamma, c0, c_r1, c_r2, c_prod, c_r1_sq, c_r2_sq = [
+                float(value) for value in beta
+            ]
             r1 = 1.0 / np.sqrt(delta1 * delta1 + gamma * gamma)
             r2 = 1.0 / np.sqrt(delta2 * delta2 + gamma * gamma)
             out[name] = np.asarray(
-                c0 + c_r1 * r1 + c_r2 * r2 + c_prod * (r1 * r2) + c_r1_sq * (r1 * r1) + c_r2_sq * (r2 * r2),
+                c0
+                + c_r1 * r1
+                + c_r2 * r2
+                + c_prod * (r1 * r2)
+                + c_r1_sq * (r1 * r1)
+                + c_r2_sq * (r2 * r2),
                 dtype=float,
             )
         return out
@@ -123,7 +130,9 @@ def evaluate_effective_parameter_fit(
     raise ValueError(f"Unsupported fit_basis {fit_basis!r}")
 
 
-def build_effective_hamiltonian_stack(parameters: Mapping[str, np.ndarray]) -> np.ndarray:
+def build_effective_hamiltonian_stack(
+    parameters: Mapping[str, np.ndarray],
+) -> np.ndarray:
     """Build lab-frame effective Hamiltonian stack from ``w0,w1,J,zeta`` arrays."""
     w0 = np.asarray(parameters["w0"], dtype=float).ravel()
     w1 = np.asarray(parameters["w1"], dtype=float).ravel()

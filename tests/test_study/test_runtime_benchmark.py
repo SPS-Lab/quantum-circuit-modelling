@@ -38,14 +38,18 @@ def _add_required_study_sections(payload: dict[str, object]) -> None:
 
 
 def _write_small_system_params(tmp_path: Path) -> Path:
-    payload = json.loads((_ROOT / "params" / "system_params.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (_ROOT / "params" / "system_params.json").read_text(encoding="utf-8")
+    )
     dst = tmp_path / "system_runtime_small.json"
     dst.write_text(json.dumps(payload), encoding="utf-8")
     return dst
 
 
 def _write_small_study_params(tmp_path: Path) -> Path:
-    payload = json.loads((_ROOT / "params" / "benchmark_params.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (_ROOT / "params" / "benchmark_params.json").read_text(encoding="utf-8")
+    )
     payload = _flatten_run_all_benchmark_params(payload)
     _add_required_study_sections(payload)
 

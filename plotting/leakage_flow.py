@@ -48,10 +48,17 @@ def _transition_label_math(label: str) -> str:
         src, dst = text.split("->", 1)
         src = src.strip()
         dst = dst.strip()
-        if src.startswith("|") and src.endswith(">") and dst.startswith("|") and dst.endswith(">"):
+        if (
+            src.startswith("|")
+            and src.endswith(">")
+            and dst.startswith("|")
+            and dst.endswith(">")
+        ):
             src_inner = src[1:-1]
             dst_inner = dst[1:-1]
-            return rf"$\left|{src_inner}\right\rangle \to \left|{dst_inner}\right\rangle$"
+            return (
+                rf"$\left|{src_inner}\right\rangle \to \left|{dst_inner}\right\rangle$"
+            )
     return text
 
 
@@ -163,7 +170,8 @@ def _set_center_shared_y_labels(
         normalized_raw_label = "".join(raw_label.split())
         font_size = (
             emphasized_tick_font_size
-            if normalized_raw_label in emphasized_labels and emphasized_tick_font_size is not None
+            if normalized_raw_label in emphasized_labels
+            and emphasized_tick_font_size is not None
             else tick_font_size
         )
         fig.text(
@@ -219,8 +227,12 @@ def plot_leakage_flow_benchmark(
     pop_labels = _decode_labels(result.population_state_labels_11)
     tr_labels = _decode_labels(result.transition_labels_11)
 
-    pop_amp_duf = np.asarray(result.duffing_population_state_amplitudes_11, dtype=complex)
-    pop_amp_cir = np.asarray(result.circuit_population_state_amplitudes_11, dtype=complex)
+    pop_amp_duf = np.asarray(
+        result.duffing_population_state_amplitudes_11, dtype=complex
+    )
+    pop_amp_cir = np.asarray(
+        result.circuit_population_state_amplitudes_11, dtype=complex
+    )
 
     tr_duf = np.asarray(result.duffing_transition_signed_currents_11, dtype=float)
     tr_cir = np.asarray(result.circuit_transition_signed_currents_11, dtype=float)
@@ -235,6 +247,7 @@ def plot_leakage_flow_benchmark(
             1e-12,
         )
     )
+
     def _build_figure() -> plt.Figure:
         if current_benchmark_style() == "presentation":
             state_tick_font_size = 4.5
@@ -289,7 +302,14 @@ def plot_leakage_flow_benchmark(
                 zorder=2,
             )
         else:
-            ax_pop_duf.text(0.5, 0.5, "No states selected", ha="center", va="center", transform=ax_pop_duf.transAxes)
+            ax_pop_duf.text(
+                0.5,
+                0.5,
+                "No states selected",
+                ha="center",
+                va="center",
+                transform=ax_pop_duf.transAxes,
+            )
 
         if pop_rgb_cir.size > 0:
             ax_pop_cir.imshow(
@@ -301,7 +321,14 @@ def plot_leakage_flow_benchmark(
                 zorder=2,
             )
         else:
-            ax_pop_cir.text(0.5, 0.5, "No states selected", ha="center", va="center", transform=ax_pop_cir.transAxes)
+            ax_pop_cir.text(
+                0.5,
+                0.5,
+                "No states selected",
+                ha="center",
+                va="center",
+                transform=ax_pop_cir.transAxes,
+            )
 
         im_tr = ax_tr_duf.imshow(
             tr_duf.T if tr_duf.size > 0 else np.zeros((1, t.size), dtype=float),
@@ -367,7 +394,9 @@ def plot_leakage_flow_benchmark(
         ax_tr_duf.set_xlabel("Time (ns)")
         ax_tr_cir.set_xlabel("Time (ns)")
 
-        phase_mappable = plt.cm.ScalarMappable(cmap="hsv", norm=plt.Normalize(vmin=-np.pi, vmax=np.pi))
+        phase_mappable = plt.cm.ScalarMappable(
+            cmap="hsv", norm=plt.Normalize(vmin=-np.pi, vmax=np.pi)
+        )
         phase_mappable.set_array([])
         cbar_phase = fig.colorbar(
             phase_mappable,
@@ -377,7 +406,9 @@ def plot_leakage_flow_benchmark(
             shrink=0.82,
         )
         cbar_phase.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
-        cbar_phase.set_ticklabels(["$-\\pi$", "$-\\frac{\\pi}{2}$", "$0$", "$\\frac{\\pi}{2}$", "$\\pi$"])
+        cbar_phase.set_ticklabels(
+            ["$-\\pi$", "$-\\frac{\\pi}{2}$", "$0$", "$\\frac{\\pi}{2}$", "$\\pi$"]
+        )
         cbar_phase.set_label("Phase hue (rad)")
 
         cbar_tr = fig.colorbar(

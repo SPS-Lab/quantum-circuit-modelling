@@ -10,7 +10,9 @@ def sweep_reference_scale(circuit_reference: np.ndarray) -> float:
     reference_array = np.asarray(circuit_reference, dtype=float)
     scale = float(np.max(np.abs(reference_array)))
     if not np.isfinite(scale) or scale <= 0.0:
-        raise ValueError("Cannot normalize error by an identically zero or non-finite circuit trace")
+        raise ValueError(
+            "Cannot normalize error by an identically zero or non-finite circuit trace"
+        )
     return scale
 
 
@@ -19,7 +21,11 @@ def sweep_normalized_error_percent(
     circuit_reference: np.ndarray,
 ) -> np.ndarray:
     """Return 100 * error / max_sweep(|reference|)."""
-    return 100.0 * np.asarray(error, dtype=float) / sweep_reference_scale(circuit_reference)
+    return (
+        100.0
+        * np.asarray(error, dtype=float)
+        / sweep_reference_scale(circuit_reference)
+    )
 
 
 def sweep_normalized_absolute_error_percent(

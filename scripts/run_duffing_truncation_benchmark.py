@@ -20,7 +20,10 @@ from benchmark_cli_reporting import (
 )
 from benchmark_results_io import load_result_hdf5, save_result_hdf5
 from benchmark_run_artifacts import prepare_benchmark_run
-from comparison.truncation import DuffingTruncationBenchmarkResult, run_duffing_truncation_benchmark
+from comparison.truncation import (
+    DuffingTruncationBenchmarkResult,
+    run_duffing_truncation_benchmark,
+)
 from plotting.truncation import plot_duffing_truncation_benchmark
 from study_config import load_study_config
 from truncation_static_companion import materialize_static_companion_artifacts
@@ -99,7 +102,9 @@ def _parse_args() -> argparse.Namespace:
 def main() -> None:
     args = _parse_args()
     repo_root = _REPO_ROOT
-    reporter = CliReporter(benchmark_name="duffing_truncation", script_name=Path(__file__).name)
+    reporter = CliReporter(
+        benchmark_name="duffing_truncation", script_name=Path(__file__).name
+    )
     selected_sweeps = _selected_sweeps_from_args(args)
     config = load_study_config(
         system_params_path=repo_root / "params" / "system_params.json",
@@ -150,7 +155,9 @@ def main() -> None:
             config.static_benchmark,
             duffing_model=replace(
                 config.static_benchmark.duffing_model,
-                calibration_mode=str(config.duffing_truncation_benchmark.duffing_calibration_mode),
+                calibration_mode=str(
+                    config.duffing_truncation_benchmark.duffing_calibration_mode
+                ),
             ),
         ),
     )
@@ -194,7 +201,9 @@ def main() -> None:
                 f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
             )
     if result.duffing_hilbert_qubit_dim_values.size > 0:
-        reporter.line("Duffing qubit Hilbert-dim sweep (coupler fixed; computational RMSE in GHz):")
+        reporter.line(
+            "Duffing qubit Hilbert-dim sweep (coupler fixed; computational RMSE in GHz):"
+        )
         for qdim, energy_rmse, spectrum_energy_rmse, j_err, zeta_err in zip(
             result.duffing_hilbert_qubit_dim_values,
             result.duffing_hilbert_qubit_energy_rmse,
@@ -213,7 +222,9 @@ def main() -> None:
                 f"|dJ|={float(j_err):.6e}, |dzeta|={float(zeta_err):.6e}"
             )
     if result.duffing_hilbert_coupler_dim_values.size > 0:
-        reporter.line("Duffing coupler Hilbert-dim sweep (qubit fixed; computational RMSE in GHz):")
+        reporter.line(
+            "Duffing coupler Hilbert-dim sweep (qubit fixed; computational RMSE in GHz):"
+        )
         for cdim, energy_rmse, spectrum_energy_rmse, j_err, zeta_err in zip(
             result.duffing_hilbert_coupler_dim_values,
             result.duffing_hilbert_coupler_energy_rmse,
@@ -238,20 +249,34 @@ def main() -> None:
     reporter.line(f"Wrote figure: {figure_path}")
     if static_paths is not None:
         if args.plot_only:
-            reporter.line(f"Loaded companion static results: {static_paths.results_path}")
+            reporter.line(
+                f"Loaded companion static results: {static_paths.results_path}"
+            )
         else:
-            reporter.line(f"Wrote companion static results: {static_paths.results_path}")
+            reporter.line(
+                f"Wrote companion static results: {static_paths.results_path}"
+            )
         reporter.line(f"Wrote companion static figure: {static_paths.figure_path}")
         if args.extra_sideplots:
-            reporter.line(f"Wrote companion static raw-energy figure: {static_paths.raw_figure_path}")
-            reporter.line(f"Wrote companion static overlap figure: {static_paths.overlap_figure_path}")
+            reporter.line(
+                f"Wrote companion static raw-energy figure: {static_paths.raw_figure_path}"
+            )
+            reporter.line(
+                f"Wrote companion static overlap figure: {static_paths.overlap_figure_path}"
+            )
             reporter.line(
                 f"Wrote companion static computational-basis amplitude figure: "
                 f"{static_paths.basis_amplitude_figure_path}"
             )
-        reporter.line(f"Wrote companion static fitted-parameter artifact: {static_paths.fitted_json_path}")
-        reporter.line(f"Wrote companion static LaTeX table: {static_paths.fitted_table_path}")
-        reporter.line(f"Wrote companion static Markdown table: {static_paths.fitted_markdown_path}")
+        reporter.line(
+            f"Wrote companion static fitted-parameter artifact: {static_paths.fitted_json_path}"
+        )
+        reporter.line(
+            f"Wrote companion static LaTeX table: {static_paths.fitted_table_path}"
+        )
+        reporter.line(
+            f"Wrote companion static Markdown table: {static_paths.fitted_markdown_path}"
+        )
     if run_paths.git_head_path.exists():
         reporter.line(f"Wrote git head summary: {run_paths.git_head_path}")
     if run_paths.metadata_path.exists():

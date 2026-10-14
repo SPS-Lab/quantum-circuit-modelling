@@ -11,7 +11,9 @@ if str(_ROOT) not in sys.path:
 from benchmark_run_artifacts import prepare_benchmark_run
 
 
-def test_prepare_benchmark_run_embeds_commit_in_run_dir_and_summary(tmp_path: Path) -> None:
+def test_prepare_benchmark_run_embeds_commit_in_run_dir_and_summary(
+    tmp_path: Path,
+) -> None:
     repo_root = _ROOT
     figure_path = repo_root / "results" / "dummy_figure.pdf"
     paths = prepare_benchmark_run(
