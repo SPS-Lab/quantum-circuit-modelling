@@ -7,8 +7,12 @@ import time
 
 import numpy as np
 
-from comparison.cz import run_cz_benchmark
-from comparison.static import run_static_benchmark
+from comparison.cz import CzBenchmarkResult, run_cz_benchmark
+from comparison.static import (
+    CircuitFluxSweepReference,
+    build_circuit_static_reference,
+    run_static_benchmark,
+)
 from runtime_utils import log_progress
 from study_config import StudyConfig
 
@@ -49,7 +53,8 @@ def _config_with_qubit_truncation(
     config: StudyConfig,
     *,
     qubit_truncation: int,
-    duffing_calibration_mode: str,
+    duffing_calibration_mode: str | None,
+    circuit_only: bool,
 ) -> StudyConfig:
     trunc_int = int(qubit_truncation)
     max_circuit_trunc = min(
@@ -65,14 +70,6 @@ def _config_with_qubit_truncation(
         )
     static_cfg = replace(
         config.static_benchmark,
-        duffing_model=replace(
-            config.static_benchmark.duffing_model,
-            hilbert_truncation=replace(
-                config.static_benchmark.duffing_model.hilbert_truncation,
-                nlevels_qubit=trunc_int,
-            ),
-            calibration_mode=str(duffing_calibration_mode),
-        ),
         circuit_model=replace(
             config.static_benchmark.circuit_model,
             hilbert_truncation=replace(
@@ -82,6 +79,18 @@ def _config_with_qubit_truncation(
             ),
         ),
     )
+    if not circuit_only:
+        static_cfg = replace(
+            static_cfg,
+            duffing_model=replace(
+                static_cfg.duffing_model,
+                hilbert_truncation=replace(
+                    static_cfg.duffing_model.hilbert_truncation,
+                    nlevels_qubit=trunc_int,
+                ),
+                calibration_mode=duffing_calibration_mode,
+            ),
+        )
     return replace(config, static_benchmark=static_cfg)
 
 
@@ -98,6 +107,7 @@ def _resolve_fixed_hold_time_ns(
     config: StudyConfig,
     *,
     hold_time_ns: float | None,
+    circuit_only: bool = False,
 ) -> float:
     if hold_time_ns is not None:
         return float(hold_time_ns)
@@ -108,6 +118,7 @@ def _resolve_fixed_hold_time_ns(
 
     reference = run_cz_benchmark(
         config,
+        circuit_only=circuit_only,
         ramp_time_ns=float(cz_cfg.ramp_time_ns),
         hold_time_ns=None,
         dt_ns=float(cz_cfg.dt_ns),
@@ -116,23 +127,26 @@ def _resolve_fixed_hold_time_ns(
         scan_max_hold_ns=float(cz_cfg.scan_max_hold_ns),
         scan_leakage_penalty=float(cz_cfg.scan_leakage_penalty),
     )
-    return float(reference.summary["hold_time_ns"])
+    return float(reference.hold_time_ns)
 
 
 def run_runtime_benchmark(
     config: StudyConfig,
     *,
     qubit_truncation_values: list[int] | np.ndarray,
-    duffing_calibration_mode: str,
+    duffing_calibration_mode: str | None = None,
+    circuit_only: bool = False,
     repeats: int = 1,
     hold_time_ns: float | None = None,
 ) -> RuntimeBenchmarkResult:
-    """Benchmark CZ runtime for Duffing and circuit models across qubit truncation."""
+    """Benchmark CZ runtime across qubit truncation, optionally using only the circuit model."""
     trunc_values = np.asarray(qubit_truncation_values, dtype=int).ravel()
     if trunc_values.size == 0:
         raise ValueError("qubit_truncation_values must be non-empty")
     if np.any(trunc_values < 2):
         raise ValueError("qubit_truncation_values must contain integers >= 2")
+    if not circuit_only and duffing_calibration_mode is None:
+        raise ValueError("duffing_calibration_mode is required when circuit_only=False")
 
     repeats_int = int(repeats)
     if repeats_int < 1:
@@ -154,22 +168,29 @@ def run_runtime_benchmark(
     shared_hold_scan_samples = np.empty((n_trunc, repeats_int), dtype=float)
 
     cz_cfg = config.cz_benchmark
-    fixed_hold_time_ns = _resolve_fixed_hold_time_ns(config, hold_time_ns=hold_time_ns)
+    fixed_hold_time_ns = _resolve_fixed_hold_time_ns(
+        config, hold_time_ns=hold_time_ns, circuit_only=circuit_only
+    )
     sweep_configs: list[StudyConfig] = []
-    static_results: list[object] = []
+    static_results: list[CircuitFluxSweepReference] = []
     static_runtimes_s = np.empty(n_trunc, dtype=float)
     for i, qubit_truncation in enumerate(trunc_values):
         sweep_cfg = _config_with_qubit_truncation(
             config,
             qubit_truncation=int(qubit_truncation),
-            duffing_calibration_mode=str(duffing_calibration_mode),
+            duffing_calibration_mode=duffing_calibration_mode,
+            circuit_only=circuit_only,
         )
         sweep_configs.append(sweep_cfg)
         log_progress(
             f"runtime benchmark: static precompute {i + 1}/{n_trunc} for qubit truncation {qubit_truncation}"
         )
         static_started = time.perf_counter()
-        static_results.append(run_static_benchmark(sweep_cfg))
+        static_results.append(
+            run_static_benchmark(sweep_cfg)
+            if not circuit_only
+            else build_circuit_static_reference(sweep_cfg)
+        )
         static_runtimes_s[i] = float(time.perf_counter() - static_started)
         log_progress(
             "runtime benchmark: completed static precompute "
@@ -183,6 +204,7 @@ def run_runtime_benchmark(
         log_progress("runtime benchmark: priming propagation outside measured sweep")
         run_cz_benchmark(
             sweep_configs[0],
+            circuit_only=circuit_only,
             ramp_time_ns=float(cz_cfg.ramp_time_ns),
             hold_time_ns=float(fixed_hold_time_ns),
             dt_ns=float(cz_cfg.dt_ns),
@@ -207,6 +229,7 @@ def run_runtime_benchmark(
             )
             result = run_cz_benchmark(
                 sweep_cfg,
+                circuit_only=circuit_only,
                 ramp_time_ns=float(cz_cfg.ramp_time_ns),
                 hold_time_ns=float(fixed_hold_time_ns),
                 dt_ns=float(cz_cfg.dt_ns),
@@ -217,27 +240,33 @@ def run_runtime_benchmark(
                 precomputed_static_result=static_results[i],
                 precomputed_static_runtime_s=float(static_runtimes_s[i]),
             )
-            summary = result.summary
-            hold_samples[i, j] = float(summary["hold_time_ns"])
-            n_time_point_samples[i, j] = float(summary["n_time_points"])
-            duffing_dim_samples[i, j] = float(summary["duffing_hilbert_dim"])
-            circuit_dim_samples[i, j] = float(summary["circuit_hilbert_dim"])
-            duffing_build_samples[i, j] = float(
-                summary["duffing_model_build_runtime_s"]
-            )
-            duffing_prop_samples[i, j] = float(summary["duffing_propagation_runtime_s"])
-            duffing_dyn_samples[i, j] = float(summary["duffing_dynamics_runtime_s"])
-            circuit_build_samples[i, j] = float(
-                summary["circuit_model_build_runtime_s"]
-            )
-            circuit_prop_samples[i, j] = float(summary["circuit_propagation_runtime_s"])
-            circuit_dyn_samples[i, j] = float(summary["circuit_dynamics_runtime_s"])
-            shared_static_samples[i, j] = float(
-                summary["shared_static_precompute_runtime_s"]
-            )
-            shared_hold_scan_samples[i, j] = float(
-                summary["shared_hold_scan_runtime_s"]
-            )
+            hold_samples[i, j] = result.hold_time_ns
+            n_time_point_samples[i, j] = result.times_ns.size
+            if isinstance(result, CzBenchmarkResult):
+                summary = result.summary
+                circuit_dim_samples[i, j] = summary["circuit_hilbert_dim"]
+                circuit_build_samples[i, j] = summary["circuit_model_build_runtime_s"]
+                circuit_prop_samples[i, j] = summary["circuit_propagation_runtime_s"]
+                circuit_dyn_samples[i, j] = summary["circuit_dynamics_runtime_s"]
+                shared_static_samples[i, j] = summary[
+                    "shared_static_precompute_runtime_s"
+                ]
+                shared_hold_scan_samples[i, j] = summary["shared_hold_scan_runtime_s"]
+                duffing_dim_samples[i, j] = summary["duffing_hilbert_dim"]
+                duffing_build_samples[i, j] = summary["duffing_model_build_runtime_s"]
+                duffing_prop_samples[i, j] = summary["duffing_propagation_runtime_s"]
+                duffing_dyn_samples[i, j] = summary["duffing_dynamics_runtime_s"]
+            else:
+                circuit_dim_samples[i, j] = result.circuit_hilbert_dim
+                circuit_build_samples[i, j] = result.circuit_model_build_runtime_s
+                circuit_prop_samples[i, j] = result.circuit_propagation_runtime_s
+                circuit_dyn_samples[i, j] = result.circuit_dynamics_runtime_s
+                shared_static_samples[i, j] = result.shared_static_precompute_runtime_s
+                shared_hold_scan_samples[i, j] = result.shared_hold_scan_runtime_s
+                duffing_dim_samples[i, j] = 0.0
+                duffing_build_samples[i, j] = np.nan
+                duffing_prop_samples[i, j] = np.nan
+                duffing_dyn_samples[i, j] = np.nan
 
     hold_ns, hold_std_ns = _aggregate_samples(hold_samples)
     n_time_points, _ = _aggregate_samples(n_time_point_samples)
@@ -312,10 +341,16 @@ def run_runtime_benchmark(
             np.max(shared_static_runtime_s)
         ),
     }
+    if circuit_only:
+        summary = {
+            key: value
+            for key, value in summary.items()
+            if not key.startswith("duffing_")
+        }
 
     return RuntimeBenchmarkResult(
         sweep_target=str(config.static_benchmark.flux_control.sweep_target),
-        duffing_calibration_mode=str(duffing_calibration_mode),
+        duffing_calibration_mode="" if circuit_only else duffing_calibration_mode,
         ramp_time_ns=float(cz_cfg.ramp_time_ns),
         dt_ns=float(cz_cfg.dt_ns),
         fixed_hold_time_ns=float(fixed_hold_time_ns),

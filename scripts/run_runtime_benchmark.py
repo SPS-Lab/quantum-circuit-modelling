@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import sys
+import numpy as np
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
@@ -89,7 +90,8 @@ def main() -> None:
         result = run_runtime_benchmark(
             config,
             qubit_truncation_values=list(runtime_cfg.qubit_truncation_values),
-            duffing_calibration_mode=str(runtime_cfg.duffing_calibration_mode),
+            duffing_calibration_mode=runtime_cfg.duffing_calibration_mode,
+            circuit_only=bool(runtime_cfg.circuit_only),
             repeats=int(runtime_cfg.repeats),
             hold_time_ns=runtime_cfg.hold_time_ns,
         )
@@ -97,10 +99,13 @@ def main() -> None:
 
     plot_runtime_benchmark(result, figure_path)
 
-    for line in build_common_truncation_lines(config):
+    circuit_only = not bool(np.any(np.isfinite(result.duffing_build_runtime_s)))
+    for line in build_common_truncation_lines(config, circuit_only=circuit_only):
         reporter.line(line)
     reporter.line("Runtime benchmark sweep settings:")
-    reporter.line(f"  duffing_calibration_mode={result.duffing_calibration_mode}")
+    if not circuit_only:
+        reporter.line(f"  duffing_calibration_mode={result.duffing_calibration_mode}")
+    reporter.line(f"  circuit_only={circuit_only}")
     reporter.line(f"  repeats={int(result.repeats)}")
     reporter.line(f"  fixed_hold_time_ns={float(result.fixed_hold_time_ns):.6f}")
     reporter.line(
@@ -111,15 +116,20 @@ def main() -> None:
         reporter.line(f"  {key}: {value:.6e}")
     reporter.line("Per-truncation CZ build/propagation runtime (s):")
     for idx, trunc in enumerate(result.qubit_truncation_values):
-        reporter.line(
-            f"  qubit_trunc={int(trunc):4d}, "
+        duffing_details = (
             f"duf_dim={int(result.duffing_hilbert_dims[idx]):4d}, "
-            f"cir_dim={int(result.circuit_hilbert_dims[idx]):4d}, "
-            f"hold_ns={float(result.selected_hold_times_ns[idx]):9.6f}, "
             f"duffing_build={float(result.duffing_build_runtime_s[idx]):.6e} +/- "
             f"{float(result.duffing_build_runtime_std_s[idx]):.2e}, "
             f"duffing_prop={float(result.duffing_propagation_runtime_s[idx]):.6e} +/- "
             f"{float(result.duffing_propagation_runtime_std_s[idx]):.2e}, "
+            if np.isfinite(result.duffing_build_runtime_s[idx])
+            else ""
+        )
+        reporter.line(
+            f"  qubit_trunc={int(trunc):4d}, "
+            f"{duffing_details}"
+            f"cir_dim={int(result.circuit_hilbert_dims[idx]):4d}, "
+            f"hold_ns={float(result.selected_hold_times_ns[idx]):9.6f}, "
             f"circuit_build={float(result.circuit_build_runtime_s[idx]):.6e} +/- "
             f"{float(result.circuit_build_runtime_std_s[idx]):.2e}, "
             f"circuit_prop={float(result.circuit_propagation_runtime_s[idx]):.6e} +/- "

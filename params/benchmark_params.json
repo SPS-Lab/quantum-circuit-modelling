@@ -33,7 +33,8 @@
     "cz_benchmark.total_time_ns": "Mutually exclusive with hold_time_ns. Used only when enable_hold_time_scan is false; implies hold_time_ns = total_time_ns - 2*ramp_time_ns.",
     "cz_benchmark.hold_time_ns": "Mutually exclusive with total_time_ns. Used only when enable_hold_time_scan is false.",
     "runtime_benchmark.qubit_truncation_values": "Propagated qubit truncations swept for both models during the CZ runtime benchmark: Duffing hilbert_truncation.nlevels_qubit and circuit_model.hilbert_truncation.q0_truncated_dim/q1_truncated_dim are all set to the same value at each sweep point.",
-    "runtime_benchmark.duffing_calibration_mode": "Duffing calibration mode used only for the runtime benchmark sweep; may differ from static_benchmark.duffing_model.calibration_mode.",
+    "runtime_benchmark.duffing_calibration_mode": "Duffing calibration mode used only for the runtime benchmark sweep; required unless circuit_only is true.",
+    "runtime_benchmark.circuit_only": "Run only the circuit model during the runtime benchmark, without effective or Duffing models; omitted defaults to false.",
     "runtime_benchmark.repeats": "How many times to rerun each qubit-truncation point before aggregating median/std runtimes.",
     "runtime_benchmark.hold_time_ns": "Optional fixed CZ hold time in ns used for every qubit-truncation point in the runtime benchmark. If omitted, a single reference hold time is resolved once and then reused across the sweep.",
     "rx_benchmark.drive_qubit": "Currently this benchmark supports only 'q0'.",
@@ -148,6 +149,7 @@
       "runtime_benchmark": {
         "qubit_truncation_values": [2, 3, 4, 5, 6, 7],
         "duffing_calibration_mode": "symbolic-fitted-static",
+        "circuit_only": false,
         "repeats": 5,
         "outputs": {
           "figure": "results/model_comparison_cz_runtime_vs_qubit_truncation.pdf"

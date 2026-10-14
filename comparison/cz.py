@@ -12,7 +12,11 @@ from comparison.fitted_reconstruction import (
     duffing_mode_parameters_for_flux,
     effective_parameters_for_flux,
 )
-from comparison.static import run_static_benchmark
+from comparison.static import (
+    CircuitFluxSweepReference,
+    build_circuit_static_reference,
+    run_static_benchmark,
+)
 from models import (
     build_circuit_model_stack,
     build_duffing_model_stack_from_parameters,
@@ -37,7 +41,9 @@ class _DynamicsObservables:
 
 
 @dataclass(frozen=True)
-class CzBenchmarkResult:
+class CzCircuitResult:
+    """Circuit pulse and dynamics shared by both CZ run modes."""
+
     times_ns: np.ndarray
     pulse_flux_values: np.ndarray
     sweep_target: str
@@ -49,27 +55,48 @@ class CzBenchmarkResult:
     scan_hold_times_ns: np.ndarray
     scan_phase_error_rad: np.ndarray
     scan_scores: np.ndarray
+    circuit_populations_11: np.ndarray
+    circuit_leakage_11: np.ndarray
+    circuit_conditional_phase: np.ndarray
+    circuit_computational_amplitudes: np.ndarray
+    circuit_statevector_plus_plus: np.ndarray
+    circuit_populations_plus_plus: np.ndarray
+    circuit_intermediate_population_11: np.ndarray
+
+
+@dataclass(frozen=True)
+class CzCircuitOnlyResult(CzCircuitResult):
+    """Circuit-only CZ run with concrete timing fields."""
+
+    circuit_hilbert_dim: int
+    circuit_model_build_runtime_s: float
+    circuit_propagation_runtime_s: float
+    shared_static_precompute_runtime_s: float
+    shared_hold_scan_runtime_s: float
+
+    @property
+    def circuit_dynamics_runtime_s(self) -> float:
+        return self.circuit_model_build_runtime_s + self.circuit_propagation_runtime_s
+
+
+@dataclass(frozen=True)
+class CzBenchmarkResult(CzCircuitResult):
+    """Full CZ run, adding effective and Duffing observations to circuit data."""
+
     effective_populations_11: np.ndarray
     duffing_populations_11: np.ndarray
-    circuit_populations_11: np.ndarray
     effective_leakage_11: np.ndarray
     duffing_leakage_11: np.ndarray
-    circuit_leakage_11: np.ndarray
     effective_conditional_phase: np.ndarray
     duffing_conditional_phase: np.ndarray
-    circuit_conditional_phase: np.ndarray
     effective_computational_amplitudes: np.ndarray
     duffing_computational_amplitudes: np.ndarray
-    circuit_computational_amplitudes: np.ndarray
     effective_statevector_plus_plus: np.ndarray
     duffing_statevector_plus_plus: np.ndarray
-    circuit_statevector_plus_plus: np.ndarray
     effective_populations_plus_plus: np.ndarray
     duffing_populations_plus_plus: np.ndarray
-    circuit_populations_plus_plus: np.ndarray
     effective_intermediate_population_11: np.ndarray
     duffing_intermediate_population_11: np.ndarray
-    circuit_intermediate_population_11: np.ndarray
     summary: dict[str, float]
 
 
@@ -81,7 +108,9 @@ def _idle_flux_for_target(config: StudyConfig, sweep_target: str) -> float:
     raise ValueError(f"Unsupported sweep_target {sweep_target!r}")
 
 
-def _pick_target_flux_from_static(static_result, *, idle_flux: float) -> float:
+def _pick_target_flux_from_static(
+    static_result: CircuitFluxSweepReference, *, idle_flux: float
+) -> float:
     flux = np.asarray(static_result.flux_values, dtype=float).ravel()
     zeta = np.abs(
         np.asarray(static_result.circuit_parameters["zeta"], dtype=float).ravel()
@@ -336,20 +365,26 @@ def run_cz_benchmark(
     scan_dt_ns: float = 2.0,
     scan_max_hold_ns: float = 300.0,
     scan_leakage_penalty: float = 0.25,
-    precomputed_static_result=None,
+    precomputed_static_result: CircuitFluxSweepReference | None = None,
     precomputed_static_runtime_s: float | None = None,
-) -> CzBenchmarkResult:
+    circuit_only: bool = False,
+) -> CzBenchmarkResult | CzCircuitOnlyResult:
     """Run a CZ-relevant dynamics benchmark under a shared flux pulse schedule.
 
     Circuit model:
       Hamiltonians from scqubits, piecewise propagation via numpy/scipy.
     Effective + Duffing models:
       piecewise propagation via numpy/scipy.
+    With circuit_only=True, return circuit dynamics and timing data.
     """
     if precomputed_static_result is None:
         static_started = time.perf_counter()
-        with progress_heartbeat("cz benchmark: run_static_benchmark"):
-            static_result = run_static_benchmark(config)
+        with progress_heartbeat("cz benchmark: prepare static reference"):
+            static_result = (
+                run_static_benchmark(config)
+                if not circuit_only
+                else build_circuit_static_reference(config)
+            )
         static_runtime_s = float(time.perf_counter() - static_started)
     else:
         static_result = precomputed_static_result
@@ -374,18 +409,9 @@ def run_cz_benchmark(
             "to scan, or disable scan to use fixed hold_time_ns."
         )
 
-    idx_effective = np.array([0, 1, 2, 3], dtype=int)
-    idx_duffing = computational_state_indices(
-        nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
-        nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
-    )
     idx_circuit = computational_state_indices(
         nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
         nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
-    )
-    idx_duffing_intermediate = _intermediate_channel_indices(
-        nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
-        nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
     )
     idx_circuit_intermediate = _intermediate_channel_indices(
         nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
@@ -485,39 +511,50 @@ def run_cz_benchmark(
         target_flux=target_flux,
     )
 
-    effective_build_started = time.perf_counter()
-    with progress_heartbeat("cz benchmark: build effective Hamiltonian"):
-        effective_parameters_t = effective_parameters_for_flux(
-            static_result,
-            config,
-            pulse_flux,
+    if not circuit_only:
+        idx_effective = np.array([0, 1, 2, 3], dtype=int)
+        idx_duffing = computational_state_indices(
+            nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
+            nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
         )
-        H_effective = build_effective_hamiltonian_stack(effective_parameters_t)
-    effective_build_runtime_s = float(time.perf_counter() - effective_build_started)
+        idx_duffing_intermediate = _intermediate_channel_indices(
+            nlevels_qubit=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit,
+            nlevels_coupler=config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler,
+        )
 
-    duffing_build_started = time.perf_counter()
-    with progress_heartbeat("cz benchmark: build Duffing Hamiltonian"):
-        if is_reference_calibrated_duffing_mode(
-            config.static_benchmark.duffing_model.calibration_mode
-        ):
-            duffing_mode_parameters_t = duffing_mode_parameters_for_flux(
+        effective_build_started = time.perf_counter()
+        with progress_heartbeat("cz benchmark: build effective Hamiltonian"):
+            effective_parameters_t = effective_parameters_for_flux(
                 static_result,
                 config,
                 pulse_flux,
             )
-            duffing_stack = build_duffing_model_stack_from_parameters(
-                duffing_mode_parameters_t,
-                system_params=config.system,
-                duffing_config=config.static_benchmark.duffing_model,
-            ).hamiltonian_stack
-        else:
-            duffing_stack = build_duffing_model_stack_from_scratch(
-                flux_values=pulse_flux,
-                system_params=config.system,
-                duffing_config=config.static_benchmark.duffing_model,
-                sweep_target=sweep_target,
-            ).hamiltonian_stack
-    duffing_build_runtime_s = float(time.perf_counter() - duffing_build_started)
+            H_effective = build_effective_hamiltonian_stack(effective_parameters_t)
+        effective_build_runtime_s = float(time.perf_counter() - effective_build_started)
+
+        duffing_build_started = time.perf_counter()
+        with progress_heartbeat("cz benchmark: build Duffing Hamiltonian"):
+            if is_reference_calibrated_duffing_mode(
+                config.static_benchmark.duffing_model.calibration_mode
+            ):
+                duffing_mode_parameters_t = duffing_mode_parameters_for_flux(
+                    static_result,
+                    config,
+                    pulse_flux,
+                )
+                duffing_stack = build_duffing_model_stack_from_parameters(
+                    duffing_mode_parameters_t,
+                    system_params=config.system,
+                    duffing_config=config.static_benchmark.duffing_model,
+                ).hamiltonian_stack
+            else:
+                duffing_stack = build_duffing_model_stack_from_scratch(
+                    flux_values=pulse_flux,
+                    system_params=config.system,
+                    duffing_config=config.static_benchmark.duffing_model,
+                    sweep_target=sweep_target,
+                ).hamiltonian_stack
+        duffing_build_runtime_s = float(time.perf_counter() - duffing_build_started)
 
     circuit_build_started = time.perf_counter()
     with progress_heartbeat("cz benchmark: build circuit Hamiltonian"):
@@ -529,24 +566,26 @@ def run_cz_benchmark(
         ).hamiltonian_stack
     circuit_build_runtime_s = float(time.perf_counter() - circuit_build_started)
 
-    effective_prop_started = time.perf_counter()
-    obs_effective = _simulate_piecewise_constant_scipy(
-        H_effective,
-        times_ns,
-        idx_effective,
-        monitor_indices=None,
-        progress_label="cz benchmark: propagate effective model",
-    )
-    effective_prop_runtime_s = float(time.perf_counter() - effective_prop_started)
-    duffing_prop_started = time.perf_counter()
-    obs_duffing = _simulate_piecewise_constant_scipy(
-        duffing_stack,
-        times_ns,
-        idx_duffing,
-        monitor_indices=idx_duffing_intermediate,
-        progress_label="cz benchmark: propagate Duffing model",
-    )
-    duffing_prop_runtime_s = float(time.perf_counter() - duffing_prop_started)
+    if not circuit_only:
+        effective_prop_started = time.perf_counter()
+        obs_effective = _simulate_piecewise_constant_scipy(
+            H_effective,
+            times_ns,
+            idx_effective,
+            monitor_indices=None,
+            progress_label="cz benchmark: propagate effective model",
+        )
+        effective_prop_runtime_s = float(time.perf_counter() - effective_prop_started)
+        duffing_prop_started = time.perf_counter()
+        obs_duffing = _simulate_piecewise_constant_scipy(
+            duffing_stack,
+            times_ns,
+            idx_duffing,
+            monitor_indices=idx_duffing_intermediate,
+            progress_label="cz benchmark: propagate Duffing model",
+        )
+        duffing_prop_runtime_s = float(time.perf_counter() - duffing_prop_started)
+
     circuit_prop_started = time.perf_counter()
     obs_circuit = _simulate_piecewise_constant_scipy(
         circuit_stack,
@@ -556,6 +595,47 @@ def run_cz_benchmark(
         progress_label="cz benchmark: propagate circuit model",
     )
     circuit_prop_runtime_s = float(time.perf_counter() - circuit_prop_started)
+
+    plus_plus_coeff = np.full(4, 0.5 + 0.0j, dtype=complex)
+    circuit_statevector_plus_plus = np.einsum(
+        "tij,j->ti",
+        obs_circuit.computational_amplitudes,
+        plus_plus_coeff,
+    )
+    circuit_pop_plus_plus = np.abs(circuit_statevector_plus_plus) ** 2
+
+    if circuit_only:
+        return CzCircuitOnlyResult(
+            times_ns=np.asarray(times_ns, dtype=float),
+            pulse_flux_values=np.asarray(pulse_flux, dtype=float),
+            sweep_target=sweep_target,
+            idle_flux=float(idle_flux),
+            target_flux=float(target_flux),
+            ramp_time_ns=float(ramp_time_ns),
+            hold_time_ns=float(selected_hold),
+            dt_ns=float(dt_ns),
+            scan_hold_times_ns=np.asarray(scan_hold_list, dtype=float),
+            scan_phase_error_rad=np.asarray(scan_phase_error_list, dtype=float),
+            scan_scores=np.asarray(scan_score_list, dtype=float),
+            circuit_populations_11=obs_circuit.populations_11,
+            circuit_leakage_11=obs_circuit.leakage_11,
+            circuit_conditional_phase=obs_circuit.conditional_phase,
+            circuit_computational_amplitudes=np.asarray(
+                obs_circuit.computational_amplitudes, dtype=complex
+            ),
+            circuit_statevector_plus_plus=np.asarray(
+                circuit_statevector_plus_plus, dtype=complex
+            ),
+            circuit_populations_plus_plus=np.asarray(
+                circuit_pop_plus_plus, dtype=float
+            ),
+            circuit_intermediate_population_11=obs_circuit.monitor_population_11,
+            circuit_hilbert_dim=int(circuit_stack.shape[-1]),
+            circuit_model_build_runtime_s=circuit_build_runtime_s,
+            circuit_propagation_runtime_s=circuit_prop_runtime_s,
+            shared_static_precompute_runtime_s=static_runtime_s,
+            shared_hold_scan_runtime_s=float(hold_scan_runtime_s),
+        )
 
     eff_pop_rmse = float(
         np.sqrt(
@@ -615,26 +695,14 @@ def run_cz_benchmark(
         ),
     }
 
-    plus_plus_coeff = np.full(4, 0.5 + 0.0j, dtype=complex)
     effective_statevector_plus_plus = np.einsum(
-        "tij,j->ti",
-        obs_effective.computational_amplitudes,
-        plus_plus_coeff,
+        "tij,j->ti", obs_effective.computational_amplitudes, plus_plus_coeff
     )
     duffing_statevector_plus_plus = np.einsum(
-        "tij,j->ti",
-        obs_duffing.computational_amplitudes,
-        plus_plus_coeff,
-    )
-    circuit_statevector_plus_plus = np.einsum(
-        "tij,j->ti",
-        obs_circuit.computational_amplitudes,
-        plus_plus_coeff,
+        "tij,j->ti", obs_duffing.computational_amplitudes, plus_plus_coeff
     )
     effective_pop_plus_plus = np.abs(effective_statevector_plus_plus) ** 2
     duffing_pop_plus_plus = np.abs(duffing_statevector_plus_plus) ** 2
-    circuit_pop_plus_plus = np.abs(circuit_statevector_plus_plus) ** 2
-
     return CzBenchmarkResult(
         times_ns=np.asarray(times_ns, dtype=float),
         pulse_flux_values=np.asarray(pulse_flux, dtype=float),
