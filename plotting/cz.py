@@ -8,13 +8,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from comparison.cz import CzBenchmarkResult
+from plotting.errors import sweep_normalized_absolute_error_percent
 from plotting.style import (
     add_model_figure_legend,
-    benchmark_plot_style,
+    benchmark_tight_layout,
     figure_size,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
-    save_benchmark_figure,
+    render_benchmark_figures,
 )
 
 
@@ -58,9 +59,13 @@ def plot_cz_benchmark(
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    with benchmark_plot_style():
-        fig = plt.figure(figsize=figure_size("cz"))
-        ax_phase = fig.add_subplot(1, 1, 1)
+    def _build_figure() -> plt.Figure:
+        fig, (ax_phase, ax_error) = plt.subplots(
+            1,
+            2,
+            figsize=figure_size("cz"),
+            sharex=True,
+        )
         ax_flux = ax_phase.twinx()
 
         ax_phase.plot(t, result.circuit_conditional_phase, **model_plot_kwargs("circuit"))
@@ -93,7 +98,28 @@ def plot_cz_benchmark(
         )
         flux_legend.set_in_layout(False)
 
+        ax_error.plot(
+            t,
+            sweep_normalized_absolute_error_percent(
+                result.duffing_conditional_phase,
+                result.circuit_conditional_phase,
+            ),
+            **model_plot_kwargs("duffing"),
+        )
+        ax_error.plot(
+            t,
+            sweep_normalized_absolute_error_percent(
+                result.effective_conditional_phase,
+                result.circuit_conditional_phase,
+            ),
+            **model_plot_kwargs("effective"),
+        )
+        ax_error.set_xlabel("Time (ns)")
+        ax_error.set_ylabel("Error (%)")
+        ax_error.grid()
+
         legend = add_model_figure_legend(fig)
-        legend.set_in_layout(False)
-        fig.subplots_adjust(left=0.13, right=0.87, bottom=0.20, top=0.80)
-        save_benchmark_figure(fig, outfile)
+        benchmark_tight_layout(fig, reserve_artists=[legend], w_pad=2.5)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)

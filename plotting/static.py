@@ -9,6 +9,10 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 from comparison.static import StaticBenchmarkResult
+from plotting.errors import (
+    sweep_normalized_absolute_error_percent,
+    sweep_normalized_error_percent,
+)
 from plotting.leakage_flow import _phase_population_rgb
 from plotting.style import (
     ANCILLARY_LEVEL_LINEWIDTH,
@@ -23,12 +27,12 @@ from plotting.style import (
     STATIC_LEVEL_LEGEND_NCOL,
     add_model_figure_legend,
     benchmark_tight_layout,
-    benchmark_plot_style,
+    current_benchmark_style,
     energy_level_alpha,
     figure_size,
     model_color,
     model_plot_kwargs,
-    save_benchmark_figure,
+    render_benchmark_figures,
 )
 
 
@@ -200,9 +204,9 @@ def plot_static_benchmark(
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
 
-    with benchmark_plot_style():
-        fig, axes = plt.subplots(2, 2, figsize=figure_size("static_main"), sharex=True)
-        axE, axErr, axJ, axZeta = axes.ravel()
+    def _build_figure() -> plt.Figure:
+        fig, axes = plt.subplots(1, 2, figsize=figure_size("static_main"), sharex=True)
+        axE, axErr = axes
 
         _plot_static_energy_panel(
             axE,
@@ -235,10 +239,51 @@ def plot_static_benchmark(
             title="Computational branches",
         )
 
-        axErr.plot(flux, result.effective_error_rmse, **model_plot_kwargs("effective"))
-        axErr.plot(flux, result.duffing_error_rmse, **model_plot_kwargs("duffing"))
-        axErr.set_ylabel("Per-flux RMSE")
+        if current_benchmark_style() == "presentation":
+            circuit_energy_reference = np.asarray(
+                result.circuit_relative_energies[:, 1:4],
+                dtype=float,
+            )
+            effective_error = sweep_normalized_error_percent(
+                result.effective_error_rmse,
+                circuit_energy_reference,
+            )
+            duffing_error = sweep_normalized_error_percent(
+                result.duffing_error_rmse,
+                circuit_energy_reference,
+            )
+            error_ylabel = "Energy RMSE (%)"
+        else:
+            effective_error = result.effective_error_rmse
+            duffing_error = result.duffing_error_rmse
+            error_ylabel = "Energy RMSE (GHz)"
+        axErr.plot(flux, effective_error, **model_plot_kwargs("effective"))
+        axErr.plot(flux, duffing_error, **model_plot_kwargs("duffing"))
+        axErr.set_ylabel(error_ylabel)
         axErr.grid()
+
+        axE.set_xlabel(r"Flux bias ($\phi$)")
+        axErr.set_xlabel(r"Flux bias ($\phi$)")
+        legend = add_model_figure_legend(fig)
+        benchmark_tight_layout(
+            fig,
+            reserve_artists=[legend],
+            w_pad=3.0 if current_benchmark_style() == "presentation" else None,
+        )
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)
+
+
+def plot_static_j_zz_benchmark(
+    result: StaticBenchmarkResult,
+    outfile: Path,
+) -> None:
+    flux = np.asarray(result.flux_values, dtype=float)
+
+    def _build_figure() -> plt.Figure:
+        fig, axes = plt.subplots(2, 2, figsize=figure_size("static_main"), sharex=True)
+        axJ, axJErr, axZeta, axZetaErr = axes.ravel()
 
         axJ.plot(flux, result.circuit_parameters["J"], **model_plot_kwargs("circuit"))
         axJ.plot(flux, result.duffing_parameters["J"], **model_plot_kwargs("duffing"))
@@ -247,6 +292,25 @@ def plot_static_benchmark(
         axJ.set_ylabel(r"Exchange $J$")
         axJ.grid()
 
+        axJErr.plot(
+            flux,
+            sweep_normalized_absolute_error_percent(
+                result.duffing_parameters["J"],
+                result.circuit_parameters["J"],
+            ),
+            **model_plot_kwargs("duffing"),
+        )
+        axJErr.plot(
+            flux,
+            sweep_normalized_absolute_error_percent(
+                result.effective_parameters["J"],
+                result.circuit_parameters["J"],
+            ),
+            **model_plot_kwargs("effective"),
+        )
+        axJErr.set_ylabel("Error (%)")
+        axJErr.grid()
+
         axZeta.plot(flux, result.circuit_parameters["zeta"], **model_plot_kwargs("circuit"))
         axZeta.plot(flux, result.duffing_parameters["zeta"], **model_plot_kwargs("duffing"))
         axZeta.plot(flux, result.effective_parameters["zeta"], **model_plot_kwargs("effective"))
@@ -254,11 +318,38 @@ def plot_static_benchmark(
         axZeta.set_ylabel(r"Residual ZZ $\zeta$")
         axZeta.grid()
 
+        axZetaErr.plot(
+            flux,
+            sweep_normalized_absolute_error_percent(
+                result.duffing_parameters["zeta"],
+                result.circuit_parameters["zeta"],
+            ),
+            **model_plot_kwargs("duffing"),
+        )
+        axZetaErr.plot(
+            flux,
+            sweep_normalized_absolute_error_percent(
+                result.effective_parameters["zeta"],
+                result.circuit_parameters["zeta"],
+            ),
+            **model_plot_kwargs("effective"),
+        )
+        axZetaErr.set_ylabel("Error (%)")
+        axZetaErr.grid()
+
         axes[1, 0].set_xlabel(r"Flux bias ($\phi$)")
         axes[1, 1].set_xlabel(r"Flux bias ($\phi$)")
         legend = add_model_figure_legend(fig)
-        benchmark_tight_layout(fig, reserve_artists=[legend])
-        save_benchmark_figure(fig, outfile)
+        benchmark_tight_layout(
+            fig,
+            reserve_artists=[legend],
+            w_pad=3.0 if current_benchmark_style() == "presentation" else None,
+        )
+        if current_benchmark_style() == "presentation":
+            fig.subplots_adjust(left=0.16, right=0.97, wspace=0.42)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)
 
 
 def plot_static_raw_energies(
@@ -267,7 +358,7 @@ def plot_static_raw_energies(
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig, ax = plt.subplots(1, 1, figsize=figure_size("static_raw_energies"), sharex=True)
         _plot_static_energy_panel(
             ax,
@@ -290,7 +381,9 @@ def plot_static_raw_energies(
         )
         legend = add_model_figure_legend(fig)
         benchmark_tight_layout(fig, reserve_artists=[legend])
-        save_benchmark_figure(fig, outfile)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)
 
 
 def plot_static_single_excitation_overlaps(
@@ -299,7 +392,7 @@ def plot_static_single_excitation_overlaps(
 ) -> None:
     flux = np.asarray(result.flux_values, dtype=float)
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig, axes = plt.subplots(1, 2, figsize=figure_size("static_overlaps"), sharex=True, sharey=True)
         panels = (
             ("circuit", axes[0], np.asarray(result.circuit_computational_bare_overlaps, dtype=float)),
@@ -320,7 +413,7 @@ def plot_static_single_excitation_overlaps(
                         linestyle=linestyles[branch_offset - 1],
                         linewidth=COMPARISON_LINEWIDTH,
                         label=f"{branch_label} vs {bare_label}",
-            )
+                    )
             ax.set_title(model_name)
             ax.set_xlabel(r"Flux bias ($\phi$)")
             ax.set_ylim(-0.02, 1.02)
@@ -329,7 +422,9 @@ def plot_static_single_excitation_overlaps(
         axes[0].set_ylabel(r"Bare overlap $|\langle \mathrm{bare} | \mathrm{dressed} \rangle|^2$")
         axes[1].legend(loc="upper center", bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR, ncol=2)
         benchmark_tight_layout(fig)
-        save_benchmark_figure(fig, outfile)
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)
 
 
 def plot_static_computational_basis_amplitudes(
@@ -357,7 +452,7 @@ def plot_static_computational_basis_amplitudes(
         ),
     )
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig = plt.figure(figsize=figure_size("static_amplitudes"), constrained_layout=True)
         gs = fig.add_gridspec(
             4,
@@ -420,5 +515,6 @@ def plot_static_computational_basis_amplitudes(
         cbar.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
         cbar.set_ticklabels(["$-\\pi$", "$-\\frac{\\pi}{2}$", "$0$", "$\\frac{\\pi}{2}$", "$\\pi$"])
         cbar.set_label("Phase hue (rad)\nStrength ~ sqrt(population)")
+        return fig
 
-        save_benchmark_figure(fig, outfile)
+    render_benchmark_figures(outfile, _build_figure)

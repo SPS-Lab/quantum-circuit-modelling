@@ -8,15 +8,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from comparison.rx import RxBenchmarkResult
+from plotting.errors import sweep_normalized_absolute_error_percent
 from plotting.style import (
     PULSE_BACKGROUND_ALPHA,
     PULSE_BACKGROUND_FILL_ALPHA,
     add_model_figure_legend,
     benchmark_tight_layout,
-    benchmark_plot_style,
+    current_benchmark_style,
     model_plot_kwargs,
     pulse_schedule_plot_kwargs,
-    save_benchmark_figure,
+    render_benchmark_figures,
     stacked_figure_size,
 )
 
@@ -50,16 +51,17 @@ def plot_rx_populations_benchmark(
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    with benchmark_plot_style():
+    def _build_figure(visible_rows: int) -> plt.Figure:
         fig, axes = plt.subplots(
+            3,
             2,
-            1,
-            figsize=stacked_figure_size("rx_populations", 2),
+            figsize=stacked_figure_size("rx_populations", 3),
             sharex=True,
+            squeeze=False,
         )
-        ax_00, ax_10 = axes
+        ax_00, ax_00_error, ax_10, ax_10_error, ax_delta, ax_delta_error = axes.ravel()
 
-        for ax in axes:
+        for ax in axes[:visible_rows].ravel():
             _add_drive_background(ax, t, result.pulse_envelope, result.drive_amplitude)
 
         for model, y in (
@@ -73,6 +75,26 @@ def plot_rx_populations_benchmark(
         ax_00.set_ylim(-0.02, 1.02)
         ax_00.grid()
 
+        ax_00_error.plot(
+            t,
+            sweep_normalized_absolute_error_percent(
+                result.duffing_pop_00_to_01,
+                result.circuit_pop_00_to_01,
+            ),
+            **model_plot_kwargs("duffing"),
+        )
+        ax_00_error.plot(
+            t,
+            sweep_normalized_absolute_error_percent(
+                result.effective_pop_00_to_01,
+                result.circuit_pop_00_to_01,
+            ),
+            **model_plot_kwargs("effective"),
+        )
+        ax_00_error.set_title(r"Population error $|00\rangle \rightarrow |01\rangle$")
+        ax_00_error.set_ylabel("Error (%)")
+        ax_00_error.grid()
+
         for model, y in (
             ("circuit", result.circuit_pop_10_to_11),
             ("duffing", result.duffing_pop_10_to_11),
@@ -80,14 +102,89 @@ def plot_rx_populations_benchmark(
         ):
             ax_10.plot(t, y, **model_plot_kwargs(model))
         ax_10.set_title(r"Population $|10\rangle \rightarrow |11\rangle$")
-        ax_10.set_xlabel("Time (ns)")
         ax_10.set_ylabel("Population")
         ax_10.set_ylim(-0.02, 1.02)
         ax_10.grid()
 
+        ax_10_error.plot(
+            t,
+            sweep_normalized_absolute_error_percent(
+                result.duffing_pop_10_to_11,
+                result.circuit_pop_10_to_11,
+            ),
+            **model_plot_kwargs("duffing"),
+        )
+        ax_10_error.plot(
+            t,
+            sweep_normalized_absolute_error_percent(
+                result.effective_pop_10_to_11,
+                result.circuit_pop_10_to_11,
+            ),
+            **model_plot_kwargs("effective"),
+        )
+        ax_10_error.set_title(r"Population error $|10\rangle \rightarrow |11\rangle$")
+        ax_10_error.set_ylabel("Error (%)")
+        ax_10_error.grid()
+
+        for model, y in (
+            ("circuit", result.circuit_spectator_population_delta),
+            ("duffing", result.duffing_spectator_population_delta),
+            ("effective", result.effective_spectator_population_delta),
+        ):
+            ax_delta.plot(t, y, **model_plot_kwargs(model))
+        ax_delta.set_title("Spectator Mismatch")
+        ax_delta.set_xlabel("Time (ns)")
+        ax_delta.set_ylabel("Magnitude")
+        ax_delta.grid()
+
+        ax_delta_error.plot(
+            t,
+            sweep_normalized_absolute_error_percent(
+                result.duffing_spectator_population_delta,
+                result.circuit_spectator_population_delta,
+            ),
+            **model_plot_kwargs("duffing"),
+        )
+        ax_delta_error.plot(
+            t,
+            sweep_normalized_absolute_error_percent(
+                result.effective_spectator_population_delta,
+                result.circuit_spectator_population_delta,
+            ),
+            **model_plot_kwargs("effective"),
+        )
+        ax_delta_error.set_title("Spectator-Mismatch Error")
+        ax_delta_error.set_xlabel("Time (ns)")
+        ax_delta_error.set_ylabel("Error (%)")
+        ax_delta_error.grid()
+
         legend = add_model_figure_legend(fig)
-        benchmark_tight_layout(fig, reserve_artists=[legend])
-        save_benchmark_figure(fig, outfile)
+        benchmark_tight_layout(
+            fig,
+            reserve_artists=[legend],
+            w_pad=3.0 if current_benchmark_style() == "presentation" else None,
+        )
+        # Make every layout decision using the complete figure, then expose the
+        # current bottom x-axis and hide later rows.  This preserves identical
+        # positions for the rows shared by Beamer overlays.
+        axes[visible_rows - 1, 0].set_xlabel("Time (ns)")
+        axes[visible_rows - 1, 1].set_xlabel("Time (ns)")
+        for ax in axes[visible_rows - 1]:
+            ax.tick_params(axis="x", labelbottom=True)
+        for ax in axes[visible_rows:].ravel():
+            ax.set_visible(False)
+        return fig
+
+    for visible_rows in range(1, 4):
+        cumulative_outfile = (
+            outfile
+            if visible_rows == 3
+            else outfile.with_name(f"{outfile.stem}_rows_{visible_rows}{outfile.suffix}")
+        )
+        render_benchmark_figures(
+            cumulative_outfile,
+            lambda visible_rows=visible_rows: _build_figure(visible_rows),
+        )
 
 
 def plot_rx_diagnostics_benchmark(
@@ -96,16 +193,17 @@ def plot_rx_diagnostics_benchmark(
 ) -> None:
     t = np.asarray(result.times_ns, dtype=float)
 
-    with benchmark_plot_style():
+    def _build_figure() -> plt.Figure:
         fig, axes = plt.subplots(
-            3,
-            1,
-            figsize=stacked_figure_size("rx_diagnostics", 3),
+            2,
+            2,
+            figsize=stacked_figure_size("rx_diagnostics", 2),
             sharex=True,
+            squeeze=False,
         )
-        ax_leak_00, ax_leak_10, ax_delta = axes
+        ax_leak_00, ax_leak_00_error, ax_leak_10, ax_leak_10_error = axes.ravel()
 
-        for ax in axes:
+        for ax in axes.ravel():
             _add_drive_background(ax, t, result.pulse_envelope, result.drive_amplitude)
 
         for model, y in (
@@ -118,6 +216,26 @@ def plot_rx_diagnostics_benchmark(
         ax_leak_00.set_ylabel("Leakage")
         ax_leak_00.grid()
 
+        ax_leak_00_error.plot(
+            t,
+            sweep_normalized_absolute_error_percent(
+                result.duffing_leakage_from_00,
+                result.circuit_leakage_from_00,
+            ),
+            **model_plot_kwargs("duffing"),
+        )
+        ax_leak_00_error.plot(
+            t,
+            sweep_normalized_absolute_error_percent(
+                result.effective_leakage_from_00,
+                result.circuit_leakage_from_00,
+            ),
+            **model_plot_kwargs("effective"),
+        )
+        ax_leak_00_error.set_title(r"Leakage Error From $|00\rangle$")
+        ax_leak_00_error.set_ylabel("Error (%)")
+        ax_leak_00_error.grid()
+
         for model, y in (
             ("circuit", result.circuit_leakage_from_10),
             ("duffing", result.duffing_leakage_from_10),
@@ -125,20 +243,37 @@ def plot_rx_diagnostics_benchmark(
         ):
             ax_leak_10.plot(t, y, **model_plot_kwargs(model))
         ax_leak_10.set_title(r"Leakage From $|10\rangle$")
+        ax_leak_10.set_xlabel("Time (ns)")
         ax_leak_10.set_ylabel("Leakage")
         ax_leak_10.grid()
 
-        for model, y in (
-            ("circuit", result.circuit_spectator_population_delta),
-            ("duffing", result.duffing_spectator_population_delta),
-            ("effective", result.effective_spectator_population_delta),
-        ):
-            ax_delta.plot(t, y, **model_plot_kwargs(model))
-        ax_delta.set_title(r"Spectator Mismatch $|P_{00\rightarrow01} - P_{10\rightarrow11}|$")
-        ax_delta.set_xlabel("Time (ns)")
-        ax_delta.set_ylabel("Magnitude")
-        ax_delta.grid()
+        ax_leak_10_error.plot(
+            t,
+            sweep_normalized_absolute_error_percent(
+                result.duffing_leakage_from_10,
+                result.circuit_leakage_from_10,
+            ),
+            **model_plot_kwargs("duffing"),
+        )
+        ax_leak_10_error.plot(
+            t,
+            sweep_normalized_absolute_error_percent(
+                result.effective_leakage_from_10,
+                result.circuit_leakage_from_10,
+            ),
+            **model_plot_kwargs("effective"),
+        )
+        ax_leak_10_error.set_title(r"Leakage Error From $|10\rangle$")
+        ax_leak_10_error.set_xlabel("Time (ns)")
+        ax_leak_10_error.set_ylabel("Error (%)")
+        ax_leak_10_error.grid()
 
         legend = add_model_figure_legend(fig)
-        benchmark_tight_layout(fig, reserve_artists=[legend])
-        save_benchmark_figure(fig, outfile)
+        benchmark_tight_layout(
+            fig,
+            reserve_artists=[legend],
+            w_pad=3.0 if current_benchmark_style() == "presentation" else None,
+        )
+        return fig
+
+    render_benchmark_figures(outfile, _build_figure)

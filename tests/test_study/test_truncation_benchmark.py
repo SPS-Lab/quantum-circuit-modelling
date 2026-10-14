@@ -24,6 +24,7 @@ from plotting.truncation import (
     plot_duffing_truncation_benchmark,
     plot_truncation_benchmark,
 )
+from plotting.style import benchmark_style_names, benchmark_style_outfile
 from study_config import _flatten_run_all_benchmark_params, load_study_config
 
 
@@ -114,6 +115,13 @@ def _write_small_study_params(
     dst = tmp_path / "study_small.json"
     dst.write_text(json.dumps(payload), encoding="utf-8")
     return dst
+
+
+def _assert_benchmark_pdfs_written(outfile: Path) -> None:
+    for style_name in benchmark_style_names():
+        styled_outfile = benchmark_style_outfile(outfile, style_name)
+        assert styled_outfile.exists()
+        assert styled_outfile.stat().st_size > 0
 
 
 def test_circuit_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> None:
@@ -295,7 +303,7 @@ def test_circuit_truncation_plot_writes_pdf(tmp_path: Path) -> None:
 
     outfile = tmp_path / "circuit_truncation_benchmark.pdf"
     plot_circuit_truncation_benchmark(out, outfile)
-    assert outfile.exists()
+    _assert_benchmark_pdfs_written(outfile)
 
 
 def test_circuit_truncation_benchmark_can_run_only_ncut_sweep(tmp_path: Path) -> None:
@@ -326,7 +334,7 @@ def test_circuit_truncation_plot_writes_pdf_for_single_sweep(tmp_path: Path) -> 
 
     outfile = tmp_path / "circuit_truncation_qubit_only.pdf"
     plot_circuit_truncation_benchmark(out, outfile)
-    assert outfile.exists()
+    _assert_benchmark_pdfs_written(outfile)
 
 
 def test_duffing_truncation_plot_writes_pdf(tmp_path: Path) -> None:
@@ -338,7 +346,7 @@ def test_duffing_truncation_plot_writes_pdf(tmp_path: Path) -> None:
 
     outfile = tmp_path / "duffing_truncation_benchmark.pdf"
     plot_duffing_truncation_benchmark(out, outfile)
-    assert outfile.exists()
+    _assert_benchmark_pdfs_written(outfile)
 
 
 def test_duffing_truncation_benchmark_runs_with_symbolic_fitted_static(tmp_path: Path) -> None:
@@ -427,8 +435,7 @@ def test_duffing_truncation_plot_writes_pdf_for_single_sweep(tmp_path: Path) -> 
 
     outfile = tmp_path / "duffing_truncation_qubit_only.pdf"
     plot_duffing_truncation_benchmark(out, outfile)
-    assert outfile.exists()
-    assert outfile.stat().st_size > 0
+    _assert_benchmark_pdfs_written(outfile)
 
 
 def test_combined_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> None:
@@ -456,5 +463,4 @@ def test_combined_truncation_plot_writes_pdf(tmp_path: Path) -> None:
 
     outfile = tmp_path / "combined_truncation_benchmark.pdf"
     plot_truncation_benchmark(out, outfile)
-    assert outfile.exists()
-    assert outfile.stat().st_size > 0
+    _assert_benchmark_pdfs_written(outfile)

@@ -22,6 +22,7 @@ from comparison.static import StaticBenchmarkResult, run_static_benchmark
 from plotting.static import (
     plot_static_benchmark,
     plot_static_computational_basis_amplitudes,
+    plot_static_j_zz_benchmark,
     plot_static_raw_energies,
     plot_static_single_excitation_overlaps,
 )
@@ -130,6 +131,7 @@ def main() -> None:
         },
     )
     figure_path = run_paths.figure_paths["figure"]
+    j_zz_figure_path = figure_path.with_name(f"{figure_path.stem}_j_zz.pdf")
     raw_figure_path = figure_path.with_name(f"{figure_path.stem}_raw_energies.pdf")
     overlap_figure_path = figure_path.with_name(f"{figure_path.stem}_single_excitation_overlaps.pdf")
     basis_amplitude_figure_path = figure_path.with_name(f"{figure_path.stem}_computational_basis_amplitudes.pdf")
@@ -157,6 +159,7 @@ def main() -> None:
         save_result_hdf5(result, results_path, benchmark_name="static")
 
     plot_static_benchmark(result, figure_path)
+    plot_static_j_zz_benchmark(result, j_zz_figure_path)
     if args.extra_sideplots:
         if not _has_extra_sideplot_data(result):
             raise ValueError(
@@ -237,6 +240,7 @@ def main() -> None:
     else:
         reporter.line(f"Wrote results: {results_path}")
     reporter.line(f"Wrote figure: {figure_path}")
+    reporter.line(f"Wrote J/ZZ figure: {j_zz_figure_path}")
     if args.extra_sideplots:
         reporter.line(f"Wrote raw-energy figure: {raw_figure_path}")
         reporter.line(f"Wrote single-excitation overlap figure: {overlap_figure_path}")

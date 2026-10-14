@@ -12,6 +12,7 @@ if str(_ROOT) not in sys.path:
 
 from comparison.runtime import run_runtime_benchmark
 from plotting.runtime import plot_runtime_benchmark
+from plotting.style import benchmark_style_names, benchmark_style_outfile
 from study_config import _flatten_run_all_benchmark_params, load_study_config
 
 
@@ -78,6 +79,13 @@ def _write_small_study_params(tmp_path: Path) -> Path:
     return dst
 
 
+def _assert_benchmark_pdfs_written(outfile: Path) -> None:
+    for style_name in benchmark_style_names():
+        styled_outfile = benchmark_style_outfile(outfile, style_name)
+        assert styled_outfile.exists()
+        assert styled_outfile.stat().st_size > 0
+
+
 def test_runtime_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     cfg = load_study_config(
         system_params_path=_write_small_system_params(tmp_path),
@@ -122,4 +130,4 @@ def test_runtime_plot_writes_pdf(tmp_path: Path) -> None:
 
     outfile = tmp_path / "runtime_benchmark.pdf"
     plot_runtime_benchmark(out, outfile)
-    assert outfile.exists()
+    _assert_benchmark_pdfs_written(outfile)
