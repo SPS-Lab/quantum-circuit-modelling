@@ -29,13 +29,14 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse, FancyArrowPatch, FancyBboxPatch, Rectangle
 
-
 FPS = 30
 DURATION = 8.0
 FRAMES = int(FPS * DURATION)
 
 
-def spring_points(x0: float, x1: float, y: float, turns: int = 10, amplitude: float = 0.18) -> tuple[np.ndarray, np.ndarray]:
+def spring_points(
+    x0: float, x1: float, y: float, turns: int = 10, amplitude: float = 0.18
+) -> tuple[np.ndarray, np.ndarray]:
     xs = np.linspace(x0, x1, 4 * turns + 3)
     ys = np.full_like(xs, y)
     if xs.size > 2:
@@ -91,7 +92,9 @@ def save_pdf_frames(
 
 
 def build_figure() -> tuple[plt.Figure, dict[str, object]]:
-    fig, (ax_circuit, ax_mech) = plt.subplots(1, 2, figsize=(10.6, 5.2), gridspec_kw={"wspace": 0.1})
+    fig, (ax_circuit, ax_mech) = plt.subplots(
+        1, 2, figsize=(10.6, 5.2), gridspec_kw={"wspace": 0.1}
+    )
     fig.patch.set_facecolor("#ffffff")
     fig.subplots_adjust(top=0.88, bottom=0.035, left=0.055, right=0.97)
 
@@ -123,12 +126,34 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     plate_y_bottom = 4.55
     plate_half_width = 0.82
 
-    ax_circuit.add_line(Line2D([x_left, x_right], [y_top, y_top], lw=3.0, color=bus_color))
-    ax_circuit.add_line(Line2D([x_left, x_right], [y_bottom, y_bottom], lw=3.0, color=bus_color))
-    ax_circuit.add_line(Line2D([x_left, x_left], [y_top, coil_turn_centers[-1] + 0.24], lw=3.0, color=bus_color))
-    ax_circuit.add_line(Line2D([x_left, x_left], [coil_turn_centers[0] - 0.24, y_bottom], lw=3.0, color=bus_color))
-    ax_circuit.add_line(Line2D([x_right, x_right], [y_top, plate_y_top], lw=3.0, color=bus_color))
-    ax_circuit.add_line(Line2D([x_right, x_right], [plate_y_bottom, y_bottom], lw=3.0, color=bus_color))
+    ax_circuit.add_line(
+        Line2D([x_left, x_right], [y_top, y_top], lw=3.0, color=bus_color)
+    )
+    ax_circuit.add_line(
+        Line2D([x_left, x_right], [y_bottom, y_bottom], lw=3.0, color=bus_color)
+    )
+    ax_circuit.add_line(
+        Line2D(
+            [x_left, x_left],
+            [y_top, coil_turn_centers[-1] + 0.24],
+            lw=3.0,
+            color=bus_color,
+        )
+    )
+    ax_circuit.add_line(
+        Line2D(
+            [x_left, x_left],
+            [coil_turn_centers[0] - 0.24, y_bottom],
+            lw=3.0,
+            color=bus_color,
+        )
+    )
+    ax_circuit.add_line(
+        Line2D([x_right, x_right], [y_top, plate_y_top], lw=3.0, color=bus_color)
+    )
+    ax_circuit.add_line(
+        Line2D([x_right, x_right], [plate_y_bottom, y_bottom], lw=3.0, color=bus_color)
+    )
 
     for center_y in coil_turn_centers:
         ax_circuit.add_patch(
@@ -142,18 +167,56 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
             )
         )
 
-    top_plate = Line2D([x_right - plate_half_width, x_right + plate_half_width], [plate_y_top, plate_y_top], lw=4.0, color=charge_top)
-    bottom_plate = Line2D([x_right - plate_half_width, x_right + plate_half_width], [plate_y_bottom, plate_y_bottom], lw=4.0, color=charge_bottom)
+    top_plate = Line2D(
+        [x_right - plate_half_width, x_right + plate_half_width],
+        [plate_y_top, plate_y_top],
+        lw=4.0,
+        color=charge_top,
+    )
+    bottom_plate = Line2D(
+        [x_right - plate_half_width, x_right + plate_half_width],
+        [plate_y_bottom, plate_y_bottom],
+        lw=4.0,
+        color=charge_bottom,
+    )
     ax_circuit.add_line(top_plate)
     ax_circuit.add_line(bottom_plate)
 
-    top_plate_fill = Rectangle((x_right - 0.92, plate_y_top - 0.24), 1.84, 0.48, facecolor=charge_top, alpha=0.15, edgecolor="none")
-    bottom_plate_fill = Rectangle((x_right - 0.92, plate_y_bottom - 0.24), 1.84, 0.48, facecolor=charge_bottom, alpha=0.15, edgecolor="none")
+    top_plate_fill = Rectangle(
+        (x_right - 0.92, plate_y_top - 0.24),
+        1.84,
+        0.48,
+        facecolor=charge_top,
+        alpha=0.15,
+        edgecolor="none",
+    )
+    bottom_plate_fill = Rectangle(
+        (x_right - 0.92, plate_y_bottom - 0.24),
+        1.84,
+        0.48,
+        facecolor=charge_bottom,
+        alpha=0.15,
+        edgecolor="none",
+    )
     ax_circuit.add_patch(top_plate_fill)
     ax_circuit.add_patch(bottom_plate_fill)
 
-    current_arrow_top = FancyArrowPatch((2.15, 6.1), (2.15, 6.9), arrowstyle="-|>", mutation_scale=18, lw=2.4, color=current_color)
-    current_arrow_bottom = FancyArrowPatch((2.15, 3.1), (2.15, 3.9), arrowstyle="-|>", mutation_scale=18, lw=2.4, color=current_color)
+    current_arrow_top = FancyArrowPatch(
+        (2.15, 6.1),
+        (2.15, 6.9),
+        arrowstyle="-|>",
+        mutation_scale=18,
+        lw=2.4,
+        color=current_color,
+    )
+    current_arrow_bottom = FancyArrowPatch(
+        (2.15, 3.1),
+        (2.15, 3.9),
+        arrowstyle="-|>",
+        mutation_scale=18,
+        lw=2.4,
+        color=current_color,
+    )
     ax_circuit.add_patch(current_arrow_top)
     ax_circuit.add_patch(current_arrow_bottom)
 
@@ -218,8 +281,26 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
         flux_loops.append(loop)
         ax_circuit.add_patch(loop)
 
-    top_charge_text = ax_circuit.text(x_right + 1.2, plate_y_top, "+", ha="center", va="center", fontsize=24, color=charge_top, alpha=0.2)
-    bottom_charge_text = ax_circuit.text(x_right + 1.2, plate_y_bottom, "-", ha="center", va="center", fontsize=24, color=charge_bottom, alpha=0.2)
+    top_charge_text = ax_circuit.text(
+        x_right + 1.2,
+        plate_y_top,
+        "+",
+        ha="center",
+        va="center",
+        fontsize=24,
+        color=charge_top,
+        alpha=0.2,
+    )
+    bottom_charge_text = ax_circuit.text(
+        x_right + 1.2,
+        plate_y_bottom,
+        "-",
+        ha="center",
+        va="center",
+        fontsize=24,
+        color=charge_bottom,
+        alpha=0.2,
+    )
 
     ax_circuit.text(1.4, 6.3, r"$I$", fontsize=15, color=current_color)
     ax_circuit.text(0.5, 5.1, r"$\Phi$", fontsize=15, color=flux_color)
@@ -238,21 +319,70 @@ def build_figure() -> tuple[plt.Figure, dict[str, object]]:
     eq_left = 5.0
     amplitude = 1.55
 
-    ax_mech.add_patch(Rectangle((0.45, 3.35), 0.45, 3.1, facecolor="#8d8d8d", edgecolor="none"))
-    ax_mech.add_line(Line2D([0.9, 8.8], [y_track - 0.95, y_track - 0.95], lw=2.0, color="#c7c0b4"))
-    ax_mech.add_line(Line2D([eq_left + mass_width / 2.0, eq_left + mass_width / 2.0], [2.1, 7.6], lw=1.4, ls="--", color="#d0c7b8"))
-    ax_mech.text(eq_left + mass_width / 2.0, 1.6, "equilibrium", ha="center", va="center", fontsize=10, color="#857d73")
+    ax_mech.add_patch(
+        Rectangle((0.45, 3.35), 0.45, 3.1, facecolor="#8d8d8d", edgecolor="none")
+    )
+    ax_mech.add_line(
+        Line2D([0.9, 8.8], [y_track - 0.95, y_track - 0.95], lw=2.0, color="#c7c0b4")
+    )
+    ax_mech.add_line(
+        Line2D(
+            [eq_left + mass_width / 2.0, eq_left + mass_width / 2.0],
+            [2.1, 7.6],
+            lw=1.4,
+            ls="--",
+            color="#d0c7b8",
+        )
+    )
+    ax_mech.text(
+        eq_left + mass_width / 2.0,
+        1.6,
+        "equilibrium",
+        ha="center",
+        va="center",
+        fontsize=10,
+        color="#857d73",
+    )
 
     spring_line = Line2D([], [], lw=3.0, color="#7a4e2d")
     ax_mech.add_line(spring_line)
-    mass = Rectangle((eq_left, y_track - mass_height / 2.0), mass_width, mass_height, facecolor="#d6a84f", edgecolor="#6c5228", lw=2.0)
+    mass = Rectangle(
+        (eq_left, y_track - mass_height / 2.0),
+        mass_width,
+        mass_height,
+        facecolor="#d6a84f",
+        edgecolor="#6c5228",
+        lw=2.0,
+    )
     ax_mech.add_patch(mass)
 
-    displacement_arrow = FancyArrowPatch((eq_left + mass_width / 2.0, 7.9), (eq_left + mass_width / 2.0, 7.9), arrowstyle="<|-|>", mutation_scale=16, lw=2.0, color="#8b5e34")
-    force_arrow = FancyArrowPatch((eq_left + mass_width / 2.0, 6.95), (eq_left + mass_width / 2.0, 6.95), arrowstyle="-|>", mutation_scale=18, lw=2.2, color="#b5522d")
+    displacement_arrow = FancyArrowPatch(
+        (eq_left + mass_width / 2.0, 7.9),
+        (eq_left + mass_width / 2.0, 7.9),
+        arrowstyle="<|-|>",
+        mutation_scale=16,
+        lw=2.0,
+        color="#8b5e34",
+    )
+    force_arrow = FancyArrowPatch(
+        (eq_left + mass_width / 2.0, 6.95),
+        (eq_left + mass_width / 2.0, 6.95),
+        arrowstyle="-|>",
+        mutation_scale=18,
+        lw=2.2,
+        color="#b5522d",
+    )
     ax_mech.add_patch(displacement_arrow)
     ax_mech.add_patch(force_arrow)
-    force_label = ax_mech.text(eq_left + mass_width / 2.0, 7.28, r"$F$", fontsize=15, color="#b5522d", ha="center", va="bottom")
+    force_label = ax_mech.text(
+        eq_left + mass_width / 2.0,
+        7.28,
+        r"$F$",
+        fontsize=15,
+        color="#b5522d",
+        ha="center",
+        va="bottom",
+    )
     ax_mech.text(5.5, 8.3, r"$x$", fontsize=15, color="#8b5e34")
     ax_mech.text(1.88, 5.3, r"$k$", fontsize=15, color="#8b5e34")
 
@@ -338,8 +468,14 @@ def update(frame: int | float, artists: dict[str, object]) -> list[object]:
     assert isinstance(current_arrow_top, FancyArrowPatch)
     assert isinstance(current_arrow_bottom, FancyArrowPatch)
 
-    current_arrow_top.set_positions((2.15, top_center - 0.5 * arrow_length * current_direction), (2.15, top_center + 0.5 * arrow_length * current_direction))
-    current_arrow_bottom.set_positions((2.15, bottom_center - 0.5 * arrow_length * current_direction), (2.15, bottom_center + 0.5 * arrow_length * current_direction))
+    current_arrow_top.set_positions(
+        (2.15, top_center - 0.5 * arrow_length * current_direction),
+        (2.15, top_center + 0.5 * arrow_length * current_direction),
+    )
+    current_arrow_bottom.set_positions(
+        (2.15, bottom_center - 0.5 * arrow_length * current_direction),
+        (2.15, bottom_center + 0.5 * arrow_length * current_direction),
+    )
 
     accent_alpha = 0.2 + 0.8 * abs(inductor_current)
     current_arrow_top.set_alpha(accent_alpha)
@@ -433,7 +569,11 @@ def update(frame: int | float, artists: dict[str, object]) -> list[object]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--save", type=Path, help="Optional path to save the animation, e.g. demo.gif or demo.mp4.")
+    parser.add_argument(
+        "--save",
+        type=Path,
+        help="Optional path to save the animation, e.g. demo.gif or demo.mp4.",
+    )
     parser.add_argument(
         "--save-pdf-frames",
         type=Path,
@@ -450,9 +590,20 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Export only five PDF frames at x=max, x=0, x=-max, x=0, and x=max.",
     )
-    parser.add_argument("--fps", type=int, default=FPS, help="Frames per second for playback and saving.")
-    parser.add_argument("--seconds", type=float, default=DURATION, help="Animation duration in seconds.")
-    parser.add_argument("--no-show", action="store_true", help="Build the animation without opening an interactive window.")
+    parser.add_argument(
+        "--fps",
+        type=int,
+        default=FPS,
+        help="Frames per second for playback and saving.",
+    )
+    parser.add_argument(
+        "--seconds", type=float, default=DURATION, help="Animation duration in seconds."
+    )
+    parser.add_argument(
+        "--no-show",
+        action="store_true",
+        help="Build the animation without opening an interactive window.",
+    )
     return parser.parse_args()
 
 

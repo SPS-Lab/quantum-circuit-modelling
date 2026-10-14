@@ -12,7 +12,6 @@ import numpy as np
 
 from benchmark_results_io import load_result_hdf5
 
-
 _SCHEMA_VERSION = "static_fitted_models_v1"
 
 
@@ -33,25 +32,41 @@ class StaticFittedModelsArtifact:
     effective_fit_basis: str
 
 
-def build_static_fitted_models_artifact(result: Any, *, config: Any) -> StaticFittedModelsArtifact:
+def build_static_fitted_models_artifact(
+    result: Any, *, config: Any
+) -> StaticFittedModelsArtifact:
     return StaticFittedModelsArtifact(
         flux_values=np.asarray(result.flux_values, dtype=float),
         effective_parameters=_copy_float_mapping(result.effective_parameters),
-        effective_fit_coefficient_names=_copy_string_mapping(result.effective_fit_coefficient_names),
-        effective_fit_coefficients=_copy_float_mapping(result.effective_fit_coefficients),
+        effective_fit_coefficient_names=_copy_string_mapping(
+            result.effective_fit_coefficient_names
+        ),
+        effective_fit_coefficients=_copy_float_mapping(
+            result.effective_fit_coefficients
+        ),
         duffing_mode_parameters=_copy_float_mapping(result.duffing_mode_parameters),
-        duffing_symbolic_coefficient_names=_copy_string_mapping(result.duffing_symbolic_coefficient_names),
-        duffing_symbolic_coefficients=_copy_float_mapping(result.duffing_symbolic_coefficients),
+        duffing_symbolic_coefficient_names=_copy_string_mapping(
+            result.duffing_symbolic_coefficient_names
+        ),
+        duffing_symbolic_coefficients=_copy_float_mapping(
+            result.duffing_symbolic_coefficients
+        ),
         circuit_parameters=_copy_float_mapping(result.circuit_parameters),
         summary={str(key): float(value) for key, value in result.summary.items()},
         sweep_target=str(config.static_benchmark.flux_control.sweep_target),
-        duffing_calibration_mode=str(config.static_benchmark.duffing_model.calibration_mode),
-        effective_derivation_source=str(config.static_benchmark.effective_model.derivation_source),
+        duffing_calibration_mode=str(
+            config.static_benchmark.duffing_model.calibration_mode
+        ),
+        effective_derivation_source=str(
+            config.static_benchmark.effective_model.derivation_source
+        ),
         effective_fit_basis=str(config.static_benchmark.effective_model.fit_basis),
     )
 
 
-def save_static_fitted_models_artifact(artifact: StaticFittedModelsArtifact, outfile: Path) -> None:
+def save_static_fitted_models_artifact(
+    artifact: StaticFittedModelsArtifact, outfile: Path
+) -> None:
     payload = {
         "schema_version": _SCHEMA_VERSION,
         "saved_utc_iso": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -61,11 +76,19 @@ def save_static_fitted_models_artifact(artifact: StaticFittedModelsArtifact, out
         "effective_fit_basis": artifact.effective_fit_basis,
         "flux_values": artifact.flux_values.tolist(),
         "effective_parameters": _mapping_to_lists(artifact.effective_parameters),
-        "effective_fit_coefficient_names": _mapping_to_lists(artifact.effective_fit_coefficient_names),
-        "effective_fit_coefficients": _mapping_to_lists(artifact.effective_fit_coefficients),
+        "effective_fit_coefficient_names": _mapping_to_lists(
+            artifact.effective_fit_coefficient_names
+        ),
+        "effective_fit_coefficients": _mapping_to_lists(
+            artifact.effective_fit_coefficients
+        ),
         "duffing_mode_parameters": _mapping_to_lists(artifact.duffing_mode_parameters),
-        "duffing_symbolic_coefficient_names": _mapping_to_lists(artifact.duffing_symbolic_coefficient_names),
-        "duffing_symbolic_coefficients": _mapping_to_lists(artifact.duffing_symbolic_coefficients),
+        "duffing_symbolic_coefficient_names": _mapping_to_lists(
+            artifact.duffing_symbolic_coefficient_names
+        ),
+        "duffing_symbolic_coefficients": _mapping_to_lists(
+            artifact.duffing_symbolic_coefficients
+        ),
         "circuit_parameters": _mapping_to_lists(artifact.circuit_parameters),
         "summary": {str(key): float(value) for key, value in artifact.summary.items()},
     }
@@ -85,14 +108,28 @@ def load_static_fitted_models_artifact(path: Path) -> StaticFittedModelsArtifact
         )
         return StaticFittedModelsArtifact(
             flux_values=np.asarray(static_result.flux_values, dtype=float),
-            effective_parameters=_copy_float_mapping(static_result.effective_parameters),
-            effective_fit_coefficient_names=_copy_string_mapping(static_result.effective_fit_coefficient_names),
-            effective_fit_coefficients=_copy_float_mapping(static_result.effective_fit_coefficients),
-            duffing_mode_parameters=_copy_float_mapping(static_result.duffing_mode_parameters),
-            duffing_symbolic_coefficient_names=_copy_string_mapping(static_result.duffing_symbolic_coefficient_names),
-            duffing_symbolic_coefficients=_copy_float_mapping(static_result.duffing_symbolic_coefficients),
+            effective_parameters=_copy_float_mapping(
+                static_result.effective_parameters
+            ),
+            effective_fit_coefficient_names=_copy_string_mapping(
+                static_result.effective_fit_coefficient_names
+            ),
+            effective_fit_coefficients=_copy_float_mapping(
+                static_result.effective_fit_coefficients
+            ),
+            duffing_mode_parameters=_copy_float_mapping(
+                static_result.duffing_mode_parameters
+            ),
+            duffing_symbolic_coefficient_names=_copy_string_mapping(
+                static_result.duffing_symbolic_coefficient_names
+            ),
+            duffing_symbolic_coefficients=_copy_float_mapping(
+                static_result.duffing_symbolic_coefficients
+            ),
             circuit_parameters=_copy_float_mapping(static_result.circuit_parameters),
-            summary={str(key): float(value) for key, value in static_result.summary.items()},
+            summary={
+                str(key): float(value) for key, value in static_result.summary.items()
+            },
             sweep_target="",
             duffing_calibration_mode="",
             effective_derivation_source="",
@@ -106,13 +143,27 @@ def load_static_fitted_models_artifact(path: Path) -> StaticFittedModelsArtifact
         )
     return StaticFittedModelsArtifact(
         flux_values=np.asarray(payload["flux_values"], dtype=float),
-        effective_parameters=_mapping_from_payload(payload["effective_parameters"], dtype=float),
-        effective_fit_coefficient_names=_mapping_from_payload(payload["effective_fit_coefficient_names"], dtype=str),
-        effective_fit_coefficients=_mapping_from_payload(payload["effective_fit_coefficients"], dtype=float),
-        duffing_mode_parameters=_mapping_from_payload(payload["duffing_mode_parameters"], dtype=float),
-        duffing_symbolic_coefficient_names=_mapping_from_payload(payload["duffing_symbolic_coefficient_names"], dtype=str),
-        duffing_symbolic_coefficients=_mapping_from_payload(payload["duffing_symbolic_coefficients"], dtype=float),
-        circuit_parameters=_mapping_from_payload(payload["circuit_parameters"], dtype=float),
+        effective_parameters=_mapping_from_payload(
+            payload["effective_parameters"], dtype=float
+        ),
+        effective_fit_coefficient_names=_mapping_from_payload(
+            payload["effective_fit_coefficient_names"], dtype=str
+        ),
+        effective_fit_coefficients=_mapping_from_payload(
+            payload["effective_fit_coefficients"], dtype=float
+        ),
+        duffing_mode_parameters=_mapping_from_payload(
+            payload["duffing_mode_parameters"], dtype=float
+        ),
+        duffing_symbolic_coefficient_names=_mapping_from_payload(
+            payload["duffing_symbolic_coefficient_names"], dtype=str
+        ),
+        duffing_symbolic_coefficients=_mapping_from_payload(
+            payload["duffing_symbolic_coefficients"], dtype=float
+        ),
+        circuit_parameters=_mapping_from_payload(
+            payload["circuit_parameters"], dtype=float
+        ),
         summary={str(key): float(value) for key, value in payload["summary"].items()},
         sweep_target=str(payload.get("sweep_target", "")),
         duffing_calibration_mode=str(payload.get("duffing_calibration_mode", "")),
@@ -219,7 +270,9 @@ def build_static_fitted_markdown_table(
             )
         )
     else:
-        lines.append("<!-- No symbolic Duffing coefficients were available for this run. -->")
+        lines.append(
+            "<!-- No symbolic Duffing coefficients were available for this run. -->"
+        )
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -266,15 +319,26 @@ def _build_table_block(
         f"{label} & Coefficient & Value (GHz) " + r"\\",
         r"\hline",
     ]
-    ordered_parameter_names = _ordered_parameter_names(coefficients, parameter_order=parameter_order)
+    ordered_parameter_names = _ordered_parameter_names(
+        coefficients, parameter_order=parameter_order
+    )
     for parameter_name in ordered_parameter_names:
-        names = [str(value) for value in np.asarray(coefficient_names[parameter_name], dtype=str).ravel()]
-        values = [float(value) for value in np.asarray(coefficients[parameter_name], dtype=float).ravel()]
+        names = [
+            str(value)
+            for value in np.asarray(
+                coefficient_names[parameter_name], dtype=str
+            ).ravel()
+        ]
+        values = [
+            float(value)
+            for value in np.asarray(coefficients[parameter_name], dtype=float).ravel()
+        ]
         if len(names) != len(values):
             raise ValueError(f"Coefficient name/value mismatch for {parameter_name!r}")
         for coeff_name, coeff_value in zip(names, values):
             lines.append(
-                f"{_latex_escape(parameter_name)} & {_latex_escape(coeff_name)} & {coeff_value:.6e} " + r"\\"
+                f"{_latex_escape(parameter_name)} & {_latex_escape(coeff_name)} & {coeff_value:.6e} "
+                + r"\\"
             )
         lines.append(r"\hline")
     lines.append(r"\end{tabular}")
@@ -291,7 +355,7 @@ def _build_markdown_table_block(
     provenance_lines: list[str] | None = None,
 ) -> list[str]:
     lines = [f"## {title}"]
-    for line in (provenance_lines or []):
+    for line in provenance_lines or []:
         if line.startswith("% "):
             lines.append(f"<!-- {line[2:]} -->")
         elif line.startswith("%"):
@@ -305,10 +369,20 @@ def _build_markdown_table_block(
             "| --- | --- | ---: |",
         ]
     )
-    ordered_parameter_names = _ordered_parameter_names(coefficients, parameter_order=parameter_order)
+    ordered_parameter_names = _ordered_parameter_names(
+        coefficients, parameter_order=parameter_order
+    )
     for parameter_name in ordered_parameter_names:
-        names = [str(value) for value in np.asarray(coefficient_names[parameter_name], dtype=str).ravel()]
-        values = [float(value) for value in np.asarray(coefficients[parameter_name], dtype=float).ravel()]
+        names = [
+            str(value)
+            for value in np.asarray(
+                coefficient_names[parameter_name], dtype=str
+            ).ravel()
+        ]
+        values = [
+            float(value)
+            for value in np.asarray(coefficients[parameter_name], dtype=float).ravel()
+        ]
         if len(names) != len(values):
             raise ValueError(f"Coefficient name/value mismatch for {parameter_name!r}")
         for coeff_name, coeff_value in zip(names, values):
@@ -329,31 +403,21 @@ def _ordered_parameter_names(
 
 
 def _mapping_to_lists(mapping: dict[str, np.ndarray]) -> dict[str, list[Any]]:
-    return {
-        str(key): np.asarray(value).tolist()
-        for key, value in mapping.items()
-    }
+    return {str(key): np.asarray(value).tolist() for key, value in mapping.items()}
 
 
-def _mapping_from_payload(payload: dict[str, Any], *, dtype: type[Any]) -> dict[str, np.ndarray]:
-    return {
-        str(key): np.asarray(value, dtype=dtype)
-        for key, value in payload.items()
-    }
+def _mapping_from_payload(
+    payload: dict[str, Any], *, dtype: type[Any]
+) -> dict[str, np.ndarray]:
+    return {str(key): np.asarray(value, dtype=dtype) for key, value in payload.items()}
 
 
 def _copy_float_mapping(mapping: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
-    return {
-        str(key): np.asarray(value, dtype=float)
-        for key, value in mapping.items()
-    }
+    return {str(key): np.asarray(value, dtype=float) for key, value in mapping.items()}
 
 
 def _copy_string_mapping(mapping: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
-    return {
-        str(key): np.asarray(value, dtype=str)
-        for key, value in mapping.items()
-    }
+    return {str(key): np.asarray(value, dtype=str) for key, value in mapping.items()}
 
 
 def _latex_escape(value: str) -> str:

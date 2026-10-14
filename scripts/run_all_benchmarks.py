@@ -14,6 +14,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from runtime_utils import log_progress, run_main_with_timing
+
 _BENCHMARK_SCRIPTS = (
     "run_static_benchmark.py",
     "run_truncation_benchmark.py",

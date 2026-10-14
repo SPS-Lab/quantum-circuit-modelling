@@ -52,8 +52,12 @@ def static_companion_paths(*, run_dir: Path, config: object) -> StaticCompanionP
         results_path=Path(run_dir) / "static_results.h5",
         figure_path=figure_path,
         raw_figure_path=figure_path.with_name(f"{figure_path.stem}_raw_energies.pdf"),
-        overlap_figure_path=figure_path.with_name(f"{figure_path.stem}_single_excitation_overlaps.pdf"),
-        basis_amplitude_figure_path=figure_path.with_name(f"{figure_path.stem}_computational_basis_amplitudes.pdf"),
+        overlap_figure_path=figure_path.with_name(
+            f"{figure_path.stem}_single_excitation_overlaps.pdf"
+        ),
+        basis_amplitude_figure_path=figure_path.with_name(
+            f"{figure_path.stem}_computational_basis_amplitudes.pdf"
+        ),
         fitted_json_path=Path(run_dir) / "static_fitted_parameters.json",
         fitted_table_path=Path(run_dir) / "static_fitted_parameters_table.tex",
         fitted_markdown_path=Path(run_dir) / "static_fitted_parameters_table.md",
@@ -103,7 +107,9 @@ def materialize_static_companion_artifacts(
             )
         plot_static_raw_energies(result, paths.raw_figure_path)
         plot_static_single_excitation_overlaps(result, paths.overlap_figure_path)
-        plot_static_computational_basis_amplitudes(result, paths.basis_amplitude_figure_path)
+        plot_static_computational_basis_amplitudes(
+            result, paths.basis_amplitude_figure_path
+        )
     fitted_artifact = build_static_fitted_models_artifact(result, config=config)
     save_static_fitted_models_artifact(fitted_artifact, paths.fitted_json_path)
     paths.fitted_table_path.write_text(

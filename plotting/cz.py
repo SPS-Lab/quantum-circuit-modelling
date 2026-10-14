@@ -39,7 +39,9 @@ def _pi_over_two_tick_label(k: int) -> str:
 
 def _set_phase_axis_pi_ticks(ax: plt.Axes, phase_arrays: list[np.ndarray]) -> None:
     """Set y-ticks on the phase axis at multiples of pi/2 over the data range."""
-    phase_values = np.concatenate([np.asarray(arr, dtype=float).ravel() for arr in phase_arrays])
+    phase_values = np.concatenate(
+        [np.asarray(arr, dtype=float).ravel() for arr in phase_arrays]
+    )
     phase_values = phase_values[np.isfinite(phase_values)]
     if phase_values.size == 0:
         return
@@ -68,9 +70,15 @@ def plot_cz_benchmark(
         )
         ax_flux = ax_phase.twinx()
 
-        ax_phase.plot(t, result.circuit_conditional_phase, **model_plot_kwargs("circuit"))
-        ax_phase.plot(t, result.duffing_conditional_phase, **model_plot_kwargs("duffing"))
-        ax_phase.plot(t, result.effective_conditional_phase, **model_plot_kwargs("effective"))
+        ax_phase.plot(
+            t, result.circuit_conditional_phase, **model_plot_kwargs("circuit")
+        )
+        ax_phase.plot(
+            t, result.duffing_conditional_phase, **model_plot_kwargs("duffing")
+        )
+        ax_phase.plot(
+            t, result.effective_conditional_phase, **model_plot_kwargs("effective")
+        )
         _set_phase_axis_pi_ticks(
             ax_phase,
             [

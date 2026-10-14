@@ -83,7 +83,9 @@ def _idle_flux_for_target(config: StudyConfig, sweep_target: str) -> float:
 
 def _pick_target_flux_from_static(static_result, *, idle_flux: float) -> float:
     flux = np.asarray(static_result.flux_values, dtype=float).ravel()
-    zeta = np.abs(np.asarray(static_result.circuit_parameters["zeta"], dtype=float).ravel())
+    zeta = np.abs(
+        np.asarray(static_result.circuit_parameters["zeta"], dtype=float).ravel()
+    )
     if flux.size < 2:
         return float(idle_flux)
 
@@ -97,7 +99,9 @@ def _pick_target_flux_from_static(static_result, *, idle_flux: float) -> float:
     near_max_mask = valid & (zeta >= 0.98 * max_zeta)
     near_max_idx = np.flatnonzero(near_max_mask)
     if near_max_idx.size > 0:
-        idx = int(near_max_idx[np.argmin(np.abs(flux[near_max_idx] - float(idle_flux)))])
+        idx = int(
+            near_max_idx[np.argmin(np.abs(flux[near_max_idx] - float(idle_flux)))]
+        )
     else:
         idx = int(np.argmax(zeta_valid))
 
@@ -215,7 +219,9 @@ def _simulate_piecewise_constant_scipy(
     if d != d2:
         raise ValueError(f"H_stack must be square, got {H.shape}")
     if n_time != t.size:
-        raise ValueError(f"H_stack first axis ({n_time}) must match time size ({t.size})")
+        raise ValueError(
+            f"H_stack first axis ({n_time}) must match time size ({t.size})"
+        )
     if comp_idx.size != 4:
         raise ValueError("Need exactly 4 computational indices")
 
@@ -225,7 +231,11 @@ def _simulate_piecewise_constant_scipy(
 
     comp_amp = np.zeros((n_time, 4, 4), dtype=complex)
     comp_amp[0] = states[comp_idx, :]
-    mon_idx = None if monitor_indices is None else np.asarray(monitor_indices, dtype=int).ravel()
+    mon_idx = (
+        None
+        if monitor_indices is None
+        else np.asarray(monitor_indices, dtype=int).ravel()
+    )
     mon = np.zeros(n_time, dtype=float)
     if mon_idx is not None and mon_idx.size > 0:
         mon[0] = float(np.sum(np.abs(states[mon_idx, 3]) ** 2))
@@ -267,13 +277,19 @@ def _q1c0q0_index(q1: int, q0: int, *, nlevels_qubit: int, nlevels_coupler: int)
     return int(q1) * int(nlevels_coupler) * int(nlevels_qubit) + int(q0)
 
 
-def _intermediate_channel_indices(*, nlevels_qubit: int, nlevels_coupler: int) -> np.ndarray:
+def _intermediate_channel_indices(
+    *, nlevels_qubit: int, nlevels_coupler: int
+) -> np.ndarray:
     if int(nlevels_qubit) < 3:
         return np.zeros(0, dtype=int)
     return np.array(
         [
-            _q1c0q0_index(0, 2, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler),
-            _q1c0q0_index(2, 0, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler),
+            _q1c0q0_index(
+                0, 2, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler
+            ),
+            _q1c0q0_index(
+                2, 0, nlevels_qubit=nlevels_qubit, nlevels_coupler=nlevels_coupler
+            ),
         ],
         dtype=int,
     )
@@ -481,7 +497,9 @@ def run_cz_benchmark(
 
     duffing_build_started = time.perf_counter()
     with progress_heartbeat("cz benchmark: build Duffing Hamiltonian"):
-        if is_reference_calibrated_duffing_mode(config.static_benchmark.duffing_model.calibration_mode):
+        if is_reference_calibrated_duffing_mode(
+            config.static_benchmark.duffing_model.calibration_mode
+        ):
             duffing_mode_parameters_t = duffing_mode_parameters_for_flux(
                 static_result,
                 config,
@@ -539,16 +557,30 @@ def run_cz_benchmark(
     )
     circuit_prop_runtime_s = float(time.perf_counter() - circuit_prop_started)
 
-    eff_pop_rmse = float(np.sqrt(np.mean((obs_effective.populations_11 - obs_circuit.populations_11) ** 2)))
-    duf_pop_rmse = float(np.sqrt(np.mean((obs_duffing.populations_11 - obs_circuit.populations_11) ** 2)))
-    eff_phase_err = float(np.abs(obs_effective.conditional_phase[-1] - obs_circuit.conditional_phase[-1]))
-    duf_phase_err = float(np.abs(obs_duffing.conditional_phase[-1] - obs_circuit.conditional_phase[-1]))
+    eff_pop_rmse = float(
+        np.sqrt(
+            np.mean((obs_effective.populations_11 - obs_circuit.populations_11) ** 2)
+        )
+    )
+    duf_pop_rmse = float(
+        np.sqrt(np.mean((obs_duffing.populations_11 - obs_circuit.populations_11) ** 2))
+    )
+    eff_phase_err = float(
+        np.abs(obs_effective.conditional_phase[-1] - obs_circuit.conditional_phase[-1])
+    )
+    duf_phase_err = float(
+        np.abs(obs_duffing.conditional_phase[-1] - obs_circuit.conditional_phase[-1])
+    )
 
     summary = {
-        "effective_final_conditional_phase_rad": float(obs_effective.conditional_phase[-1]),
+        "effective_final_conditional_phase_rad": float(
+            obs_effective.conditional_phase[-1]
+        ),
         "duffing_final_conditional_phase_rad": float(obs_duffing.conditional_phase[-1]),
         "circuit_final_conditional_phase_rad": float(obs_circuit.conditional_phase[-1]),
-        "circuit_final_phase_error_to_pi_rad": _phase_error_to_cz_target(float(obs_circuit.conditional_phase[-1])),
+        "circuit_final_phase_error_to_pi_rad": _phase_error_to_cz_target(
+            float(obs_circuit.conditional_phase[-1])
+        ),
         "effective_final_phase_error_vs_circuit_rad": eff_phase_err,
         "duffing_final_phase_error_vs_circuit_rad": duf_phase_err,
         "effective_max_leakage_11": float(np.max(obs_effective.leakage_11)),
@@ -572,9 +604,15 @@ def run_cz_benchmark(
         "effective_propagation_runtime_s": effective_prop_runtime_s,
         "duffing_propagation_runtime_s": duffing_prop_runtime_s,
         "circuit_propagation_runtime_s": circuit_prop_runtime_s,
-        "effective_dynamics_runtime_s": float(effective_build_runtime_s + effective_prop_runtime_s),
-        "duffing_dynamics_runtime_s": float(duffing_build_runtime_s + duffing_prop_runtime_s),
-        "circuit_dynamics_runtime_s": float(circuit_build_runtime_s + circuit_prop_runtime_s),
+        "effective_dynamics_runtime_s": float(
+            effective_build_runtime_s + effective_prop_runtime_s
+        ),
+        "duffing_dynamics_runtime_s": float(
+            duffing_build_runtime_s + duffing_prop_runtime_s
+        ),
+        "circuit_dynamics_runtime_s": float(
+            circuit_build_runtime_s + circuit_prop_runtime_s
+        ),
     }
 
     plus_plus_coeff = np.full(4, 0.5 + 0.0j, dtype=complex)
@@ -618,13 +656,27 @@ def run_cz_benchmark(
         effective_conditional_phase=obs_effective.conditional_phase,
         duffing_conditional_phase=obs_duffing.conditional_phase,
         circuit_conditional_phase=obs_circuit.conditional_phase,
-        effective_computational_amplitudes=np.asarray(obs_effective.computational_amplitudes, dtype=complex),
-        duffing_computational_amplitudes=np.asarray(obs_duffing.computational_amplitudes, dtype=complex),
-        circuit_computational_amplitudes=np.asarray(obs_circuit.computational_amplitudes, dtype=complex),
-        effective_statevector_plus_plus=np.asarray(effective_statevector_plus_plus, dtype=complex),
-        duffing_statevector_plus_plus=np.asarray(duffing_statevector_plus_plus, dtype=complex),
-        circuit_statevector_plus_plus=np.asarray(circuit_statevector_plus_plus, dtype=complex),
-        effective_populations_plus_plus=np.asarray(effective_pop_plus_plus, dtype=float),
+        effective_computational_amplitudes=np.asarray(
+            obs_effective.computational_amplitudes, dtype=complex
+        ),
+        duffing_computational_amplitudes=np.asarray(
+            obs_duffing.computational_amplitudes, dtype=complex
+        ),
+        circuit_computational_amplitudes=np.asarray(
+            obs_circuit.computational_amplitudes, dtype=complex
+        ),
+        effective_statevector_plus_plus=np.asarray(
+            effective_statevector_plus_plus, dtype=complex
+        ),
+        duffing_statevector_plus_plus=np.asarray(
+            duffing_statevector_plus_plus, dtype=complex
+        ),
+        circuit_statevector_plus_plus=np.asarray(
+            circuit_statevector_plus_plus, dtype=complex
+        ),
+        effective_populations_plus_plus=np.asarray(
+            effective_pop_plus_plus, dtype=float
+        ),
         duffing_populations_plus_plus=np.asarray(duffing_pop_plus_plus, dtype=float),
         circuit_populations_plus_plus=np.asarray(circuit_pop_plus_plus, dtype=float),
         effective_intermediate_population_11=obs_effective.monitor_population_11,

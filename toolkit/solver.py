@@ -5,6 +5,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 
+
 def _is_diagonal(H: np.ndarray, rtol: float = 1e-10, atol: float = 1e-10) -> bool:
     H = np.asarray(H)
     return bool(np.allclose(H, np.diag(np.diag(H)), rtol=rtol, atol=atol))

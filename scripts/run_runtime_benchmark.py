@@ -103,7 +103,9 @@ def main() -> None:
     reporter.line(f"  duffing_calibration_mode={result.duffing_calibration_mode}")
     reporter.line(f"  repeats={int(result.repeats)}")
     reporter.line(f"  fixed_hold_time_ns={float(result.fixed_hold_time_ns):.6f}")
-    reporter.line(f"  qubit_truncation_values={[int(v) for v in result.qubit_truncation_values]}")
+    reporter.line(
+        f"  qubit_truncation_values={[int(v) for v in result.qubit_truncation_values]}"
+    )
     reporter.line("Runtime benchmark summary:")
     for key, value in result.summary.items():
         reporter.line(f"  {key}: {value:.6e}")

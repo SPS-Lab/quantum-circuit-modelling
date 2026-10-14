@@ -28,7 +28,6 @@ from plotting.style import benchmark_style_names, benchmark_style_outfile
 from study_config import _flatten_run_all_benchmark_params, load_study_config
 
 
-
 def _add_required_study_sections(payload: dict[str, object]) -> None:
     payload.setdefault(
         "leakage_benchmark",
@@ -51,11 +50,12 @@ def _add_required_study_sections(payload: dict[str, object]) -> None:
 
 
 def _write_small_system_params(tmp_path: Path) -> Path:
-    payload = json.loads((_ROOT / "params" / "system_params.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (_ROOT / "params" / "system_params.json").read_text(encoding="utf-8")
+    )
     dst = tmp_path / "system_small.json"
     dst.write_text(json.dumps(payload), encoding="utf-8")
     return dst
-
 
 
 def _write_small_study_params(
@@ -66,7 +66,9 @@ def _write_small_study_params(
     duffing_ncut_values: list[int] | None = None,
     truncation_flux_values: list[float] | None = None,
 ) -> Path:
-    payload = json.loads((_ROOT / "params" / "benchmark_params.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (_ROOT / "params" / "benchmark_params.json").read_text(encoding="utf-8")
+    )
     payload = _flatten_run_all_benchmark_params(payload)
     _add_required_study_sections(payload)
     sb = payload["static_benchmark"]
@@ -100,7 +102,9 @@ def _write_small_study_params(
         dtb["flux_values"] = list(truncation_flux_values)
     else:
         dtb.pop("flux_values", None)
-    dtb["duffing_ncut_values"] = [3, 4, 6, 8] if duffing_ncut_values is None else list(duffing_ncut_values)
+    dtb["duffing_ncut_values"] = (
+        [3, 4, 6, 8] if duffing_ncut_values is None else list(duffing_ncut_values)
+    )
     dtb["duffing_reference_extraction_ncut"] = 8
     dtb["duffing_hilbert_qubit_dim_values"] = [2, 3]
     dtb["duffing_hilbert_coupler_dim_values"] = [2, 3]
@@ -145,7 +149,10 @@ def test_circuit_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
     assert out.circuit_coupler_truncation_spectrum_energy_rmse.shape == (2,)
     assert np.all(np.isfinite(out.circuit_ncut_energy_rmse))
     assert np.all(np.isfinite(out.circuit_ncut_spectrum_energy_rmse))
-    assert np.all(out.circuit_ncut_effective_qubit_truncated_dim_values <= (2 * out.circuit_ncut_values + 1))
+    assert np.all(
+        out.circuit_ncut_effective_qubit_truncated_dim_values
+        <= (2 * out.circuit_ncut_values + 1)
+    )
     assert np.all(np.isfinite(out.circuit_qubit_truncation_energy_rmse))
     assert np.all(np.isfinite(out.circuit_qubit_truncation_spectrum_energy_rmse))
     assert np.all(np.isfinite(out.circuit_coupler_truncation_energy_rmse))
@@ -156,11 +163,15 @@ def test_circuit_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
     assert np.all(np.isfinite(out.reference_circuit_zeta_values))
 
 
-def test_circuit_truncation_benchmark_accepts_more_than_five_flux_points(tmp_path: Path) -> None:
+def test_circuit_truncation_benchmark_accepts_more_than_five_flux_points(
+    tmp_path: Path,
+) -> None:
     flux_values = [0.10, 0.20, 0.23, 0.24, 0.25, 0.40, 0.50]
     cfg = load_study_config(
         system_params_path=_write_small_system_params(tmp_path),
-        study_params_path=_write_small_study_params(tmp_path, truncation_flux_values=flux_values),
+        study_params_path=_write_small_study_params(
+            tmp_path, truncation_flux_values=flux_values
+        ),
     )
 
     out = run_circuit_truncation_benchmark(cfg)
@@ -170,7 +181,9 @@ def test_circuit_truncation_benchmark_accepts_more_than_five_flux_points(tmp_pat
     assert out.reference_circuit_zeta_values.shape == (7,)
 
 
-def test_circuit_truncation_benchmark_skips_spectrum_metric_by_default(tmp_path: Path) -> None:
+def test_circuit_truncation_benchmark_skips_spectrum_metric_by_default(
+    tmp_path: Path,
+) -> None:
     cfg = load_study_config(
         system_params_path=_write_small_system_params(tmp_path),
         study_params_path=_write_small_study_params(tmp_path),
@@ -190,7 +203,9 @@ def test_strict_circuit_reference_builds_batched_stack_once(
     flux_values = [0.10, 0.20, 0.23, 0.24, 0.25, 0.40, 0.50]
     cfg = load_study_config(
         system_params_path=_write_small_system_params(tmp_path),
-        study_params_path=_write_small_study_params(tmp_path, truncation_flux_values=flux_values),
+        study_params_path=_write_small_study_params(
+            tmp_path, truncation_flux_values=flux_values
+        ),
     )
 
     original = truncation_module.build_circuit_model_stack
@@ -198,7 +213,9 @@ def test_strict_circuit_reference_builds_batched_stack_once(
 
     def _wrapped_build_circuit_model_stack(*args, **kwargs):
         local_flux_values = kwargs.get("flux_values")
-        captured_flux_lengths.append(int(np.asarray(local_flux_values, dtype=float).shape[0]))
+        captured_flux_lengths.append(
+            int(np.asarray(local_flux_values, dtype=float).shape[0])
+        )
         return original(*args, **kwargs)
 
     monkeypatch.setattr(
@@ -207,13 +224,19 @@ def test_strict_circuit_reference_builds_batched_stack_once(
         _wrapped_build_circuit_model_stack,
     )
 
-    ref_j_values, ref_zeta_values, ref_comp_rel_e_values, ref_spectrum_rel_e_values = truncation_module._extract_strict_circuit_reference(
-        config=cfg,
-        flux_values=np.asarray(flux_values, dtype=float),
-        reference_ncut=int(cfg.circuit_truncation_benchmark.circuit_reference_ncut),
-        reference_qdim=int(cfg.circuit_truncation_benchmark.circuit_reference_qubit_truncated_dim),
-        reference_cdim=int(cfg.circuit_truncation_benchmark.circuit_reference_coupler_truncated_dim),
-        include_spectrum_energy_metric=True,
+    ref_j_values, ref_zeta_values, ref_comp_rel_e_values, ref_spectrum_rel_e_values = (
+        truncation_module._extract_strict_circuit_reference(
+            config=cfg,
+            flux_values=np.asarray(flux_values, dtype=float),
+            reference_ncut=int(cfg.circuit_truncation_benchmark.circuit_reference_ncut),
+            reference_qdim=int(
+                cfg.circuit_truncation_benchmark.circuit_reference_qubit_truncated_dim
+            ),
+            reference_cdim=int(
+                cfg.circuit_truncation_benchmark.circuit_reference_coupler_truncated_dim
+            ),
+            include_spectrum_energy_metric=True,
+        )
     )
 
     assert captured_flux_lengths == [len(flux_values)]
@@ -242,7 +265,10 @@ def test_duffing_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
     assert out.duffing_hilbert_coupler_dim_values.shape == (2,)
     assert out.duffing_hilbert_coupler_energy_rmse.shape == (2,)
     assert out.duffing_hilbert_coupler_spectrum_energy_rmse.shape == (2,)
-    assert np.all(out.duffing_ncut_effective_truncated_dim_values <= (2 * out.duffing_ncut_values + 1))
+    assert np.all(
+        out.duffing_ncut_effective_truncated_dim_values
+        <= (2 * out.duffing_ncut_values + 1)
+    )
     assert np.all(out.duffing_ncut_effective_truncated_dim_values == 3)
     assert np.all(np.isfinite(out.duffing_ncut_energy_rmse))
     assert np.all(np.isfinite(out.duffing_ncut_spectrum_energy_rmse))
@@ -256,23 +282,27 @@ def test_duffing_truncation_benchmark_runs_with_small_config(tmp_path: Path) -> 
     assert np.all(np.isfinite(out.reference_circuit_zeta_values))
 
 
-def test_duffing_truncation_benchmark_accepts_more_than_five_flux_points(tmp_path: Path) -> None:
+def test_duffing_truncation_benchmark_accepts_more_than_five_flux_points(
+    tmp_path: Path,
+) -> None:
     flux_values = [0.10, 0.20, 0.23, 0.24, 0.25, 0.40, 0.50]
     cfg = load_study_config(
         system_params_path=_write_small_system_params(tmp_path),
-        study_params_path=_write_small_study_params(tmp_path, truncation_flux_values=flux_values),
+        study_params_path=_write_small_study_params(
+            tmp_path, truncation_flux_values=flux_values
+        ),
     )
 
-    out = run_duffing_truncation_benchmark(
-        cfg, include_spectrum_energy_metric=True
-    )
+    out = run_duffing_truncation_benchmark(cfg, include_spectrum_energy_metric=True)
 
     assert out.flux_values.shape == (7,)
     assert out.reference_circuit_j_values.shape == (7,)
     assert out.reference_circuit_zeta_values.shape == (7,)
 
 
-def test_duffing_truncation_benchmark_skips_spectrum_metric_by_default(tmp_path: Path) -> None:
+def test_duffing_truncation_benchmark_skips_spectrum_metric_by_default(
+    tmp_path: Path,
+) -> None:
     cfg = load_study_config(
         system_params_path=_write_small_system_params(tmp_path),
         study_params_path=_write_small_study_params(tmp_path),
@@ -290,7 +320,9 @@ def test_duffing_truncation_benchmark_rejects_nonpositive_ncut(tmp_path: Path) -
     with pytest.raises(ValueError, match="positive"):
         load_study_config(
             system_params_path=_write_small_system_params(tmp_path),
-            study_params_path=_write_small_study_params(tmp_path, duffing_ncut_values=[0]),
+            study_params_path=_write_small_study_params(
+                tmp_path, duffing_ncut_values=[0]
+            ),
         )
 
 
@@ -349,7 +381,9 @@ def test_duffing_truncation_plot_writes_pdf(tmp_path: Path) -> None:
     _assert_benchmark_pdfs_written(outfile)
 
 
-def test_duffing_truncation_benchmark_runs_with_symbolic_fitted_static(tmp_path: Path) -> None:
+def test_duffing_truncation_benchmark_runs_with_symbolic_fitted_static(
+    tmp_path: Path,
+) -> None:
     cfg = load_study_config(
         system_params_path=_write_small_system_params(tmp_path),
         study_params_path=_write_small_study_params(
@@ -393,7 +427,9 @@ def test_duffing_truncation_benchmark_uses_truncation_fluxes_for_reference_fit(
     def _wrapped_build_reference_dressed_stack(**kwargs):
         local_flux_values = kwargs.get("flux_values")
         assert local_flux_values is not None
-        captured_lengths.append(int(np.asarray(local_flux_values, dtype=float).shape[0]))
+        captured_lengths.append(
+            int(np.asarray(local_flux_values, dtype=float).shape[0])
+        )
         return original(**kwargs)
 
     monkeypatch.setattr(

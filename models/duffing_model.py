@@ -124,7 +124,9 @@ def build_duffing_model_stack_from_parameters(
     )
 
 
-def _select_symbolic_harmonic_count(flux_values: np.ndarray, *, max_harmonics: int = 5) -> int:
+def _select_symbolic_harmonic_count(
+    flux_values: np.ndarray, *, max_harmonics: int = 5
+) -> int:
     n_points = int(np.asarray(flux_values, dtype=float).size)
     if n_points < 3:
         return 1
@@ -175,7 +177,9 @@ def _reference_calibration_designs(
     n_harmonics_g: int,
 ) -> tuple[tuple[str, ...], dict[str, np.ndarray], dict[str, np.ndarray]]:
     cosine_design_w = _cosine_design_matrix(flux_values, n_harmonics=n_harmonics_w)
-    cosine_design_alpha = _cosine_design_matrix(flux_values, n_harmonics=n_harmonics_alpha)
+    cosine_design_alpha = _cosine_design_matrix(
+        flux_values, n_harmonics=n_harmonics_alpha
+    )
     cosine_design_g = _cosine_design_matrix(flux_values, n_harmonics=n_harmonics_g)
     constant_design = _constant_design_matrix(flux_values)
     cosine_names_w = _cosine_coefficient_names(n_harmonics=n_harmonics_w)
@@ -266,7 +270,9 @@ def evaluate_symbolic_duffing_parameter_fit(
         n_harmonics_g=inferred_harmonics_g,
     )
     available_order = tuple(
-        name for name in parameter_order if name in coefficient_names and name in coefficients
+        name
+        for name in parameter_order
+        if name in coefficient_names and name in coefficients
     )
     return _evaluate_parameter_coefficients_from_designs(
         coefficient_map={
@@ -291,12 +297,19 @@ def _assemble_fixed_bus_duffing_mode_parameters(
     if not parameters:
         raise ValueError("symbolic_parameters must not be empty")
     reference_shape = next(iter(parameters.values())).shape
-    if any(np.asarray(values, dtype=float).ravel().shape != reference_shape for values in parameters.values()):
-        raise ValueError("All Duffing symbolic parameter arrays must share the same shape")
+    if any(
+        np.asarray(values, dtype=float).ravel().shape != reference_shape
+        for values in parameters.values()
+    ):
+        raise ValueError(
+            "All Duffing symbolic parameter arrays must share the same shape"
+        )
     if "wc" in parameters:
         parameters["wc"] = np.asarray(parameters["wc"], dtype=float).ravel()
     else:
-        parameters["wc"] = np.full(reference_shape, float(system_params.c.E_osc), dtype=float)
+        parameters["wc"] = np.full(
+            reference_shape, float(system_params.c.E_osc), dtype=float
+        )
     return parameters
 
 

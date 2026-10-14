@@ -5,11 +5,14 @@ Create the annihilation operator, in the number basis.
 
 nlevels: number of levels
 """
+
+
 def destroy(nlevels):
     a = np.zeros((nlevels, nlevels), dtype=complex)
     for k in range(1, nlevels):
-        a[k-1, k] = np.sqrt(k)
+        a[k - 1, k] = np.sqrt(k)
     return a
+
 
 # Pauli matrices and 2x2 identity
 px = np.array([[0, 1], [1, 0]], dtype=complex)

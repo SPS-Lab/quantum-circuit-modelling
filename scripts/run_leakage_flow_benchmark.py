@@ -16,7 +16,10 @@ from benchmark_results_io import (
 )
 from benchmark_run_artifacts import prepare_benchmark_run
 from benchmark_cli_reporting import CliReporter, build_common_truncation_lines
-from comparison.leakage_flow import LeakageFlowBenchmarkResult, run_leakage_flow_benchmark
+from comparison.leakage_flow import (
+    LeakageFlowBenchmarkResult,
+    run_leakage_flow_benchmark,
+)
 from plotting.leakage_flow import plot_leakage_flow_benchmark
 from static_fitted_artifacts import (
     load_static_fitted_models_artifact,
@@ -68,7 +71,9 @@ def _parse_args() -> argparse.Namespace:
 def main() -> None:
     args = _parse_args()
     repo_root = _REPO_ROOT
-    reporter = CliReporter(benchmark_name="leakage_flow", script_name=Path(__file__).name)
+    reporter = CliReporter(
+        benchmark_name="leakage_flow", script_name=Path(__file__).name
+    )
     config = load_study_config(
         system_params_path=repo_root / "params" / "system_params.json",
         study_params_path=repo_root / "params" / "benchmark_params.json",
@@ -102,7 +107,9 @@ def main() -> None:
         else resolve_static_fitted_artifact_path(args.from_fitted)
     )
     precomputed_static_result = (
-        None if fitted_source_path is None else load_static_fitted_models_artifact(fitted_source_path)
+        None
+        if fitted_source_path is None
+        else load_static_fitted_models_artifact(fitted_source_path)
     )
 
     if args.plot_only:

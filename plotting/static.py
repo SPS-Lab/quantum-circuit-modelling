@@ -93,7 +93,9 @@ def _align_amplitudes_by_labels(
     labels_src = _decode_labels(source_labels)
     amp = np.asarray(source_amplitudes, dtype=complex)
     if amp.ndim != 2 or amp.shape[1] != len(labels_src):
-        raise ValueError("source_amplitudes must have shape (n_flux, n_state) matching source_labels")
+        raise ValueError(
+            "source_amplitudes must have shape (n_flux, n_state) matching source_labels"
+        )
     out = np.zeros((amp.shape[0], len(target_labels)), dtype=complex)
     label_to_idx = {label: idx for idx, label in enumerate(labels_src)}
     for j, label in enumerate(target_labels):
@@ -115,7 +117,11 @@ def _plot_static_energy_panel(
     include_other_levels: bool = True,
     level_linestyles: tuple[object, object, object] | None = None,
 ) -> None:
-    if include_other_levels and circuit_full_relative is not None and duffing_full_relative is not None:
+    if (
+        include_other_levels
+        and circuit_full_relative is not None
+        and duffing_full_relative is not None
+    ):
         n_full = int(circuit_full_relative.shape[1])
         if n_full > 4:
             for i in range(4, n_full):
@@ -146,14 +152,22 @@ def _plot_static_energy_panel(
             flux,
             circuit_relative[:, i],
             color=model_color("circuit"),
-            alpha=MODEL_ALPHAS["circuit"] if use_level_linestyle else MODEL_ALPHAS["circuit"] * energy_level_alpha(i - 1),
+            alpha=(
+                MODEL_ALPHAS["circuit"]
+                if use_level_linestyle
+                else MODEL_ALPHAS["circuit"] * energy_level_alpha(i - 1)
+            ),
             **line_kwargs,
         )
         ax.plot(
             flux,
             duffing_relative[:, i],
             color=model_color("duffing"),
-            alpha=MODEL_ALPHAS["duffing"] if use_level_linestyle else MODEL_ALPHAS["duffing"] * energy_level_alpha(i - 1),
+            alpha=(
+                MODEL_ALPHAS["duffing"]
+                if use_level_linestyle
+                else MODEL_ALPHAS["duffing"] * energy_level_alpha(i - 1)
+            ),
             **line_kwargs,
         )
         if effective_relative is not None:
@@ -161,7 +175,11 @@ def _plot_static_energy_panel(
                 flux,
                 effective_relative[:, i],
                 color=model_color("effective"),
-                alpha=MODEL_ALPHAS["effective"] if use_level_linestyle else MODEL_ALPHAS["effective"] * energy_level_alpha(i - 1),
+                alpha=(
+                    MODEL_ALPHAS["effective"]
+                    if use_level_linestyle
+                    else MODEL_ALPHAS["effective"] * energy_level_alpha(i - 1)
+                ),
                 **line_kwargs,
             )
 
@@ -174,9 +192,30 @@ def _static_level_legend(
 ) -> list[Line2D]:
     if linestyles is None:
         handles = [
-            Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(0), label=labels[0]),
-            Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(1), label=labels[1]),
-            Line2D([0], [0], color="0.15", linewidth=PRIMARY_LEVEL_LINEWIDTH, alpha=energy_level_alpha(2), label=labels[2]),
+            Line2D(
+                [0],
+                [0],
+                color="0.15",
+                linewidth=PRIMARY_LEVEL_LINEWIDTH,
+                alpha=energy_level_alpha(0),
+                label=labels[0],
+            ),
+            Line2D(
+                [0],
+                [0],
+                color="0.15",
+                linewidth=PRIMARY_LEVEL_LINEWIDTH,
+                alpha=energy_level_alpha(1),
+                label=labels[1],
+            ),
+            Line2D(
+                [0],
+                [0],
+                color="0.15",
+                linewidth=PRIMARY_LEVEL_LINEWIDTH,
+                alpha=energy_level_alpha(2),
+                label=labels[2],
+            ),
         ]
     else:
         handles = [
@@ -287,7 +326,9 @@ def plot_static_j_zz_benchmark(
 
         axJ.plot(flux, result.circuit_parameters["J"], **model_plot_kwargs("circuit"))
         axJ.plot(flux, result.duffing_parameters["J"], **model_plot_kwargs("duffing"))
-        axJ.plot(flux, result.effective_parameters["J"], **model_plot_kwargs("effective"))
+        axJ.plot(
+            flux, result.effective_parameters["J"], **model_plot_kwargs("effective")
+        )
         axJ.axhline(0.0, color=REFERENCE_LINE_COLOR, linewidth=REFERENCE_LINEWIDTH)
         axJ.set_ylabel(r"Exchange $J$")
         axJ.grid()
@@ -311,9 +352,15 @@ def plot_static_j_zz_benchmark(
         axJErr.set_ylabel("Error (%)")
         axJErr.grid()
 
-        axZeta.plot(flux, result.circuit_parameters["zeta"], **model_plot_kwargs("circuit"))
-        axZeta.plot(flux, result.duffing_parameters["zeta"], **model_plot_kwargs("duffing"))
-        axZeta.plot(flux, result.effective_parameters["zeta"], **model_plot_kwargs("effective"))
+        axZeta.plot(
+            flux, result.circuit_parameters["zeta"], **model_plot_kwargs("circuit")
+        )
+        axZeta.plot(
+            flux, result.duffing_parameters["zeta"], **model_plot_kwargs("duffing")
+        )
+        axZeta.plot(
+            flux, result.effective_parameters["zeta"], **model_plot_kwargs("effective")
+        )
         axZeta.axhline(0.0, color=REFERENCE_LINE_COLOR, linewidth=REFERENCE_LINEWIDTH)
         axZeta.set_ylabel(r"Residual ZZ $\zeta$")
         axZeta.grid()
@@ -359,7 +406,9 @@ def plot_static_raw_energies(
     flux = np.asarray(result.flux_values, dtype=float)
 
     def _build_figure() -> plt.Figure:
-        fig, ax = plt.subplots(1, 1, figsize=figure_size("static_raw_energies"), sharex=True)
+        fig, ax = plt.subplots(
+            1, 1, figsize=figure_size("static_raw_energies"), sharex=True
+        )
         _plot_static_energy_panel(
             ax,
             flux,
@@ -393,10 +442,20 @@ def plot_static_single_excitation_overlaps(
     flux = np.asarray(result.flux_values, dtype=float)
 
     def _build_figure() -> plt.Figure:
-        fig, axes = plt.subplots(1, 2, figsize=figure_size("static_overlaps"), sharex=True, sharey=True)
+        fig, axes = plt.subplots(
+            1, 2, figsize=figure_size("static_overlaps"), sharex=True, sharey=True
+        )
         panels = (
-            ("circuit", axes[0], np.asarray(result.circuit_computational_bare_overlaps, dtype=float)),
-            ("duffing", axes[1], np.asarray(result.duffing_computational_bare_overlaps, dtype=float)),
+            (
+                "circuit",
+                axes[0],
+                np.asarray(result.circuit_computational_bare_overlaps, dtype=float),
+            ),
+            (
+                "duffing",
+                axes[1],
+                np.asarray(result.duffing_computational_bare_overlaps, dtype=float),
+            ),
         )
         bare_labels = (r"$|01\rangle$", r"$|10\rangle$")
         branch_labels = (r"$E_{1}$ branch", r"$E_{2}$ branch")
@@ -419,8 +478,14 @@ def plot_static_single_excitation_overlaps(
             ax.set_ylim(-0.02, 1.02)
             ax.grid()
 
-        axes[0].set_ylabel(r"Bare overlap $|\langle \mathrm{bare} | \mathrm{dressed} \rangle|^2$")
-        axes[1].legend(loc="upper center", bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR, ncol=2)
+        axes[0].set_ylabel(
+            r"Bare overlap $|\langle \mathrm{bare} | \mathrm{dressed} \rangle|^2$"
+        )
+        axes[1].legend(
+            loc="upper center",
+            bbox_to_anchor=STATIC_LEVEL_LEGEND_BBOX_TO_ANCHOR,
+            ncol=2,
+        )
         benchmark_tight_layout(fig)
         return fig
 
@@ -453,7 +518,9 @@ def plot_static_computational_basis_amplitudes(
     )
 
     def _build_figure() -> plt.Figure:
-        fig = plt.figure(figsize=figure_size("static_amplitudes"), constrained_layout=True)
+        fig = plt.figure(
+            figsize=figure_size("static_amplitudes"), constrained_layout=True
+        )
         gs = fig.add_gridspec(
             4,
             3,
@@ -470,36 +537,61 @@ def plot_static_computational_basis_amplitudes(
         cax = fig.add_subplot(gs[:, 2])
 
         for row, branch_label in enumerate(branch_labels):
-            circuit_labels = _select_top_state_labels(panels[0][1][:, :, row], panels[0][2], max_rows=max_rows)
-            duffing_labels = _select_top_state_labels(panels[1][1][:, :, row], panels[1][2], max_rows=max_rows)
-            union_labels = sorted(set(circuit_labels) | set(duffing_labels), key=_state_sort_key)
+            circuit_labels = _select_top_state_labels(
+                panels[0][1][:, :, row], panels[0][2], max_rows=max_rows
+            )
+            duffing_labels = _select_top_state_labels(
+                panels[1][1][:, :, row], panels[1][2], max_rows=max_rows
+            )
+            union_labels = sorted(
+                set(circuit_labels) | set(duffing_labels), key=_state_sort_key
+            )
             if len(union_labels) > max_rows:
                 label_scores: dict[str, float] = {}
                 for _, amplitudes, labels in panels:
-                    aligned = _align_amplitudes_by_labels(union_labels, labels, amplitudes[:, :, row])
+                    aligned = _align_amplitudes_by_labels(
+                        union_labels, labels, amplitudes[:, :, row]
+                    )
                     scores = np.max(np.abs(aligned) ** 2, axis=0)
                     for idx, label in enumerate(union_labels):
-                        label_scores[label] = max(label_scores.get(label, 0.0), float(scores[idx]))
+                        label_scores[label] = max(
+                            label_scores.get(label, 0.0), float(scores[idx])
+                        )
                 union_labels = sorted(
-                    sorted(union_labels, key=lambda label: (-label_scores[label], _state_sort_key(label)))[:max_rows],
+                    sorted(
+                        union_labels,
+                        key=lambda label: (
+                            -label_scores[label],
+                            _state_sort_key(label),
+                        ),
+                    )[:max_rows],
                     key=_state_sort_key,
                 )
             for col, (model_name, amplitudes, labels) in enumerate(panels):
                 ax = axes[row, col]
-                aligned = _align_amplitudes_by_labels(union_labels, labels, amplitudes[:, :, row])
+                aligned = _align_amplitudes_by_labels(
+                    union_labels, labels, amplitudes[:, :, row]
+                )
                 rgb = _phase_population_rgb(aligned, union_labels)
                 ax.imshow(
                     rgb,
                     aspect="auto",
                     origin="lower",
                     interpolation="nearest",
-                    extent=(float(flux[0]), float(flux[-1]), -0.5, len(union_labels) - 0.5),
+                    extent=(
+                        float(flux[0]),
+                        float(flux[-1]),
+                        -0.5,
+                        len(union_labels) - 0.5,
+                    ),
                     zorder=2,
                 )
                 ax.grid(True, alpha=0.12)
                 ax.set_yticks(np.arange(len(union_labels), dtype=int))
                 if col == 0:
-                    ax.set_yticklabels([_state_label_math(label) for label in union_labels])
+                    ax.set_yticklabels(
+                        [_state_label_math(label) for label in union_labels]
+                    )
                     ax.set_ylabel(f"{branch_label}\nBare states")
                     ax.tick_params(axis="y", pad=4)
                 else:
@@ -509,11 +601,15 @@ def plot_static_computational_basis_amplitudes(
                 if row == 3:
                     ax.set_xlabel(r"Flux bias ($\phi$)")
 
-        phase_mappable = plt.cm.ScalarMappable(cmap="hsv", norm=plt.Normalize(vmin=-np.pi, vmax=np.pi))
+        phase_mappable = plt.cm.ScalarMappable(
+            cmap="hsv", norm=plt.Normalize(vmin=-np.pi, vmax=np.pi)
+        )
         phase_mappable.set_array([])
         cbar = fig.colorbar(phase_mappable, cax=cax)
         cbar.set_ticks([-np.pi, -0.5 * np.pi, 0.0, 0.5 * np.pi, np.pi])
-        cbar.set_ticklabels(["$-\\pi$", "$-\\frac{\\pi}{2}$", "$0$", "$\\frac{\\pi}{2}$", "$\\pi$"])
+        cbar.set_ticklabels(
+            ["$-\\pi$", "$-\\frac{\\pi}{2}$", "$0$", "$\\frac{\\pi}{2}$", "$\\pi$"]
+        )
         cbar.set_label("Phase hue (rad)\nStrength ~ sqrt(population)")
         return fig
 

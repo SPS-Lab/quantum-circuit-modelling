@@ -52,15 +52,26 @@ def duffing_mode_parameters_for_flux(
     """Evaluate fitted Duffing parameters at target flux points when possible."""
     flux_arr = np.asarray(flux_values, dtype=float).ravel()
     sweep_target = _sweep_target(static_result, config)
-    mode = str(
-        getattr(static_result, "duffing_calibration_mode", "")
-        or config.static_benchmark.duffing_model.calibration_mode
-    ).strip().lower()
+    mode = (
+        str(
+            getattr(static_result, "duffing_calibration_mode", "")
+            or config.static_benchmark.duffing_model.calibration_mode
+        )
+        .strip()
+        .lower()
+    )
     if mode == "symbolic-fitted-static":
-        symbolic_coeff_names = getattr(static_result, "duffing_symbolic_coefficient_names", {})
-        symbolic_coefficients = getattr(static_result, "duffing_symbolic_coefficients", {})
+        symbolic_coeff_names = getattr(
+            static_result, "duffing_symbolic_coefficient_names", {}
+        )
+        symbolic_coefficients = getattr(
+            static_result, "duffing_symbolic_coefficients", {}
+        )
         required = ("w0", "w1", "alpha0", "alpha1", "g0c", "g1c")
-        if all(name in symbolic_coeff_names and name in symbolic_coefficients for name in required):
+        if all(
+            name in symbolic_coeff_names and name in symbolic_coefficients
+            for name in required
+        ):
             return evaluate_symbolic_duffing_mode_parameters(
                 flux_arr,
                 system_params=config.system,
@@ -121,6 +132,8 @@ def _interpolate_parameter_mapping(
     x_ref = np.asarray(flux_reference, dtype=float).ravel()
     x = np.asarray(pulse_flux, dtype=float).ravel()
     return {
-        key: np.interp(x, x_ref, np.asarray(parameters_reference[key], dtype=float).ravel())
+        key: np.interp(
+            x, x_ref, np.asarray(parameters_reference[key], dtype=float).ravel()
+        )
         for key in keys
     }

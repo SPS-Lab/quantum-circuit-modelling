@@ -15,14 +15,14 @@ class CircuitModelBuildResult:
     hamiltonian_stack: np.ndarray
 
 
-
 def _require_scqubits_module():
     try:
         import scqubits as scq
     except Exception as exc:  # pragma: no cover - import guard only
-        raise ImportError("scqubits import failed while building circuit model") from exc
+        raise ImportError(
+            "scqubits import failed while building circuit model"
+        ) from exc
     return scq
-
 
 
 def _build_circuit_hamiltonian(
@@ -77,7 +77,6 @@ def _build_circuit_hamiltonian(
     )
 
     return np.asarray(hilbertspace.hamiltonian().full(), dtype=complex)
-
 
 
 def build_circuit_model_stack(

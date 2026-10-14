@@ -41,7 +41,9 @@ def progress_heartbeat(label: str, *, interval_s: float = 30.0):
     def _worker() -> None:
         while not stop_event.wait(interval):
             elapsed = time.perf_counter() - started
-            log_progress(f"{label} still running after {format_elapsed_compact(elapsed)}")
+            log_progress(
+                f"{label} still running after {format_elapsed_compact(elapsed)}"
+            )
 
     worker = threading.Thread(target=_worker, name="progress-heartbeat", daemon=True)
     log_progress(f"{label} started")
@@ -55,7 +57,9 @@ def progress_heartbeat(label: str, *, interval_s: float = 30.0):
         log_progress(f"{label} finished in {format_elapsed_compact(elapsed)}")
 
 
-def run_main_with_timing(main_fn: Callable[[], None], *, label: str = "Total runtime") -> None:
+def run_main_with_timing(
+    main_fn: Callable[[], None], *, label: str = "Total runtime"
+) -> None:
     """Run a script main function and print total elapsed time on exit."""
     started = time.perf_counter()
     try:

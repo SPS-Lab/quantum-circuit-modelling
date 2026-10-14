@@ -55,11 +55,7 @@ class RxBenchmarkResult:
     summary: dict[str, float]
 
 
-def _time_grid(
-    *,
-    total_time_ns: float,
-    dt_ns: float
-) -> np.ndarray:
+def _time_grid(*, total_time_ns: float, dt_ns: float) -> np.ndarray:
     total = float(total_time_ns)
     dt = float(dt_ns)
     if total <= 0.0:
@@ -79,7 +75,9 @@ def _time_grid(
     return grid
 
 
-def _cosine_edge_envelope(*, total_time_ns: float, rise_time_ns: float, dt_ns: float) -> tuple[np.ndarray, np.ndarray]:
+def _cosine_edge_envelope(
+    *, total_time_ns: float, rise_time_ns: float, dt_ns: float
+) -> tuple[np.ndarray, np.ndarray]:
     total = float(total_time_ns)
     rise = float(rise_time_ns)
     if rise <= 0.0:
@@ -116,7 +114,9 @@ def _simulate_computational_basis(
     if d != d2:
         raise ValueError(f"H_stack must be square, got {H.shape}")
     if n_time != t.size:
-        raise ValueError(f"H_stack first axis ({n_time}) must match time size ({t.size})")
+        raise ValueError(
+            f"H_stack first axis ({n_time}) must match time size ({t.size})"
+        )
     if comp_idx.size != 4:
         raise ValueError("Need exactly 4 computational indices")
 
@@ -157,13 +157,17 @@ def _effective_q0_lowering_operator() -> np.ndarray:
     return np.kron(I2, sm)
 
 
-def _three_mode_q0_lowering_operator(*, nlevels_qubit: int, nlevels_coupler: int) -> np.ndarray:
+def _three_mode_q0_lowering_operator(
+    *, nlevels_qubit: int, nlevels_coupler: int
+) -> np.ndarray:
     id_q = np.eye(int(nlevels_qubit), dtype=complex)
     id_c = np.eye(int(nlevels_coupler), dtype=complex)
     return np.kron(np.kron(id_q, id_c), destroy(int(nlevels_qubit)))
 
 
-def _three_mode_total_excitation_operator(*, nlevels_qubit: int, nlevels_coupler: int) -> np.ndarray:
+def _three_mode_total_excitation_operator(
+    *, nlevels_qubit: int, nlevels_coupler: int
+) -> np.ndarray:
     a_q = destroy(int(nlevels_qubit))
     a_c = destroy(int(nlevels_coupler))
     adag_q = a_q.conj().T
@@ -179,15 +183,25 @@ def _three_mode_total_excitation_operator(*, nlevels_qubit: int, nlevels_coupler
     )
 
 
-def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def _build_circuit_idle_components(
+    config: StudyConfig,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     try:
         import scqubits as scq
     except Exception as exc:  # pragma: no cover - import guard only
-        raise ImportError("scqubits import failed while building circuit RX benchmark") from exc
+        raise ImportError(
+            "scqubits import failed while building circuit RX benchmark"
+        ) from exc
 
-    q0_trunc = int(config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim)
-    q1_trunc = int(config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim)
-    c_trunc = int(config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim)
+    q0_trunc = int(
+        config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim
+    )
+    q1_trunc = int(
+        config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim
+    )
+    c_trunc = int(
+        config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim
+    )
 
     q0 = scq.TunableTransmon(
         EJmax=float(config.system.q0.EJmax),
@@ -214,19 +228,28 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
         truncated_dim=c_trunc,
         id_str=str(config.system.c.id_str),
     )
+
     def _to_matrix(operator: object) -> np.ndarray:
-        return np.asarray(operator.full(), dtype=complex) if hasattr(operator, "full") else np.asarray(operator, dtype=complex)
+        return (
+            np.asarray(operator.full(), dtype=complex)
+            if hasattr(operator, "full")
+            else np.asarray(operator, dtype=complex)
+        )
 
     hilbertspace = scq.HilbertSpace([q1, c, q0])
     x_c = c.creation_operator() + c.annihilation_operator()
     hilbertspace.add_interaction(
-        check_validity=bool(config.static_benchmark.circuit_model.interaction_validity_check),
+        check_validity=bool(
+            config.static_benchmark.circuit_model.interaction_validity_check
+        ),
         g=float(config.system.interactions.g_0c),
         op1=(q0.n_operator(), q0),
         op2=(x_c, c),
     )
     hilbertspace.add_interaction(
-        check_validity=bool(config.static_benchmark.circuit_model.interaction_validity_check),
+        check_validity=bool(
+            config.static_benchmark.circuit_model.interaction_validity_check
+        ),
         g=float(config.system.interactions.g_1c),
         op1=(q1.n_operator(), q1),
         op2=(x_c, c),
@@ -251,9 +274,13 @@ def _build_circuit_idle_components(config: StudyConfig) -> tuple[np.ndarray, np.
     return H, drive_lower, total_excitation
 
 
-def _single_point_duffing_stack(config: StudyConfig, *, flux_value: float, sweep_target: str) -> np.ndarray:
+def _single_point_duffing_stack(
+    config: StudyConfig, *, flux_value: float, sweep_target: str
+) -> np.ndarray:
     flux_arr = np.array([float(flux_value)], dtype=float)
-    if not is_reference_calibrated_duffing_mode(config.static_benchmark.duffing_model.calibration_mode):
+    if not is_reference_calibrated_duffing_mode(
+        config.static_benchmark.duffing_model.calibration_mode
+    ):
         return build_duffing_model_stack_from_scratch(
             flux_values=flux_arr,
             system_params=config.system,
@@ -363,18 +390,39 @@ def _derive_drive_frequency_from_circuit(config: StudyConfig) -> float:
     return float(np.asarray(params["w0"], dtype=float).ravel()[0])
 
 
-def _drive_hamiltonian(*, amplitude: float, phase_rad: float, envelope: np.ndarray, lowering_operator: np.ndarray) -> np.ndarray:
+def _drive_hamiltonian(
+    *,
+    amplitude: float,
+    phase_rad: float,
+    envelope: np.ndarray,
+    lowering_operator: np.ndarray,
+) -> np.ndarray:
     coeff_raise = np.exp(-1.0j * float(phase_rad))
     coeff_lower = np.exp(1.0j * float(phase_rad))
-    drive_matrix = -0.5 * float(amplitude) * (
-        coeff_raise * np.asarray(lowering_operator.conj().T, dtype=complex)
-        + coeff_lower * np.asarray(lowering_operator, dtype=complex)
+    drive_matrix = (
+        -0.5
+        * float(amplitude)
+        * (
+            coeff_raise * np.asarray(lowering_operator.conj().T, dtype=complex)
+            + coeff_lower * np.asarray(lowering_operator, dtype=complex)
+        )
     )
-    return np.asarray(envelope, dtype=float)[:, np.newaxis, np.newaxis] * drive_matrix[np.newaxis, :, :]
+    return (
+        np.asarray(envelope, dtype=float)[:, np.newaxis, np.newaxis]
+        * drive_matrix[np.newaxis, :, :]
+    )
 
 
-def _rotation_stack(*, drift_hamiltonian: np.ndarray, drive_frequency: float, total_excitation_operator: np.ndarray, drive_hamiltonian: np.ndarray) -> np.ndarray:
-    H_rot = np.asarray(drift_hamiltonian, dtype=complex) - float(drive_frequency) * np.asarray(total_excitation_operator, dtype=complex)
+def _rotation_stack(
+    *,
+    drift_hamiltonian: np.ndarray,
+    drive_frequency: float,
+    total_excitation_operator: np.ndarray,
+    drive_hamiltonian: np.ndarray,
+) -> np.ndarray:
+    H_rot = np.asarray(drift_hamiltonian, dtype=complex) - float(
+        drive_frequency
+    ) * np.asarray(total_excitation_operator, dtype=complex)
     return H_rot[np.newaxis, :, :] + np.asarray(drive_hamiltonian, dtype=complex)
 
 
@@ -468,9 +516,15 @@ def run_rx_benchmark(
         nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
     )
 
-    amp_effective = _simulate_computational_basis(H_effective, times_ns=times_ns, computational_indices=idx_effective)
-    amp_duffing = _simulate_computational_basis(H_duffing, times_ns=times_ns, computational_indices=idx_duffing)
-    amp_circuit = _simulate_computational_basis(H_circuit, times_ns=times_ns, computational_indices=idx_circuit)
+    amp_effective = _simulate_computational_basis(
+        H_effective, times_ns=times_ns, computational_indices=idx_effective
+    )
+    amp_duffing = _simulate_computational_basis(
+        H_duffing, times_ns=times_ns, computational_indices=idx_duffing
+    )
+    amp_circuit = _simulate_computational_basis(
+        H_circuit, times_ns=times_ns, computational_indices=idx_circuit
+    )
 
     eff_00_to_01 = _population_trace(amp_effective, row=1, col=0)
     duf_00_to_01 = _population_trace(amp_duffing, row=1, col=0)

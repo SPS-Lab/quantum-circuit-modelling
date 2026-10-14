@@ -54,7 +54,11 @@ def test_energy_level_alpha_descends_with_level_index() -> None:
 def test_model_legend_handles_keep_model_colors() -> None:
     handles = model_legend_handles()
 
-    assert [handle.get_label() for handle in handles] == ["Circuit", "Duffing", "Effective"]
+    assert [handle.get_label() for handle in handles] == [
+        "Circuit",
+        "Duffing",
+        "Effective",
+    ]
     assert [handle.get_color() for handle in handles] == ["C0", "C1", "C2"]
 
 
@@ -64,7 +68,9 @@ def test_benchmark_plot_style_uses_shared_default_font_size() -> None:
     with benchmark_plot_style():
         assert plt.rcParams["font.size"] == 8.5
         assert plt.rcParams["mathtext.fontset"] == "stix"
-        assert abs(plt.rcParams["figure.figsize"][0] - single_column_width_inches()) < 1e-6
+        assert (
+            abs(plt.rcParams["figure.figsize"][0] - single_column_width_inches()) < 1e-6
+        )
 
     assert plt.rcParams["font.size"] == base_size
 
@@ -86,14 +92,23 @@ def test_benchmark_style_paths_point_to_repo_owned_stylesheets() -> None:
     assert BEAMER_169_SLIDE_HEIGHT_CM == 9.0
     assert benchmark_style_names() == ("paper", "presentation")
     assert all(Path(path).exists() for path in benchmark_style_paths())
-    assert all(Path(path).exists() for style_name in benchmark_style_names() for path in benchmark_style_paths(style_name))
+    assert all(
+        Path(path).exists()
+        for style_name in benchmark_style_names()
+        for path in benchmark_style_paths(style_name)
+    )
 
 
-def test_benchmark_style_outfile_adds_style_suffix_before_extension(tmp_path: Path) -> None:
+def test_benchmark_style_outfile_adds_style_suffix_before_extension(
+    tmp_path: Path,
+) -> None:
     outfile = tmp_path / "example.pdf"
 
     assert benchmark_style_outfile(outfile, "paper").name == "example_paper.pdf"
-    assert benchmark_style_outfile(outfile, "presentation").name == "example_presentation.pdf"
+    assert (
+        benchmark_style_outfile(outfile, "presentation").name
+        == "example_presentation.pdf"
+    )
 
 
 def test_simple_single_axis_figures_can_be_narrower_than_full_column() -> None:
@@ -106,5 +121,7 @@ def test_presentation_reference_width_matches_beamer_169_width() -> None:
     assert abs(beamer_slide_width_inches() - (16.0 / 2.54)) < 1e-9
     assert abs(beamer_slide_height_inches() - (9.0 / 2.54)) < 1e-9
     with benchmark_plot_style("presentation"):
-        assert abs(benchmark_reference_width_inches() - beamer_slide_width_inches()) < 1e-9
+        assert (
+            abs(benchmark_reference_width_inches() - beamer_slide_width_inches()) < 1e-9
+        )
         assert abs(figure_size("runtime")[0] - beamer_slide_width_inches()) < 1e-9

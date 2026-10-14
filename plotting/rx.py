@@ -22,7 +22,9 @@ from plotting.style import (
 )
 
 
-def _add_drive_background(ax: plt.Axes, times_ns: np.ndarray, envelope: np.ndarray, amplitude: float) -> None:
+def _add_drive_background(
+    ax: plt.Axes, times_ns: np.ndarray, envelope: np.ndarray, amplitude: float
+) -> None:
     bg = ax.twinx()
     bg.set_zorder(0)
     ax.set_zorder(1)
@@ -179,7 +181,9 @@ def plot_rx_populations_benchmark(
         cumulative_outfile = (
             outfile
             if visible_rows == 3
-            else outfile.with_name(f"{outfile.stem}_rows_{visible_rows}{outfile.suffix}")
+            else outfile.with_name(
+                f"{outfile.stem}_rows_{visible_rows}{outfile.suffix}"
+            )
         )
         render_benchmark_figures(
             cumulative_outfile,

@@ -22,8 +22,10 @@ dependencies:
   - matplotlib
   - sympy
 
-  # Python type checker
+  # Python type checker, linter and formatter
   - pyright
+  - pylint
+  - black
 
   # For storing data
   - h5py

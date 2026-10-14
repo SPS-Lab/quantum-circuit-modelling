@@ -73,7 +73,9 @@ def _raw_energies(
     tracking_mode: str = "continuous",
     projector_track_single_excitation: bool = False,
 ) -> np.ndarray:
-    blocks = ((1, 2),) if projector_track_single_excitation and int(n_track) >= 3 else None
+    blocks = (
+        ((1, 2),) if projector_track_single_excitation and int(n_track) >= 3 else None
+    )
     evals = track_energy_levels_stack(
         np.asarray(H_stack, dtype=complex),
         n_track=int(n_track),
@@ -82,6 +84,7 @@ def _raw_energies(
     )
     return np.asarray(evals, dtype=float)
 
+
 def _relative_energies(
     H_stack: np.ndarray,
     *,
@@ -89,7 +92,9 @@ def _relative_energies(
     tracking_mode: str = "continuous",
     projector_track_single_excitation: bool = False,
 ) -> np.ndarray:
-    blocks = ((1, 2),) if projector_track_single_excitation and int(n_track) >= 3 else None
+    blocks = (
+        ((1, 2),) if projector_track_single_excitation and int(n_track) >= 3 else None
+    )
     evals = track_energy_levels_stack(
         np.asarray(H_stack, dtype=complex),
         n_track=int(n_track),
@@ -99,15 +104,16 @@ def _relative_energies(
     return np.asarray(evals - evals[:, :1], dtype=float)
 
 
-
 def _per_flux_rmse(pred: np.ndarray, ref: np.ndarray) -> np.ndarray:
     diff = np.asarray(pred, dtype=float)[:, 1:] - np.asarray(ref, dtype=float)[:, 1:]
     return np.sqrt(np.mean(diff * diff, axis=1))
+
 
 def _sorted_raw_energies(H_stack: np.ndarray, *, n_track: int) -> np.ndarray:
     evals = np.linalg.eigvalsh(np.asarray(H_stack, dtype=complex))
     rel_e = np.asarray(evals, dtype=float)
     return np.asarray(rel_e[:, : int(n_track)], dtype=float)
+
 
 def _sorted_relative_energies(H_stack: np.ndarray, *, n_track: int) -> np.ndarray:
     evals = np.linalg.eigvalsh(np.asarray(H_stack, dtype=complex))
@@ -133,7 +139,9 @@ def _full_rmse_level_count(
 ) -> int:
     needed_for_rmse = 1 + int(lowest_excited_levels_to_plot)
     needed_for_plot = 4 + int(other_levels_to_plot)
-    return int(min(max(needed_for_plot, needed_for_rmse), int(duffing_dim), int(circuit_dim)))
+    return int(
+        min(max(needed_for_plot, needed_for_rmse), int(duffing_dim), int(circuit_dim))
+    )
 
 
 def _aggregate_rmse(
@@ -145,12 +153,13 @@ def _aggregate_rmse(
     pred_arr = np.asarray(pred, dtype=float)
     ref_arr = np.asarray(ref, dtype=float)
     max_excited = min(int(pred_arr.shape[1]), int(ref_arr.shape[1])) - 1
-    n_use = max_excited if n_excited is None else min(max(0, int(n_excited)), max_excited)
+    n_use = (
+        max_excited if n_excited is None else min(max(0, int(n_excited)), max_excited)
+    )
     if n_use <= 0:
         return 0.0
     diff = pred_arr[:, 1 : 1 + n_use] - ref_arr[:, 1 : 1 + n_use]
     return float(np.sqrt(np.mean(diff * diff)))
-
 
 
 def _masked_rmse_max(err: np.ndarray, mask: np.ndarray) -> tuple[float, float]:
@@ -163,7 +172,6 @@ def _masked_rmse_max(err: np.ndarray, mask: np.ndarray) -> tuple[float, float]:
 def _mean_abs_error(candidate: np.ndarray, reference: np.ndarray) -> float:
     diff = np.asarray(candidate, dtype=float) - np.asarray(reference, dtype=float)
     return float(np.mean(np.abs(diff)))
-
 
 
 def run_static_benchmark(
@@ -196,11 +204,15 @@ def run_static_benchmark(
             n_candidate_states=n_cand,
         )
 
-    duffing_mode = str(config.static_benchmark.duffing_model.calibration_mode).strip().lower()
+    duffing_mode = (
+        str(config.static_benchmark.duffing_model.calibration_mode).strip().lower()
+    )
     duffing_symbolic_coefficient_names: dict[str, np.ndarray] = {}
     duffing_symbolic_coefficients: dict[str, np.ndarray] = {}
     if duffing_mode == "fitted-static":
-        with progress_heartbeat("static benchmark: fit duffing parameters to circuit reference"):
+        with progress_heartbeat(
+            "static benchmark: fit duffing parameters to circuit reference"
+        ):
             duffing_mode_parameters = fit_duffing_mode_parameters_to_reference(
                 flux_values=flux_values,
                 reference_dressed_stack=H_circuit_eff,
@@ -210,7 +222,9 @@ def run_static_benchmark(
                 selection_mode=dressed_mode,
                 n_candidate_states=n_cand,
             )
-        with progress_heartbeat("static benchmark: build_duffing_model_stack_from_parameters"):
+        with progress_heartbeat(
+            "static benchmark: build_duffing_model_stack_from_parameters"
+        ):
             duffing = build_duffing_model_stack_from_parameters(
                 duffing_mode_parameters,
                 system_params=config.system,
@@ -223,7 +237,9 @@ def run_static_benchmark(
                 "symbolic-fitted-static requires static_benchmark.duffing_model.symbolic_fit "
                 "settings in the study config"
             )
-        with progress_heartbeat("static benchmark: symbolic Duffing fit to circuit reference"):
+        with progress_heartbeat(
+            "static benchmark: symbolic Duffing fit to circuit reference"
+        ):
             duffing_symbolic_fit = fit_symbolic_duffing_mode_parameters_to_reference(
                 flux_values=flux_values,
                 reference_dressed_stack=H_circuit_eff,
@@ -242,7 +258,9 @@ def run_static_benchmark(
             )
         duffing_symbolic_coefficient_names = duffing_symbolic_fit.coefficient_names
         duffing_symbolic_coefficients = duffing_symbolic_fit.coefficients
-        with progress_heartbeat("static benchmark: build_duffing_model_stack_from_coefficients"):
+        with progress_heartbeat(
+            "static benchmark: build_duffing_model_stack_from_coefficients"
+        ):
             duffing = build_duffing_model_stack_from_coefficients(
                 flux_values,
                 system_params=config.system,
@@ -253,7 +271,9 @@ def run_static_benchmark(
             )
         duffing_mode_parameters = duffing.mode_parameters
     else:
-        with progress_heartbeat("static benchmark: build_duffing_model_stack_from_scratch"):
+        with progress_heartbeat(
+            "static benchmark: build_duffing_model_stack_from_scratch"
+        ):
             duffing = build_duffing_model_stack_from_scratch(
                 flux_values=flux_values,
                 system_params=config.system,
@@ -270,13 +290,29 @@ def run_static_benchmark(
             selection_mode=dressed_mode,
             n_candidate_states=n_cand,
         )
-    circuit_q0_dim = int(config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim)
-    circuit_q1_dim = int(config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim)
-    circuit_c_dim = int(config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim)
-    circuit_overlap_subspace_idx = np.array([0, 1, circuit_c_dim * circuit_q0_dim + 0, circuit_c_dim * circuit_q0_dim + 1], dtype=int)
-    duffing_q_dim = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit)
-    duffing_c_dim = int(config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler)
-    duffing_overlap_subspace_idx = np.array([0, 1, duffing_c_dim * duffing_q_dim + 0, duffing_c_dim * duffing_q_dim + 1], dtype=int)
+    circuit_q0_dim = int(
+        config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim
+    )
+    circuit_q1_dim = int(
+        config.static_benchmark.circuit_model.hilbert_truncation.q1_truncated_dim
+    )
+    circuit_c_dim = int(
+        config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim
+    )
+    circuit_overlap_subspace_idx = np.array(
+        [0, 1, circuit_c_dim * circuit_q0_dim + 0, circuit_c_dim * circuit_q0_dim + 1],
+        dtype=int,
+    )
+    duffing_q_dim = int(
+        config.static_benchmark.duffing_model.hilbert_truncation.nlevels_qubit
+    )
+    duffing_c_dim = int(
+        config.static_benchmark.duffing_model.hilbert_truncation.nlevels_coupler
+    )
+    duffing_overlap_subspace_idx = np.array(
+        [0, 1, duffing_c_dim * duffing_q_dim + 0, duffing_c_dim * duffing_q_dim + 1],
+        dtype=int,
+    )
     if include_extra_sideplot_data:
         circuit_state_order_idx, circuit_state_labels = canonical_state_order_qcq(
             nlevels_q0=circuit_q0_dim,
@@ -287,7 +323,9 @@ def run_static_benchmark(
             nlevels_q0=duffing_q_dim,
             nlevels_coupler=duffing_c_dim,
         )
-        with progress_heartbeat("static benchmark: tracked_subspace_bare_overlaps, Circuit"):
+        with progress_heartbeat(
+            "static benchmark: tracked_subspace_bare_overlaps, Circuit"
+        ):
             circuit_comp_overlaps = tracked_subspace_bare_overlaps(
                 circuit.hamiltonian_stack,
                 subspace_indices=circuit_overlap_subspace_idx,
@@ -295,7 +333,9 @@ def run_static_benchmark(
                 n_candidate_states=n_cand,
                 projector_blocks=((1, 2),),
             )
-        with progress_heartbeat("static benchmark: tracked_subspace_bare_amplitudes, Circuit"):
+        with progress_heartbeat(
+            "static benchmark: tracked_subspace_bare_amplitudes, Circuit"
+        ):
             circuit_comp_amplitudes = tracked_subspace_bare_amplitudes(
                 circuit.hamiltonian_stack,
                 subspace_indices=circuit_overlap_subspace_idx,
@@ -303,7 +343,9 @@ def run_static_benchmark(
                 n_candidate_states=n_cand,
                 projector_blocks=((1, 2),),
             )
-        with progress_heartbeat("static benchmark: tracked_bare_state_amplitudes, Circuit"):
+        with progress_heartbeat(
+            "static benchmark: tracked_bare_state_amplitudes, Circuit"
+        ):
             circuit_branch_amplitudes = tracked_bare_state_amplitudes(
                 circuit.hamiltonian_stack,
                 tracked_state_indices=circuit_overlap_subspace_idx,
@@ -312,7 +354,9 @@ def run_static_benchmark(
                 n_candidate_states=n_cand,
                 projector_blocks=((1, 2),),
             )
-        with progress_heartbeat("static benchmark: tracked_subspace_bare_overlaps, Duffing"):
+        with progress_heartbeat(
+            "static benchmark: tracked_subspace_bare_overlaps, Duffing"
+        ):
             duffing_comp_overlaps = tracked_subspace_bare_overlaps(
                 duffing.hamiltonian_stack,
                 subspace_indices=duffing_overlap_subspace_idx,
@@ -320,7 +364,9 @@ def run_static_benchmark(
                 n_candidate_states=n_cand,
                 projector_blocks=((1, 2),),
             )
-        with progress_heartbeat("static benchmark: tracked_subspace_bare_amplitudes, Duffing"):
+        with progress_heartbeat(
+            "static benchmark: tracked_subspace_bare_amplitudes, Duffing"
+        ):
             duffing_comp_amplitudes = tracked_subspace_bare_amplitudes(
                 duffing.hamiltonian_stack,
                 subspace_indices=duffing_overlap_subspace_idx,
@@ -328,7 +374,9 @@ def run_static_benchmark(
                 n_candidate_states=n_cand,
                 projector_blocks=((1, 2),),
             )
-        with progress_heartbeat("static benchmark: tracked_bare_state_amplitudes, Duffing"):
+        with progress_heartbeat(
+            "static benchmark: tracked_bare_state_amplitudes, Duffing"
+        ):
             duffing_branch_amplitudes = tracked_bare_state_amplitudes(
                 duffing.hamiltonian_stack,
                 tracked_state_indices=duffing_overlap_subspace_idx,
@@ -482,7 +530,11 @@ def run_static_benchmark(
 
     d1 = np.abs(params_circuit["w0"] - wc)
     d2 = np.abs(params_circuit["w1"] - wc)
-    g_scale = max(abs(config.system.interactions.g_0c), abs(config.system.interactions.g_1c), 1e-12)
+    g_scale = max(
+        abs(config.system.interactions.g_0c),
+        abs(config.system.interactions.g_1c),
+        1e-12,
+    )
     detuning_ratio = np.minimum(d1, d2) / g_scale
 
     idle_thr = float(config.static_benchmark.regime_thresholds.idle_ratio)
@@ -530,7 +582,9 @@ def run_static_benchmark(
             rel_E_cir_full_sorted,
             n_excited=duf_trunc_levels,
         )
-        summary["duffing_truncation_style_excited_levels_compared"] = float(duf_trunc_levels)
+        summary["duffing_truncation_style_excited_levels_compared"] = float(
+            duf_trunc_levels
+        )
         summary["duffing_truncation_style_energy_rmse"] = duf_trunc_style_rmse
     metric_notes = {
         "effective_error_rmse": (
@@ -590,26 +644,44 @@ def run_static_benchmark(
         circuit_full_relative_energies=rel_E_cir_full,
         effective_error_rmse=err_rel_E_eff,
         duffing_error_rmse=err_rel_E_duf_,
-        effective_parameters={k: np.asarray(v, dtype=float) for k, v in effective_parameters.items()},
+        effective_parameters={
+            k: np.asarray(v, dtype=float) for k, v in effective_parameters.items()
+        },
         effective_fit_coefficient_names=effective_fit_coefficient_names,
         effective_fit_coefficients=effective_fit_coefficients,
-        duffing_mode_parameters={k: np.asarray(v, dtype=float) for k, v in duffing_mode_parameters.items()},
+        duffing_mode_parameters={
+            k: np.asarray(v, dtype=float) for k, v in duffing_mode_parameters.items()
+        },
         duffing_symbolic_coefficient_names={
-            k: np.asarray(v, dtype=str) for k, v in duffing_symbolic_coefficient_names.items()
+            k: np.asarray(v, dtype=str)
+            for k, v in duffing_symbolic_coefficient_names.items()
         },
         duffing_symbolic_coefficients={
-            k: np.asarray(v, dtype=float) for k, v in duffing_symbolic_coefficients.items()
+            k: np.asarray(v, dtype=float)
+            for k, v in duffing_symbolic_coefficients.items()
         },
         duffing_parameters=params_duffing,
         circuit_parameters=params_circuit,
         duffing_bare_state_labels=np.asarray(duffing_state_labels, dtype=str),
-        duffing_tracked_branch_bare_amplitudes=np.asarray(duffing_branch_amplitudes, dtype=complex),
-        duffing_computational_bare_amplitudes=np.asarray(duffing_comp_amplitudes, dtype=complex),
-        duffing_computational_bare_overlaps=np.asarray(duffing_comp_overlaps, dtype=float),
+        duffing_tracked_branch_bare_amplitudes=np.asarray(
+            duffing_branch_amplitudes, dtype=complex
+        ),
+        duffing_computational_bare_amplitudes=np.asarray(
+            duffing_comp_amplitudes, dtype=complex
+        ),
+        duffing_computational_bare_overlaps=np.asarray(
+            duffing_comp_overlaps, dtype=float
+        ),
         circuit_bare_state_labels=np.asarray(circuit_state_labels, dtype=str),
-        circuit_tracked_branch_bare_amplitudes=np.asarray(circuit_branch_amplitudes, dtype=complex),
-        circuit_computational_bare_amplitudes=np.asarray(circuit_comp_amplitudes, dtype=complex),
-        circuit_computational_bare_overlaps=np.asarray(circuit_comp_overlaps, dtype=float),
+        circuit_tracked_branch_bare_amplitudes=np.asarray(
+            circuit_branch_amplitudes, dtype=complex
+        ),
+        circuit_computational_bare_amplitudes=np.asarray(
+            circuit_comp_amplitudes, dtype=complex
+        ),
+        circuit_computational_bare_overlaps=np.asarray(
+            circuit_comp_overlaps, dtype=float
+        ),
         detuning_ratio=np.asarray(detuning_ratio, dtype=float),
         idle_mask=np.asarray(idle_mask, dtype=bool),
         near_mask=np.asarray(near_mask, dtype=bool),

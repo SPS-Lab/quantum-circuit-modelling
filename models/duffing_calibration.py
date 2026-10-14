@@ -45,7 +45,9 @@ def _transmon_w01_alpha(
     try:
         import scqubits as scq
     except Exception as exc:  # pragma: no cover - import guard only
-        raise ImportError("scqubits import failed while calibrating Duffing parameters") from exc
+        raise ImportError(
+            "scqubits import failed while calibrating Duffing parameters"
+        ) from exc
 
     transmon = scq.TunableTransmon(
         EJmax=float(EJmax),
@@ -136,8 +138,12 @@ def _build_mode_parameter_arrays(
             ),
             dtype=float,
         ).ravel()
-        w0_arr, alpha0_arr = _transmon_analytic_w01_alpha(EJ=EJ0_arr, EC=system_params.q0.EC)
-        w1_arr, alpha1_arr = _transmon_analytic_w01_alpha(EJ=EJ1_arr, EC=system_params.q1.EC)
+        w0_arr, alpha0_arr = _transmon_analytic_w01_alpha(
+            EJ=EJ0_arr, EC=system_params.q0.EC
+        )
+        w1_arr, alpha1_arr = _transmon_analytic_w01_alpha(
+            EJ=EJ1_arr, EC=system_params.q1.EC
+        )
     elif calibration_mode == "fixed":
         w0_ref, alpha0_ref = _transmon_w01_alpha(
             EJmax=system_params.q0.EJmax,
@@ -162,7 +168,9 @@ def _build_mode_parameter_arrays(
         alpha0_arr = np.full_like(flux_arr, float(alpha0_ref), dtype=float)
         alpha1_arr = np.full_like(flux_arr, float(alpha1_ref), dtype=float)
     else:
-        raise ValueError(f"Unsupported Duffing calibration_mode {duffing_config.calibration_mode!r}")
+        raise ValueError(
+            f"Unsupported Duffing calibration_mode {duffing_config.calibration_mode!r}"
+        )
 
     return {
         "w0": np.asarray(w0_arr, dtype=float),
@@ -170,8 +178,12 @@ def _build_mode_parameter_arrays(
         "alpha0": np.asarray(alpha0_arr, dtype=float),
         "alpha1": np.asarray(alpha1_arr, dtype=float),
         "wc": np.asarray(wc_arr, dtype=float),
-        "g0c": np.full_like(flux_arr, float(system_params.interactions.g_0c), dtype=float),
-        "g1c": np.full_like(flux_arr, float(system_params.interactions.g_1c), dtype=float),
+        "g0c": np.full_like(
+            flux_arr, float(system_params.interactions.g_0c), dtype=float
+        ),
+        "g1c": np.full_like(
+            flux_arr, float(system_params.interactions.g_1c), dtype=float
+        ),
     }
 
 
@@ -202,12 +214,14 @@ def _unpack_parameter_coefficients(
     vector = np.asarray(packed, dtype=float).ravel()
     expected = int(sum(int(coefficient_sizes[name]) for name in parameter_order))
     if vector.size != expected:
-        raise ValueError("Packed symbolic Duffing coefficient vector has unexpected size")
+        raise ValueError(
+            "Packed symbolic Duffing coefficient vector has unexpected size"
+        )
     out: dict[str, np.ndarray] = {}
     offset = 0
     for name in parameter_order:
         size = int(coefficient_sizes[name])
-        out[name] = np.asarray(vector[offset:offset + size], dtype=float)
+        out[name] = np.asarray(vector[offset : offset + size], dtype=float)
         offset += size
     return out
 
@@ -242,7 +256,9 @@ def fit_duffing_mode_parameters_to_reference(
             key: np.asarray(values, dtype=float).ravel()
             for key, values in initial_mode_parameters.items()
         }
-    ref_params = extract_effective_model_parameters_from_4x4_stack(reference_dressed_stack)
+    ref_params = extract_effective_model_parameters_from_4x4_stack(
+        reference_dressed_stack
+    )
     n_q = int(duffing_config.hilbert_truncation.nlevels_qubit)
     n_c = int(duffing_config.hilbert_truncation.nlevels_coupler)
 
@@ -396,7 +412,9 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         selection_mode=selection_mode,
         initial_mode_parameters=initial,
         max_nfev=pointwise_max_nfev,
-        progress_label=None if progress_label is None else f"{progress_label}: pointwise seed fit",
+        progress_label=(
+            None if progress_label is None else f"{progress_label}: pointwise seed fit"
+        ),
         progress_interval_s=progress_interval_s,
     )
     pointwise_targets = {
@@ -408,7 +426,9 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         "g0c": np.asarray(initial["g0c"], dtype=float).ravel(),
         "g1c": np.asarray(initial["g1c"], dtype=float).ravel(),
     }
-    ref_params = extract_effective_model_parameters_from_4x4_stack(reference_dressed_stack)
+    ref_params = extract_effective_model_parameters_from_4x4_stack(
+        reference_dressed_stack
+    )
     n_q = int(duffing_config.hilbert_truncation.nlevels_qubit)
     n_c = int(duffing_config.hilbert_truncation.nlevels_coupler)
     n_harmonics_w = _select_symbolic_harmonic_count(
@@ -442,22 +462,45 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         design_map=design_map,
         parameter_order=parameter_order,
     )
-    coefficient_sizes = {name: int(np.asarray(design_map[name], dtype=float).shape[1]) for name in parameter_order}
+    coefficient_sizes = {
+        name: int(np.asarray(design_map[name], dtype=float).shape[1])
+        for name in parameter_order
+    }
 
     obs_scale = {
-        "w0": np.maximum(np.abs(np.asarray(ref_params["w0"], dtype=float).ravel()), 1.0),
-        "w1": np.maximum(np.abs(np.asarray(ref_params["w1"], dtype=float).ravel()), 1.0),
+        "w0": np.maximum(
+            np.abs(np.asarray(ref_params["w0"], dtype=float).ravel()), 1.0
+        ),
+        "w1": np.maximum(
+            np.abs(np.asarray(ref_params["w1"], dtype=float).ravel()), 1.0
+        ),
         "J": np.maximum(np.abs(np.asarray(ref_params["J"], dtype=float).ravel()), 2e-2),
-        "zeta": np.maximum(np.abs(np.asarray(ref_params["zeta"], dtype=float).ravel()), 2e-2),
+        "zeta": np.maximum(
+            np.abs(np.asarray(ref_params["zeta"], dtype=float).ravel()), 2e-2
+        ),
     }
     latent_scale = {
-        "w0": np.maximum(np.abs(np.asarray(pointwise_targets["w0"], dtype=float).ravel()), 1.0),
-        "w1": np.maximum(np.abs(np.asarray(pointwise_targets["w1"], dtype=float).ravel()), 1.0),
-        "alpha0": np.maximum(np.abs(np.asarray(pointwise_targets["alpha0"], dtype=float).ravel()), 0.25),
-        "alpha1": np.maximum(np.abs(np.asarray(pointwise_targets["alpha1"], dtype=float).ravel()), 0.25),
-        "wc": np.maximum(np.abs(np.asarray(pointwise_targets["wc"], dtype=float).ravel()), 1.0),
-        "g0c": np.maximum(np.abs(np.asarray(pointwise_targets["g0c"], dtype=float).ravel()), 1e-3),
-        "g1c": np.maximum(np.abs(np.asarray(pointwise_targets["g1c"], dtype=float).ravel()), 1e-3),
+        "w0": np.maximum(
+            np.abs(np.asarray(pointwise_targets["w0"], dtype=float).ravel()), 1.0
+        ),
+        "w1": np.maximum(
+            np.abs(np.asarray(pointwise_targets["w1"], dtype=float).ravel()), 1.0
+        ),
+        "alpha0": np.maximum(
+            np.abs(np.asarray(pointwise_targets["alpha0"], dtype=float).ravel()), 0.25
+        ),
+        "alpha1": np.maximum(
+            np.abs(np.asarray(pointwise_targets["alpha1"], dtype=float).ravel()), 0.25
+        ),
+        "wc": np.maximum(
+            np.abs(np.asarray(pointwise_targets["wc"], dtype=float).ravel()), 1.0
+        ),
+        "g0c": np.maximum(
+            np.abs(np.asarray(pointwise_targets["g0c"], dtype=float).ravel()), 1e-3
+        ),
+        "g1c": np.maximum(
+            np.abs(np.asarray(pointwise_targets["g1c"], dtype=float).ravel()), 1e-3
+        ),
     }
 
     refinement_started = time.perf_counter()
@@ -496,25 +539,71 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         params = extract_effective_model_parameters_from_4x4_stack(dressed)
         obs_res = np.concatenate(
             [
-                (np.asarray(params["w0"], dtype=float).ravel() - np.asarray(ref_params["w0"], dtype=float).ravel()) / obs_scale["w0"],
-                (np.asarray(params["w1"], dtype=float).ravel() - np.asarray(ref_params["w1"], dtype=float).ravel()) / obs_scale["w1"],
-                (np.asarray(params["J"], dtype=float).ravel() - np.asarray(ref_params["J"], dtype=float).ravel()) / obs_scale["J"],
-                (np.asarray(params["zeta"], dtype=float).ravel() - np.asarray(ref_params["zeta"], dtype=float).ravel()) / obs_scale["zeta"],
+                (
+                    np.asarray(params["w0"], dtype=float).ravel()
+                    - np.asarray(ref_params["w0"], dtype=float).ravel()
+                )
+                / obs_scale["w0"],
+                (
+                    np.asarray(params["w1"], dtype=float).ravel()
+                    - np.asarray(ref_params["w1"], dtype=float).ravel()
+                )
+                / obs_scale["w1"],
+                (
+                    np.asarray(params["J"], dtype=float).ravel()
+                    - np.asarray(ref_params["J"], dtype=float).ravel()
+                )
+                / obs_scale["J"],
+                (
+                    np.asarray(params["zeta"], dtype=float).ravel()
+                    - np.asarray(ref_params["zeta"], dtype=float).ravel()
+                )
+                / obs_scale["zeta"],
             ]
         )
         reg_res = float(regularization_weight) * np.concatenate(
             [
-                (np.asarray(full_mode_parameters["w0"], dtype=float).ravel() - np.asarray(pointwise_targets["w0"], dtype=float).ravel()) / latent_scale["w0"],
-                (np.asarray(full_mode_parameters["w1"], dtype=float).ravel() - np.asarray(pointwise_targets["w1"], dtype=float).ravel()) / latent_scale["w1"],
-                (np.asarray(full_mode_parameters["alpha0"], dtype=float).ravel() - np.asarray(pointwise_targets["alpha0"], dtype=float).ravel()) / latent_scale["alpha0"],
-                (np.asarray(full_mode_parameters["alpha1"], dtype=float).ravel() - np.asarray(pointwise_targets["alpha1"], dtype=float).ravel()) / latent_scale["alpha1"],
-                (np.asarray(full_mode_parameters["wc"], dtype=float).ravel() - np.asarray(pointwise_targets["wc"], dtype=float).ravel()) / latent_scale["wc"],
-                (np.asarray(full_mode_parameters["g0c"], dtype=float).ravel() - np.asarray(pointwise_targets["g0c"], dtype=float).ravel()) / latent_scale["g0c"],
-                (np.asarray(full_mode_parameters["g1c"], dtype=float).ravel() - np.asarray(pointwise_targets["g1c"], dtype=float).ravel()) / latent_scale["g1c"],
+                (
+                    np.asarray(full_mode_parameters["w0"], dtype=float).ravel()
+                    - np.asarray(pointwise_targets["w0"], dtype=float).ravel()
+                )
+                / latent_scale["w0"],
+                (
+                    np.asarray(full_mode_parameters["w1"], dtype=float).ravel()
+                    - np.asarray(pointwise_targets["w1"], dtype=float).ravel()
+                )
+                / latent_scale["w1"],
+                (
+                    np.asarray(full_mode_parameters["alpha0"], dtype=float).ravel()
+                    - np.asarray(pointwise_targets["alpha0"], dtype=float).ravel()
+                )
+                / latent_scale["alpha0"],
+                (
+                    np.asarray(full_mode_parameters["alpha1"], dtype=float).ravel()
+                    - np.asarray(pointwise_targets["alpha1"], dtype=float).ravel()
+                )
+                / latent_scale["alpha1"],
+                (
+                    np.asarray(full_mode_parameters["wc"], dtype=float).ravel()
+                    - np.asarray(pointwise_targets["wc"], dtype=float).ravel()
+                )
+                / latent_scale["wc"],
+                (
+                    np.asarray(full_mode_parameters["g0c"], dtype=float).ravel()
+                    - np.asarray(pointwise_targets["g0c"], dtype=float).ravel()
+                )
+                / latent_scale["g0c"],
+                (
+                    np.asarray(full_mode_parameters["g1c"], dtype=float).ravel()
+                    - np.asarray(pointwise_targets["g1c"], dtype=float).ravel()
+                )
+                / latent_scale["g1c"],
             ]
         )
         now = time.perf_counter()
-        if progress_label is not None and (now - refinement_last_progress) >= max(float(progress_interval_s), 1.0):
+        if progress_label is not None and (now - refinement_last_progress) >= max(
+            float(progress_interval_s), 1.0
+        ):
             elapsed = format_elapsed_compact(now - refinement_started)
             log_progress(
                 f"{progress_label}: global refinement still running after {elapsed} (residual evals={refinement_calls})"
@@ -527,17 +616,22 @@ def fit_symbolic_duffing_mode_parameters_to_reference(
         x0=x0,
         max_nfev=int(refinement_max_nfev),
     )
-    coeff_best = coeff_init if not result.success else _unpack_parameter_coefficients(
-        result.x,
-        coefficient_sizes=coefficient_sizes,
-        parameter_order=parameter_order,
+    coeff_best = (
+        coeff_init
+        if not result.success
+        else _unpack_parameter_coefficients(
+            result.x,
+            coefficient_sizes=coefficient_sizes,
+            parameter_order=parameter_order,
+        )
     )
     coefficients = {
-        name: np.asarray(values, dtype=float)
-        for name, values in coeff_best.items()
+        name: np.asarray(values, dtype=float) for name, values in coeff_best.items()
     }
     if progress_label is not None:
-        refinement_elapsed = format_elapsed_compact(time.perf_counter() - refinement_started)
+        refinement_elapsed = format_elapsed_compact(
+            time.perf_counter() - refinement_started
+        )
         status = "converged" if result.success else "stopped"
         log_progress(
             f"{progress_label}: global symbolic refinement {status} in {refinement_elapsed} "

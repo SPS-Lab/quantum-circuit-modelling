@@ -67,7 +67,9 @@ def reorder_by_overlap(
     if d != d2:
         raise ValueError(f"Hilbert space dim mismatch: prev {d}, new {d2}")
     if m > n:
-        raise ValueError(f"need at least as many new vectors as prev columns: m={m}, n={n}")
+        raise ValueError(
+            f"need at least as many new vectors as prev columns: m={m}, n={n}"
+        )
 
     overlap = np.abs(prev_vecs.conj().T @ new_vecs) ** 2
     col_indices = overlap_row_to_col_assignment(overlap)
@@ -91,7 +93,9 @@ def _validate_projector_blocks(
             )
         for r in rows:
             if r < 0 or r >= n_track:
-                raise ValueError(f"projector block row {r} out of bounds for n_track={n_track}")
+                raise ValueError(
+                    f"projector block row {r} out of bounds for n_track={n_track}"
+                )
             if r in seen:
                 raise ValueError(f"projector blocks must be disjoint; repeated row {r}")
             seen.add(r)
@@ -214,7 +218,9 @@ def track_energy_levels_stack(
         else:
             overlap = np.abs(evecs_prev.conj().T @ v) ** 2
             if projector_blocks:
-                col_idx = _assignment_with_projector_blocks(overlap, projector_blocks=projector_blocks)
+                col_idx = _assignment_with_projector_blocks(
+                    overlap, projector_blocks=projector_blocks
+                )
             else:
                 col_idx = overlap_row_to_col_assignment(overlap)
 
