@@ -210,7 +210,7 @@ __marimo__/
 # Generated data and plots
 *.h5
 *.pdf
-results/experiments/
+results/*
 static_fitted_parameters.json
 static_fitted_parameters_table.tex
 benchmark_run.json
