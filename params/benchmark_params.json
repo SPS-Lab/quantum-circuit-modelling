@@ -147,7 +147,7 @@
     },
     "runtime_only": {
       "runtime_benchmark": {
-        "qubit_truncation_values": [2, 3, 4, 5, 6, 7],
+        "qubit_truncation_values": [2, 3, 4, 5],
         "duffing_calibration_mode": "symbolic-fitted-static",
         "circuit_only": false,
         "repeats": 5,
