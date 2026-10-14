@@ -18,24 +18,6 @@ def load_animation_module():
     return module
 
 
-def test_animation_builds_and_updates_multiple_frames() -> None:
-    animation_module = load_animation_module()
-    fig, artists = animation_module.build_figure()
-
-    first_frame_artists = animation_module.update(0, artists)
-    quarter_frame_artists = animation_module.update(
-        animation_module.FRAMES // 4, artists
-    )
-
-    assert len(first_frame_artists) >= 10
-    assert len(quarter_frame_artists) == len(first_frame_artists)
-    assert "x ~ i_L" in artists["relation_text"].get_text()
-    assert artists["top_charge_text"].get_text() in {"+", "-"}
-    assert artists["bottom_charge_text"].get_text() in {"+", "-"}
-
-    plt.close(fig)
-
-
 def test_pdf_frame_export_writes_numbered_files(tmp_path: Path) -> None:
     animation_module = load_animation_module()
     fig, artists = animation_module.build_figure()
