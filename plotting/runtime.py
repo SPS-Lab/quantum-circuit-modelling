@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import ScalarFormatter
 import numpy as np
 
 from comparison.runtime import RuntimeBenchmarkResult
@@ -33,7 +34,7 @@ def plot_runtime_benchmark(
 
     def _build_figure() -> plt.Figure:
         fig, (ax_build, ax_prop) = plt.subplots(
-            1, 2, figsize=figure_size("runtime"), sharex=True
+            1, 2, figsize=figure_size("runtime")
         )
 
         ax_build.errorbar(
@@ -81,9 +82,12 @@ def plot_runtime_benchmark(
                 **model_plot_kwargs("duffing"),
             )
         ax_prop.set_xlabel(r"Qubit truncation ($N_{E,q}$)")
-        ax_prop.set_title("Propagation")
-        ax_prop.grid()
+        ax_prop.set_title("Propagation (log–log)")
+        ax_prop.set_xscale("log")
+        ax_prop.set_yscale("log")
+        ax_prop.grid(which="both")
         ax_prop.set_xticks(x)
+        ax_prop.xaxis.set_major_formatter(ScalarFormatter())
 
         legend = add_model_figure_legend(
             fig,

@@ -147,7 +147,7 @@
     },
     "runtime_only": {
       "runtime_benchmark": {
-        "qubit_truncation_values": [2, 3, 4, 5],
+        "qubit_truncation_values": [2, 3, 4, 5, 6, 7, 8],
         "circuit_only": true,
         "hold_time_ns": 237.92738645287855,
         "repeats": 5,
