@@ -45,15 +45,16 @@ def plot_runtime_benchmark(
             label="circuit",
             **model_plot_kwargs("circuit"),
         )
-        ax_build.errorbar(
-            x,
-            duffing_build,
-            yerr=duffing_build_std,
-            marker="o",
-            capsize=3.0,
-            label="duffing",
-            **model_plot_kwargs("duffing"),
-        )
+        if np.any(np.isfinite(duffing_build)):
+            ax_build.errorbar(
+                x,
+                duffing_build,
+                yerr=duffing_build_std,
+                marker="o",
+                capsize=3.0,
+                label="duffing",
+                **model_plot_kwargs("duffing"),
+            )
         ax_build.set_xlabel(r"Qubit truncation ($N_{E,q}$)")
         ax_build.set_ylabel(r"Runtime ($s$)")
         ax_build.set_title("Build")
@@ -69,15 +70,16 @@ def plot_runtime_benchmark(
             label="circuit",
             **model_plot_kwargs("circuit"),
         )
-        ax_prop.errorbar(
-            x,
-            duffing_prop,
-            yerr=duffing_prop_std,
-            marker="o",
-            capsize=3.0,
-            label="duffing",
-            **model_plot_kwargs("duffing"),
-        )
+        if np.any(np.isfinite(duffing_prop)):
+            ax_prop.errorbar(
+                x,
+                duffing_prop,
+                yerr=duffing_prop_std,
+                marker="o",
+                capsize=3.0,
+                label="duffing",
+                **model_plot_kwargs("duffing"),
+            )
         ax_prop.set_xlabel(r"Qubit truncation ($N_{E,q}$)")
         ax_prop.set_title("Propagation")
         ax_prop.grid()
@@ -85,8 +87,12 @@ def plot_runtime_benchmark(
 
         legend = add_model_figure_legend(
             fig,
-            handles=model_legend_handles()[:2],
-            ncol=2,
+            handles=(
+                model_legend_handles()[:2]
+                if np.any(np.isfinite(duffing_build))
+                else model_legend_handles()[:1]
+            ),
+            ncol=2 if np.any(np.isfinite(duffing_build)) else 1,
         )
         legend.set_in_layout(False)
         fig.subplots_adjust(left=0.11, right=0.97, bottom=0.28, top=0.75, wspace=0.27)

@@ -196,7 +196,8 @@ class DuffingTruncationBenchmarkConfig:
 @dataclass(frozen=True)
 class RuntimeBenchmarkConfig:
     qubit_truncation_values: tuple[int, ...]
-    duffing_calibration_mode: DuffingCalibrationMode
+    duffing_calibration_mode: DuffingCalibrationMode | None
+    circuit_only: bool
     repeats: int
     hold_time_ns: float | None
     outputs: OutputConfig
@@ -1066,23 +1067,30 @@ def _parse_runtime_benchmark(study_payload: dict[str, Any]) -> RuntimeBenchmarkC
             "study.runtime_benchmark.qubit_truncation_values must contain integers >= 2"
         )
 
-    calibration_mode = (
-        _require_str(rb, "duffing_calibration_mode", "study.runtime_benchmark")
-        .strip()
-        .lower()
+    circuit_only = (
+        _require_bool(rb, "circuit_only", "study.runtime_benchmark")
+        if "circuit_only" in rb
+        else False
     )
-    if calibration_mode not in (
-        "fixed",
-        "analytic-per-flux",
-        "per-flux",
-        "fitted-static",
-        "symbolic-fitted-static",
-    ):
-        raise ValueError(
-            "study.runtime_benchmark.duffing_calibration_mode must be "
-            "'fixed', 'analytic-per-flux', 'per-flux', 'fitted-static', "
-            "or 'symbolic-fitted-static'"
+    calibration_mode = None
+    if not circuit_only:
+        calibration_mode = (
+            _require_str(rb, "duffing_calibration_mode", "study.runtime_benchmark")
+            .strip()
+            .lower()
         )
+        if calibration_mode not in (
+            "fixed",
+            "analytic-per-flux",
+            "per-flux",
+            "fitted-static",
+            "symbolic-fitted-static",
+        ):
+            raise ValueError(
+                "study.runtime_benchmark.duffing_calibration_mode must be "
+                "'fixed', 'analytic-per-flux', 'per-flux', 'fitted-static', "
+                "or 'symbolic-fitted-static'"
+            )
 
     repeats = _require_int(rb, "repeats", "study.runtime_benchmark")
     if repeats < 1:
@@ -1098,6 +1106,7 @@ def _parse_runtime_benchmark(study_payload: dict[str, Any]) -> RuntimeBenchmarkC
     return RuntimeBenchmarkConfig(
         qubit_truncation_values=trunc_values,
         duffing_calibration_mode=calibration_mode,
+        circuit_only=circuit_only,
         repeats=repeats,
         hold_time_ns=None if hold_time_ns is None else float(hold_time_ns),
         outputs=OutputConfig(

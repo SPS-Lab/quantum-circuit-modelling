@@ -218,6 +218,11 @@ This benchmark:
 - plots build and propagation runtime separately vs qubit truncation,
 - stores the split runtime components plus spread across repeats in the saved `.h5`.
 
+Set `runtime_benchmark.circuit_only` to `true` to time only the circuit model.
+In that mode, `runtime_benchmark.duffing_calibration_mode` may be omitted.
+This skips Duffing static fitting and effective and Duffing model construction
+and propagation, including during the priming run.
+
 Runtime-benchmark settings are read from:
 - `params/benchmark_params.json` under `runtime_benchmark`
 

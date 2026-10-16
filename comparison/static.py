@@ -29,8 +29,17 @@ from toolkit.spectrum import track_energy_levels_stack
 
 
 @dataclass(frozen=True)
-class StaticBenchmarkResult:
+class CircuitFluxSweepReference:
+    """Circuit data needed for CZ pulse selection in a circuit-only run."""
+
     flux_values: np.ndarray
+    circuit_parameters: dict[str, np.ndarray]
+
+
+@dataclass(frozen=True)
+class StaticBenchmarkResult(CircuitFluxSweepReference):
+    """Full static comparison, extending the circuit reference with model data."""
+
     effective_raw_energies: np.ndarray
     effective_relative_energies: np.ndarray
     duffing_raw_energies: np.ndarray
@@ -50,7 +59,6 @@ class StaticBenchmarkResult:
     duffing_symbolic_coefficient_names: dict[str, np.ndarray]
     duffing_symbolic_coefficients: dict[str, np.ndarray]
     duffing_parameters: dict[str, np.ndarray]
-    circuit_parameters: dict[str, np.ndarray]
     duffing_bare_state_labels: np.ndarray
     duffing_tracked_branch_bare_amplitudes: np.ndarray
     duffing_computational_bare_amplitudes: np.ndarray
@@ -174,6 +182,45 @@ def _mean_abs_error(candidate: np.ndarray, reference: np.ndarray) -> float:
     return float(np.mean(np.abs(diff)))
 
 
+def _build_circuit_static_data(
+    config: StudyConfig,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    flux_values = build_flux_values(config.static_benchmark.flux_sweep)
+
+    with progress_heartbeat("circuit reference: build_circuit_model_stack"):
+        circuit_stack = build_circuit_model_stack(
+            flux_values=flux_values,
+            system_params=config.system,
+            circuit_config=config.static_benchmark.circuit_model,
+            sweep_target=config.static_benchmark.flux_control.sweep_target,
+        ).hamiltonian_stack
+
+    dressed_mode = config.static_benchmark.dressed_subspace.selection_mode
+    n_cand = config.static_benchmark.dressed_subspace.n_candidate_states
+
+    with progress_heartbeat("circuit reference: dress circuit stack"):
+        H_circuit_eff = build_dressed_effective_computational_stack(
+            circuit_stack,
+            nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
+            nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
+            selection_mode=dressed_mode,
+            n_candidate_states=n_cand,
+        )
+
+    return flux_values, circuit_stack, H_circuit_eff
+
+
+def build_circuit_static_reference(config: StudyConfig) -> CircuitFluxSweepReference:
+    """Extract circuit parameters needed to select a CZ pulse."""
+    flux_values, _, H_circuit_eff = _build_circuit_static_data(config)
+    return CircuitFluxSweepReference(
+        flux_values=flux_values,
+        circuit_parameters=extract_effective_model_parameters_from_4x4_stack(
+            H_circuit_eff
+        ),
+    )
+
+
 def run_static_benchmark(
     config: StudyConfig,
     *,
@@ -181,28 +228,10 @@ def run_static_benchmark(
     include_full_spectrum_plot_data: bool = True,
     include_truncation_style_metric: bool = True,
 ) -> StaticBenchmarkResult:
-    flux_values = build_flux_values(config.static_benchmark.flux_sweep)
-
-    with progress_heartbeat("static benchmark: build_circuit_model_stack"):
-        circuit = build_circuit_model_stack(
-            flux_values=flux_values,
-            system_params=config.system,
-            circuit_config=config.static_benchmark.circuit_model,
-            sweep_target=config.static_benchmark.flux_control.sweep_target,
-        )
-
+    flux_values, circuit_stack, H_circuit_eff = _build_circuit_static_data(config)
     dressed_mode = config.static_benchmark.dressed_subspace.selection_mode
     energy_tracking_mode = config.static_benchmark.dressed_subspace.energy_tracking_mode
     n_cand = config.static_benchmark.dressed_subspace.n_candidate_states
-
-    with progress_heartbeat("static benchmark: dress circuit stack"):
-        H_circuit_eff = build_dressed_effective_computational_stack(
-            circuit.hamiltonian_stack,
-            nlevels_qubit=config.static_benchmark.circuit_model.hilbert_truncation.q0_truncated_dim,
-            nlevels_coupler=config.static_benchmark.circuit_model.hilbert_truncation.c_truncated_dim,
-            selection_mode=dressed_mode,
-            n_candidate_states=n_cand,
-        )
 
     duffing_mode = (
         str(config.static_benchmark.duffing_model.calibration_mode).strip().lower()
@@ -327,7 +356,7 @@ def run_static_benchmark(
             "static benchmark: tracked_subspace_bare_overlaps, Circuit"
         ):
             circuit_comp_overlaps = tracked_subspace_bare_overlaps(
-                circuit.hamiltonian_stack,
+                circuit_stack,
                 subspace_indices=circuit_overlap_subspace_idx,
                 selection_mode=dressed_mode,
                 n_candidate_states=n_cand,
@@ -337,7 +366,7 @@ def run_static_benchmark(
             "static benchmark: tracked_subspace_bare_amplitudes, Circuit"
         ):
             circuit_comp_amplitudes = tracked_subspace_bare_amplitudes(
-                circuit.hamiltonian_stack,
+                circuit_stack,
                 subspace_indices=circuit_overlap_subspace_idx,
                 selection_mode=dressed_mode,
                 n_candidate_states=n_cand,
@@ -347,7 +376,7 @@ def run_static_benchmark(
             "static benchmark: tracked_bare_state_amplitudes, Circuit"
         ):
             circuit_branch_amplitudes = tracked_bare_state_amplitudes(
-                circuit.hamiltonian_stack,
+                circuit_stack,
                 tracked_state_indices=circuit_overlap_subspace_idx,
                 output_state_indices=circuit_state_order_idx,
                 selection_mode=dressed_mode,
@@ -474,7 +503,7 @@ def run_static_benchmark(
             n_full_track = _full_plot_level_count(
                 other_levels_to_plot=config.static_benchmark.other_levels_to_plot,
                 duffing_dim=duffing.hamiltonian_stack.shape[1],
-                circuit_dim=circuit.hamiltonian_stack.shape[1],
+                circuit_dim=circuit_stack.shape[1],
             )
             raw_E_duf_full = _raw_energies(
                 duffing.hamiltonian_stack,
@@ -487,12 +516,12 @@ def run_static_benchmark(
                 tracking_mode=energy_tracking_mode,
             )
             raw_E_cir_full = _raw_energies(
-                circuit.hamiltonian_stack,
+                circuit_stack,
                 n_track=n_full_track,
                 tracking_mode=energy_tracking_mode,
             )
             rel_E_cir_full = _relative_energies(
-                circuit.hamiltonian_stack,
+                circuit_stack,
                 n_track=n_full_track,
                 tracking_mode=energy_tracking_mode,
             )
@@ -508,14 +537,14 @@ def run_static_benchmark(
                 other_levels_to_plot=config.static_benchmark.other_levels_to_plot,
                 lowest_excited_levels_to_plot=config.duffing_truncation_benchmark.lowest_excited_levels_to_plot,
                 duffing_dim=duffing.hamiltonian_stack.shape[1],
-                circuit_dim=circuit.hamiltonian_stack.shape[1],
+                circuit_dim=circuit_stack.shape[1],
             )
             rel_E_duf_full_sorted = _sorted_relative_energies(
                 duffing.hamiltonian_stack,
                 n_track=n_full_rmse_track,
             )
             rel_E_cir_full_sorted = _sorted_relative_energies(
-                circuit.hamiltonian_stack,
+                circuit_stack,
                 n_track=n_full_rmse_track,
             )
     else:

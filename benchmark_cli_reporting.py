@@ -50,7 +50,9 @@ class CliReporter:
         )
 
 
-def build_common_truncation_lines(config: StudyConfig) -> list[str]:
+def build_common_truncation_lines(
+    config: StudyConfig, *, circuit_only: bool = False
+) -> list[str]:
     """Human-readable truncation settings used across benchmarks."""
     sb = config.static_benchmark
     calibration_mode = str(sb.duffing_model.calibration_mode)
@@ -59,27 +61,37 @@ def build_common_truncation_lines(config: StudyConfig) -> list[str]:
         "  Circuit charge-basis cutoffs:",
         f"    q0 transmon charge cutoff: ncut={int(sb.circuit_model.transmon_charge_basis.q0_ncut)}",
         f"    q1 transmon charge cutoff: ncut={int(sb.circuit_model.transmon_charge_basis.q1_ncut)}",
-        "  Duffing calibration extraction:",
-        f"    calibration_mode={calibration_mode}",
-        "  Dressed-subspace model truncation:",
-        (
+    ]
+    if not circuit_only:
+        lines.extend(
+            [
+                "  Duffing calibration extraction:",
+                f"    calibration_mode={calibration_mode}",
+            ]
+        )
+    lines.append("  Dressed-subspace model truncation:")
+    if not circuit_only:
+        lines.append(
             "    duffing hilbert_truncation: "
             f"nlevels_qubit={int(sb.duffing_model.hilbert_truncation.nlevels_qubit)}, "
             f"nlevels_coupler={int(sb.duffing_model.hilbert_truncation.nlevels_coupler)}"
-        ),
-        (
-            "    circuit hilbert_truncation: "
-            f"q0_truncated_dim={int(sb.circuit_model.hilbert_truncation.q0_truncated_dim)}, "
-            f"q1_truncated_dim={int(sb.circuit_model.hilbert_truncation.q1_truncated_dim)}, "
-            f"c_truncated_dim={int(sb.circuit_model.hilbert_truncation.c_truncated_dim)}"
-        ),
-        (
-            "  Dressed-state selection truncation: "
-            f"n_candidate_states={int(sb.dressed_subspace.n_candidate_states)}, "
-            f"selection_mode={str(sb.dressed_subspace.selection_mode)}"
-        ),
-    ]
-    if calibration_mode in (
+        )
+    lines.extend(
+        [
+            (
+                "    circuit hilbert_truncation: "
+                f"q0_truncated_dim={int(sb.circuit_model.hilbert_truncation.q0_truncated_dim)}, "
+                f"q1_truncated_dim={int(sb.circuit_model.hilbert_truncation.q1_truncated_dim)}, "
+                f"c_truncated_dim={int(sb.circuit_model.hilbert_truncation.c_truncated_dim)}"
+            ),
+            (
+                "  Dressed-state selection truncation: "
+                f"n_candidate_states={int(sb.dressed_subspace.n_candidate_states)}, "
+                f"selection_mode={str(sb.dressed_subspace.selection_mode)}"
+            ),
+        ]
+    )
+    if not circuit_only and calibration_mode in (
         "fixed",
         "per-flux",
         "fitted-static",
