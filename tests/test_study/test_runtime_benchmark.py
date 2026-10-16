@@ -82,6 +82,7 @@ def _write_small_study_params(tmp_path: Path) -> Path:
 
     rb = payload["runtime_benchmark"]
     rb["qubit_truncation_values"] = [2, 3]
+    rb["circuit_only"] = False
     rb["duffing_calibration_mode"] = "per-flux"
     rb["repeats"] = 3
     rb["hold_time_ns"] = 0.5

@@ -200,13 +200,16 @@ def test_load_study_config(tmp_path: Path) -> None:
     }
     assert len(cfg.runtime_benchmark.qubit_truncation_values) > 0
     assert all(v >= 2 for v in cfg.runtime_benchmark.qubit_truncation_values)
-    assert cfg.runtime_benchmark.duffing_calibration_mode in {
-        "fixed",
-        "analytic-per-flux",
-        "per-flux",
-        "fitted-static",
-        "symbolic-fitted-static",
-    }
+    if cfg.runtime_benchmark.circuit_only:
+        assert cfg.runtime_benchmark.duffing_calibration_mode is None
+    else:
+        assert cfg.runtime_benchmark.duffing_calibration_mode in {
+            "fixed",
+            "analytic-per-flux",
+            "per-flux",
+            "fitted-static",
+            "symbolic-fitted-static",
+        }
     assert cfg.runtime_benchmark.repeats >= 1
     assert (
         cfg.runtime_benchmark.hold_time_ns is None
