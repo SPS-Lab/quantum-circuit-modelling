@@ -355,6 +355,102 @@ def _evaluate_circuit_candidate(
     return phase_final, phase_error, max_leak
 
 
+def _scan_circuit_hold_time(
+    config: StudyConfig,
+    static_result: CircuitFluxSweepReference,
+    *,
+    sweep_target: str,
+    idle_flux: float,
+    target_flux: float,
+    ramp_time_ns: float,
+    dt_ns: float,
+    scan_dt_ns: float,
+    scan_max_hold_ns: float,
+    scan_leakage_penalty: float,
+    idx_circuit: np.ndarray,
+) -> tuple[float, list[float], list[float], list[float]]:
+    """Select a circuit CZ hold time and retain the candidate scores."""
+    scan_hold_list: list[float] = []
+    scan_phase_error_list: list[float] = []
+    scan_score_list: list[float] = []
+    phase_ramp_only, _, _ = _evaluate_circuit_candidate(
+        config=config,
+        sweep_target=sweep_target,
+        idle_flux=idle_flux,
+        target_flux=target_flux,
+        ramp_time_ns=ramp_time_ns,
+        hold_time_ns=0.0,
+        dt_ns=scan_dt_ns,
+        idx_circuit=idx_circuit,
+    )
+    zeta_ref = np.interp(
+        target_flux,
+        np.asarray(static_result.flux_values, dtype=float).ravel(),
+        np.asarray(static_result.circuit_parameters["zeta"], dtype=float).ravel(),
+    )
+    phase_rate = TWO_PI * max(abs(float(zeta_ref)), 1e-8)
+    hold_est = max(0.0, (np.pi - float(phase_ramp_only)) / phase_rate)
+    hold_est = float(min(hold_est, scan_max_hold_ns))
+
+    candidate_values = [0.0, 0.8 * hold_est, hold_est, 1.2 * hold_est]
+    if hold_est >= scan_max_hold_ns - 1e-12:
+        candidate_values.append(scan_max_hold_ns)
+    candidates = sorted(set(candidate_values))
+
+    scored: list[tuple[float, float]] = []
+    for candidate in candidates:
+        h = float(np.clip(candidate, 0.0, scan_max_hold_ns))
+        log_progress(f"cz benchmark: coarse hold scan candidate {h:.3f} ns")
+        _, phase_error, max_leak = _evaluate_circuit_candidate(
+            config=config,
+            sweep_target=sweep_target,
+            idle_flux=idle_flux,
+            target_flux=target_flux,
+            ramp_time_ns=ramp_time_ns,
+            hold_time_ns=h,
+            dt_ns=scan_dt_ns,
+            idx_circuit=idx_circuit,
+        )
+        score = float(phase_error + scan_leakage_penalty * max_leak)
+        scan_hold_list.append(h)
+        scan_phase_error_list.append(phase_error)
+        scan_score_list.append(score)
+        scored.append((score, h))
+
+    selected_hold = float(min(scored, key=lambda x: x[0])[1])
+
+    # Refine around the selected hold using the final integration step size.
+    refine_step = max(2.0 * dt_ns, 0.05 * max(selected_hold, 1.0))
+    refine_candidates = sorted(
+        {
+            float(np.clip(selected_hold - refine_step, 0.0, scan_max_hold_ns)),
+            float(np.clip(selected_hold, 0.0, scan_max_hold_ns)),
+            float(np.clip(selected_hold + refine_step, 0.0, scan_max_hold_ns)),
+        }
+    )
+    refined: list[tuple[float, float]] = []
+    for h in refine_candidates:
+        log_progress(f"cz benchmark: refined hold scan candidate {h:.3f} ns")
+        _, phase_error, max_leak = _evaluate_circuit_candidate(
+            config=config,
+            sweep_target=sweep_target,
+            idle_flux=idle_flux,
+            target_flux=target_flux,
+            ramp_time_ns=ramp_time_ns,
+            hold_time_ns=h,
+            dt_ns=dt_ns,
+            idx_circuit=idx_circuit,
+        )
+        score = float(phase_error + scan_leakage_penalty * max_leak)
+        scan_hold_list.append(h)
+        scan_phase_error_list.append(phase_error)
+        scan_score_list.append(score)
+        refined.append((score, h))
+
+    selected_hold = float(min(refined, key=lambda x: x[0])[1])
+    return selected_hold, scan_hold_list, scan_phase_error_list, scan_score_list
+
+
 def run_cz_benchmark(
     config: StudyConfig,
     *,
@@ -426,81 +522,24 @@ def run_cz_benchmark(
     selected_hold = 0.0 if hold_time_ns is None else float(max(0.0, hold_time_ns))
     if hold_time_ns is None and enable_hold_time_scan:
         hold_scan_started = time.perf_counter()
-        phase_ramp_only, _, _ = _evaluate_circuit_candidate(
-            config=config,
+        (
+            selected_hold,
+            scan_hold_list,
+            scan_phase_error_list,
+            scan_score_list,
+        ) = _scan_circuit_hold_time(
+            config,
+            static_result,
             sweep_target=sweep_target,
             idle_flux=idle_flux,
             target_flux=target_flux,
             ramp_time_ns=ramp_time_ns,
-            hold_time_ns=0.0,
-            dt_ns=scan_dt_ns,
+            dt_ns=dt_ns,
+            scan_dt_ns=scan_dt_ns,
+            scan_max_hold_ns=scan_max_hold_ns,
+            scan_leakage_penalty=scan_leakage_penalty,
             idx_circuit=idx_circuit,
         )
-        zeta_ref = np.interp(
-            target_flux,
-            np.asarray(static_result.flux_values, dtype=float).ravel(),
-            np.asarray(static_result.circuit_parameters["zeta"], dtype=float).ravel(),
-        )
-        phase_rate = TWO_PI * max(abs(float(zeta_ref)), 1e-8)
-        hold_est = max(0.0, (np.pi - float(phase_ramp_only)) / phase_rate)
-        hold_est = float(min(hold_est, scan_max_hold_ns))
-
-        candidate_values = [0.0, 0.8 * hold_est, hold_est, 1.2 * hold_est]
-        if hold_est >= scan_max_hold_ns - 1e-12:
-            candidate_values.append(scan_max_hold_ns)
-        candidates = sorted(set(candidate_values))
-
-        scored: list[tuple[float, float]] = []
-        for candidate in candidates:
-            h = float(np.clip(candidate, 0.0, scan_max_hold_ns))
-            log_progress(f"cz benchmark: coarse hold scan candidate {h:.3f} ns")
-            _, phase_error, max_leak = _evaluate_circuit_candidate(
-                config=config,
-                sweep_target=sweep_target,
-                idle_flux=idle_flux,
-                target_flux=target_flux,
-                ramp_time_ns=ramp_time_ns,
-                hold_time_ns=h,
-                dt_ns=scan_dt_ns,
-                idx_circuit=idx_circuit,
-            )
-            score = float(phase_error + scan_leakage_penalty * max_leak)
-            scan_hold_list.append(h)
-            scan_phase_error_list.append(phase_error)
-            scan_score_list.append(score)
-            scored.append((score, h))
-
-        selected_hold = float(min(scored, key=lambda x: x[0])[1])
-
-        # Refine around the selected hold using the final integration step size.
-        refine_step = max(2.0 * dt_ns, 0.05 * max(selected_hold, 1.0))
-        refine_candidates = sorted(
-            {
-                float(np.clip(selected_hold - refine_step, 0.0, scan_max_hold_ns)),
-                float(np.clip(selected_hold, 0.0, scan_max_hold_ns)),
-                float(np.clip(selected_hold + refine_step, 0.0, scan_max_hold_ns)),
-            }
-        )
-        refined: list[tuple[float, float]] = []
-        for h in refine_candidates:
-            log_progress(f"cz benchmark: refined hold scan candidate {h:.3f} ns")
-            _, phase_error, max_leak = _evaluate_circuit_candidate(
-                config=config,
-                sweep_target=sweep_target,
-                idle_flux=idle_flux,
-                target_flux=target_flux,
-                ramp_time_ns=ramp_time_ns,
-                hold_time_ns=h,
-                dt_ns=dt_ns,
-                idx_circuit=idx_circuit,
-            )
-            score = float(phase_error + scan_leakage_penalty * max_leak)
-            scan_hold_list.append(h)
-            scan_phase_error_list.append(phase_error)
-            scan_score_list.append(score)
-            refined.append((score, h))
-
-        selected_hold = float(min(refined, key=lambda x: x[0])[1])
         hold_scan_runtime_s = float(time.perf_counter() - hold_scan_started)
 
     times_ns, pulse_flux = _ramp_hold_ramp_flux_pulse(
