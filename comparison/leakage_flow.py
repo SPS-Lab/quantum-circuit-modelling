@@ -11,7 +11,6 @@ from comparison.cz import (
     TWO_PI,
     _idle_flux_for_target,
     _pick_target_flux_from_static,
-    _ramp_hold_ramp_flux_pulse,
 )
 from comparison.fitted_reconstruction import duffing_mode_parameters_for_flux
 from comparison.static import run_static_benchmark
@@ -23,6 +22,7 @@ from models import (
     is_reference_calibrated_duffing_mode,
 )
 from study_config import StudyConfig
+from toolkit.pulses import ramp_hold_ramp_flux_pulse
 
 
 @dataclass(frozen=True)
@@ -478,7 +478,7 @@ def run_leakage_flow_benchmark(
     idle_flux = _idle_flux_for_target(config, sweep_target)
     target_flux = _pick_target_flux_from_static(static_result, idle_flux=idle_flux)
 
-    times_ns, pulse_flux = _ramp_hold_ramp_flux_pulse(
+    times_ns, pulse_flux = ramp_hold_ramp_flux_pulse(
         ramp_time_ns=float(ramp_time_ns),
         hold_time_ns=float(max(0.0, hold_time_ns)),
         dt_ns=float(dt_ns),

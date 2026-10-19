@@ -6,7 +6,6 @@ from dataclasses import dataclass
 import time
 
 import numpy as np
-from scipy.linalg import expm
 
 from comparison.fitted_reconstruction import (
     duffing_mode_parameters_for_flux,
@@ -25,19 +24,13 @@ from models import (
     computational_state_indices,
     is_reference_calibrated_duffing_mode,
 )
-from runtime_utils import format_elapsed_compact, log_progress, progress_heartbeat
+from runtime_utils import log_progress, progress_heartbeat
 from study_config import StudyConfig
+from toolkit.observables import CzDynamicsObservables, extract_cz_observables
+from toolkit.pulses import ramp_hold_ramp_flux_pulse
+from toolkit.solver import propagate_piecewise_constant
 
 TWO_PI = 2.0 * np.pi
-
-
-@dataclass(frozen=True)
-class _DynamicsObservables:
-    computational_amplitudes: np.ndarray
-    populations_11: np.ndarray
-    leakage_11: np.ndarray
-    conditional_phase: np.ndarray
-    monitor_population_11: np.ndarray
 
 
 @dataclass(frozen=True)
@@ -147,90 +140,6 @@ def _phase_error_to_cz_target(phase_rad: float) -> float:
     return float(min(abs(phase - c) for c in candidates))
 
 
-def _time_grid(total_time_ns: float, dt_ns: float) -> np.ndarray:
-    total = float(total_time_ns)
-    dt = float(dt_ns)
-    if total <= 0.0:
-        raise ValueError("total_time_ns must be positive")
-    if dt <= 0.0:
-        raise ValueError("dt_ns must be positive")
-
-    grid = np.arange(0.0, total, dt, dtype=float)
-    if grid.size == 0:
-        grid = np.array([0.0], dtype=float)
-    if abs(grid[-1] - total) > 1e-12:
-        grid = np.append(grid, total)
-    else:
-        grid[-1] = total
-    if grid.size < 2:
-        grid = np.array([0.0, total], dtype=float)
-    diffs = np.diff(grid)
-    if np.any(diffs <= 0.0):
-        raise ValueError("Internal error: non-increasing time grid")
-    return grid
-
-
-def _ramp_hold_ramp_flux_pulse(
-    *,
-    ramp_time_ns: float,
-    hold_time_ns: float,
-    dt_ns: float,
-    idle_flux: float,
-    target_flux: float,
-) -> tuple[np.ndarray, np.ndarray]:
-    ramp = float(ramp_time_ns)
-    hold = float(max(0.0, hold_time_ns))
-    if ramp <= 0.0:
-        raise ValueError("ramp_time_ns must be positive")
-
-    total = 2.0 * ramp + hold
-    times = _time_grid(total, dt_ns)
-    flux = np.empty_like(times, dtype=float)
-    delta = float(target_flux) - float(idle_flux)
-
-    t1 = ramp
-    t2 = ramp + hold
-    for k, t in enumerate(times):
-        if t <= t1:
-            u = t / ramp
-            env = 0.5 * (1.0 - np.cos(np.pi * u))
-        elif t <= t2:
-            env = 1.0
-        else:
-            u = (t - t2) / ramp
-            env = 0.5 * (1.0 + np.cos(np.pi * u))
-        flux[k] = float(idle_flux) + delta * env
-
-    return times, flux
-
-
-def _extract_observables_from_amplitudes(comp_amp: np.ndarray) -> _DynamicsObservables:
-    amp = np.asarray(comp_amp, dtype=complex)
-    if amp.ndim != 3 or amp.shape[1:] != (4, 4):
-        raise ValueError(f"comp_amp must be (n_time, 4, 4), got {amp.shape}")
-
-    populations_11 = np.abs(amp[:, :, 3]) ** 2
-    leakage_11 = 1.0 - np.sum(populations_11, axis=1)
-    leakage_11 = np.clip(np.real(leakage_11), 0.0, 1.0)
-
-    d00 = amp[:, 0, 0]
-    d01 = amp[:, 1, 1]
-    d10 = amp[:, 2, 2]
-    d11 = amp[:, 3, 3]
-    den = d01 * d10
-    eps = 1e-15
-    den_safe = np.where(np.abs(den) < eps, eps + 0.0j, den)
-    cond_phase = np.unwrap(np.angle((d00 * d11) / den_safe))
-
-    return _DynamicsObservables(
-        computational_amplitudes=amp,
-        populations_11=np.asarray(populations_11, dtype=float),
-        leakage_11=np.asarray(leakage_11, dtype=float),
-        conditional_phase=np.asarray(cond_phase, dtype=float),
-        monitor_population_11=np.zeros(amp.shape[0], dtype=float),
-    )
-
-
 def _simulate_piecewise_constant_scipy(
     H_stack: np.ndarray,
     times_ns: np.ndarray,
@@ -239,66 +148,28 @@ def _simulate_piecewise_constant_scipy(
     monitor_indices: np.ndarray | None = None,
     progress_label: str | None = None,
     progress_interval_s: float = 30.0,
-) -> _DynamicsObservables:
-    H = np.asarray(H_stack, dtype=complex)
-    t = np.asarray(times_ns, dtype=float).ravel()
+) -> CzDynamicsObservables:
+    """Adapt the public propagator to the CZ computational basis and analysis."""
     comp_idx = np.asarray(computational_indices, dtype=int).ravel()
-
-    n_time, d, d2 = H.shape
-    if d != d2:
-        raise ValueError(f"H_stack must be square, got {H.shape}")
-    if n_time != t.size:
-        raise ValueError(
-            f"H_stack first axis ({n_time}) must match time size ({t.size})"
-        )
     if comp_idx.size != 4:
         raise ValueError("Need exactly 4 computational indices")
-
-    states = np.zeros((d, 4), dtype=complex)
-    for j in range(4):
-        states[int(comp_idx[j]), j] = 1.0
-
-    comp_amp = np.zeros((n_time, 4, 4), dtype=complex)
-    comp_amp[0] = states[comp_idx, :]
-    mon_idx = (
-        None
+    states = np.zeros((H_stack.shape[1], 4), dtype=complex)
+    states[comp_idx, np.arange(4)] = 1.0
+    monitor_idx = (
+        np.empty(0, dtype=int)
         if monitor_indices is None
         else np.asarray(monitor_indices, dtype=int).ravel()
     )
-    mon = np.zeros(n_time, dtype=float)
-    if mon_idx is not None and mon_idx.size > 0:
-        mon[0] = float(np.sum(np.abs(states[mon_idx, 3]) ** 2))
-
-    interval = max(float(progress_interval_s), 1.0)
-    started = time.perf_counter()
-    last_progress = started
-    for k in range(n_time - 1):
-        dt = float(t[k + 1] - t[k])
-        if dt <= 0.0:
-            raise ValueError("times_ns must be strictly increasing")
-        U = expm((-1.0j * TWO_PI * dt) * H[k])
-        states = U @ states
-        comp_amp[k + 1] = states[comp_idx, :]
-        if mon_idx is not None and mon_idx.size > 0:
-            mon[k + 1] = float(np.sum(np.abs(states[mon_idx, 3]) ** 2))
-        now = time.perf_counter()
-        if progress_label is not None and (now - last_progress) >= interval:
-            completed = k + 1
-            total = max(n_time - 1, 1)
-            percent = 100.0 * float(completed) / float(total)
-            elapsed = format_elapsed_compact(now - started)
-            log_progress(
-                f"{progress_label} progress: step {completed}/{total} ({percent:.1f}%) after {elapsed}"
-            )
-            last_progress = now
-
-    obs = _extract_observables_from_amplitudes(comp_amp)
-    return _DynamicsObservables(
-        computational_amplitudes=obs.computational_amplitudes,
-        populations_11=obs.populations_11,
-        leakage_11=obs.leakage_11,
-        conditional_phase=obs.conditional_phase,
-        monitor_population_11=mon,
+    amplitudes = propagate_piecewise_constant(
+        H_stack,
+        times_ns,
+        states,
+        output_indices=np.concatenate((comp_idx, monitor_idx)),
+        progress_label=progress_label,
+        progress_interval_s=progress_interval_s,
+    )
+    return extract_cz_observables(
+        amplitudes[:, :4, :], monitor_amplitudes=amplitudes[:, 4:, :]
     )
 
 
@@ -335,7 +206,7 @@ def _evaluate_circuit_candidate(
     dt_ns: float,
     idx_circuit: np.ndarray,
 ) -> tuple[float, float, float]:
-    times_ns, pulse_flux = _ramp_hold_ramp_flux_pulse(
+    times_ns, pulse_flux = ramp_hold_ramp_flux_pulse(
         ramp_time_ns=ramp_time_ns,
         hold_time_ns=hold_time_ns,
         dt_ns=dt_ns,
@@ -542,7 +413,7 @@ def run_cz_benchmark(
         )
         hold_scan_runtime_s = float(time.perf_counter() - hold_scan_started)
 
-    times_ns, pulse_flux = _ramp_hold_ramp_flux_pulse(
+    times_ns, pulse_flux = ramp_hold_ramp_flux_pulse(
         ramp_time_ns=ramp_time_ns,
         hold_time_ns=selected_hold,
         dt_ns=dt_ns,
