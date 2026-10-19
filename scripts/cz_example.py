@@ -42,7 +42,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    # Pulse from results/experiments/20261016_163913_cz_c6753c6.
+    # Pulse from runtime experiment of ICS26 paper.
     parser.add_argument(
         "--target-flux",
         type=float,
@@ -58,7 +58,7 @@ def main() -> None:
     parser.add_argument(
         "--hold-time-ns",
         type=float,
-        default=237.92738645287855,
+        default=237.9595316591736,
         help="Duration of the pulse plateau in ns",
     )
     parser.add_argument(
