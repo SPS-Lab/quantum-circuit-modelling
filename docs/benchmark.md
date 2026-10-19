@@ -1,5 +1,10 @@
 # Benchmark
 
+To build and simulate a single circuit-model CZ pulse, start with
+[`scripts/cz_example.py`](../scripts/cz_example.py) and the
+[simulation guide](simulation.md). The benchmark scripts described below
+compare models and produce saved results, figures, and provenance metadata.
+
 All benchmark scripts now default to creating a timestamped run directory under:
 
 - `results/experiments/<timestamp>_<benchmark-or-experiment-name>_<commit-short>[_dirty]/`
@@ -238,7 +243,7 @@ Replot from saved runtime benchmark data only:
 python scripts/run_runtime_benchmark.py --plot-only
 ```
 
-All scripts support `--results <path>` to override the default HDF5 path.
+All benchmark scripts support `--results <path>` to override the default HDF5 path.
 You can also rerender all plots from existing results:
 
 ```bash

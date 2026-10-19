@@ -13,6 +13,15 @@ micromamba create -f scmodels-env.yml
 micromamba activate scmodels-env
 ```
 
+To build a circuit Hamiltonian and simulate a CZ pulse, run:
+
+```bash
+python scripts/cz_example.py
+```
+
+The [simulation guide](docs/simulation.md) walks through the example, its
+parameters, and the public simulation functions.
+
 To reproduce all figures in the paper, run:
 
 ```bash

@@ -1,12 +1,17 @@
-"""Standalone circuit CZ workload for external profilers.
+"""Build and simulate a circuit-model CZ pulse using the public toolkit.
 
-Run from the repository root, for example:
-    python -m cProfile -o /tmp/cz-n8.prof scripts/profile_cz.py
+Run from the repository root:
+    python scripts/cz_example.py
 
-Includes imports, configuration, Hamiltonian construction, and propagation.
-Uses fixed pulse settings rather than static calibration or a hold-time scan.
-Does not write benchmark artifacts or figures. Hamiltonians are in GHz and
-times are in ns; the existing solver applies the required factor of 2*pi.
+The example constructs a flux pulse, builds circuit Hamiltonians, propagates
+the four computational basis states, and reports final conditional phase and
+leakage from |11>, along with build and propagation times. Each qubit uses eight
+levels; device parameters and remaining basis settings come from params/.
+
+Pulse settings are fixed and can be overridden on the command line. Hamiltonians
+are in GHz and times are in ns; the solver applies the factor of 2*pi. Results
+are printed to the terminal. See docs/simulation.md for usage and optional
+profiling commands.
 """
 
 from __future__ import annotations
@@ -34,12 +39,34 @@ QUBIT_DIM = 8
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     # Pulse from results/experiments/20261016_163913_cz_c6753c6.
-    parser.add_argument("--target-flux", type=float, default=0.23333333333333334)
-    parser.add_argument("--ramp-time-ns", type=float, default=2.0)
-    parser.add_argument("--hold-time-ns", type=float, default=237.92738645287855)
-    parser.add_argument("--dt-ns", type=float, default=0.5)
+    parser.add_argument(
+        "--target-flux",
+        type=float,
+        default=0.23333333333333334,
+        help="Pulse plateau flux in units of the flux quantum",
+    )
+    parser.add_argument(
+        "--ramp-time-ns",
+        type=float,
+        default=2.0,
+        help="Duration of each cosine ramp in ns",
+    )
+    parser.add_argument(
+        "--hold-time-ns",
+        type=float,
+        default=237.92738645287855,
+        help="Duration of the pulse plateau in ns",
+    )
+    parser.add_argument(
+        "--dt-ns",
+        type=float,
+        default=0.5,
+        help="Propagation time step in ns (the final step may be shorter)",
+    )
     args = parser.parse_args()
     if args.ramp_time_ns <= 0 or args.dt_ns <= 0 or args.hold_time_ns < 0:
         parser.error("ramp time and dt must be positive; hold time must be nonnegative")
