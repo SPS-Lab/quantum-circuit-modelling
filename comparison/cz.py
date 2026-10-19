@@ -335,6 +335,7 @@ def run_cz_benchmark(
     precomputed_static_result: CircuitFluxSweepReference | None = None,
     precomputed_static_runtime_s: float | None = None,
     circuit_only: bool = False,
+    target_flux: float | None = None,
 ) -> CzBenchmarkResult | CzCircuitOnlyResult:
     """Run a CZ-relevant dynamics benchmark under a shared flux pulse schedule.
 
@@ -362,7 +363,8 @@ def run_cz_benchmark(
         )
     sweep_target = str(config.static_benchmark.flux_control.sweep_target)
     idle_flux = _idle_flux_for_target(config, sweep_target)
-    target_flux = _pick_target_flux_from_static(static_result, idle_flux=idle_flux)
+    if target_flux is None:
+        target_flux = _pick_target_flux_from_static(static_result, idle_flux=idle_flux)
 
     ramp_time_ns = float(ramp_time_ns)
     dt_ns = float(dt_ns)

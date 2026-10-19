@@ -15,6 +15,7 @@ if str(_ROOT) not in sys.path:
 
 from comparison.runtime import run_runtime_benchmark
 import comparison.cz as cz_module
+import comparison.runtime as runtime_module
 import comparison.static as static_module
 from benchmark_results_io import load_result_hdf5, save_result_hdf5
 from comparison.runtime import RuntimeBenchmarkResult
@@ -81,6 +82,7 @@ def _write_small_study_params(tmp_path: Path) -> Path:
     cz["hold_time_ns"] = 0.5
 
     rb = payload["runtime_benchmark"]
+    rb.pop("target_flux", None)
     rb["qubit_truncation_values"] = [2, 3]
     rb["circuit_only"] = False
     rb["duffing_calibration_mode"] = "per-flux"
@@ -128,6 +130,58 @@ def test_runtime_benchmark_runs_with_small_config(tmp_path: Path) -> None:
     assert np.array_equal(out.qubit_truncation_values, np.array([2, 3], dtype=int))
     assert np.array_equal(out.duffing_hilbert_dims, np.array([12, 27], dtype=int))
     assert np.array_equal(out.circuit_hilbert_dims, np.array([16, 36], dtype=int))
+
+
+def test_runtime_reuses_explicit_target_flux(tmp_path: Path, monkeypatch) -> None:
+    study_path = _write_small_study_params(tmp_path)
+    payload = json.loads(study_path.read_text())
+    payload["runtime_benchmark"]["target_flux"] = 0.19
+    study_path.write_text(json.dumps(payload))
+    cfg = load_study_config(
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=study_path,
+    )
+    targets = []
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Explicit target flux must bypass automatic selection")
+
+    def record_run(*args, **kwargs):
+        result = run_cz_benchmark(*args, **kwargs)
+        targets.append(result.target_flux)
+        assert result.pulse_flux_values.max() == 0.19
+        return result
+
+    monkeypatch.setattr(cz_module, "_pick_target_flux_from_static", forbidden)
+    monkeypatch.setattr(runtime_module, "run_cz_benchmark", record_run)
+    result = run_runtime_benchmark(
+        cfg,
+        qubit_truncation_values=[2, 3],
+        circuit_only=True,
+        repeats=1,
+        hold_time_ns=0.5,
+    )
+    assert targets == [0.19, 0.19, 0.19]  # Priming run, then both truncations.
+    np.testing.assert_array_equal(result.selected_hold_times_ns, [0.5, 0.5])
+
+
+@pytest.mark.parametrize("target_flux", [None, float("nan"), float("inf")])
+def test_optional_target_flux_validation(tmp_path: Path, target_flux) -> None:
+    study_path = _write_small_study_params(tmp_path)
+    payload = json.loads(study_path.read_text())
+    payload["runtime_benchmark"].pop("target_flux", None)
+    if target_flux is not None:
+        payload["runtime_benchmark"]["target_flux"] = target_flux
+    study_path.write_text(json.dumps(payload))
+    kwargs = dict(
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=study_path,
+    )
+    if target_flux is None:
+        assert load_study_config(**kwargs).runtime_benchmark.target_flux is None
+    else:
+        with pytest.raises(ValueError, match="target_flux must be finite"):
+            load_study_config(**kwargs)
 
 
 def test_runtime_plot_writes_pdf(tmp_path: Path) -> None:

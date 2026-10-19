@@ -201,6 +201,7 @@ class RuntimeBenchmarkConfig:
     repeats: int
     hold_time_ns: float | None
     outputs: OutputConfig
+    target_flux: float | None = None
 
 
 @dataclass(frozen=True)
@@ -1055,6 +1056,9 @@ def _parse_cz_benchmark(study_payload: dict[str, Any]) -> CzBenchmarkConfig:
 
 def _parse_runtime_benchmark(study_payload: dict[str, Any]) -> RuntimeBenchmarkConfig:
     rb = _require_dict(study_payload, "runtime_benchmark", "study")
+    target_flux = _optional_float(rb, "target_flux")
+    if target_flux is not None and not np.isfinite(target_flux):
+        raise ValueError("study.runtime_benchmark.target_flux must be finite")
 
     trunc_raw = _require_list(rb, "qubit_truncation_values", "study.runtime_benchmark")
     trunc_values = tuple(int(v) for v in trunc_raw)
@@ -1104,6 +1108,7 @@ def _parse_runtime_benchmark(study_payload: dict[str, Any]) -> RuntimeBenchmarkC
 
     outputs = _require_dict(rb, "outputs", "study.runtime_benchmark")
     return RuntimeBenchmarkConfig(
+        target_flux=target_flux,
         qubit_truncation_values=trunc_values,
         duffing_calibration_mode=calibration_mode,
         circuit_only=circuit_only,

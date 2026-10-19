@@ -118,6 +118,7 @@ def _resolve_fixed_hold_time_ns(
 
     reference = run_cz_benchmark(
         config,
+        target_flux=config.runtime_benchmark.target_flux,
         circuit_only=circuit_only,
         ramp_time_ns=float(cz_cfg.ramp_time_ns),
         hold_time_ns=None,
@@ -204,6 +205,7 @@ def run_runtime_benchmark(
         log_progress("runtime benchmark: priming propagation outside measured sweep")
         run_cz_benchmark(
             sweep_configs[0],
+            target_flux=config.runtime_benchmark.target_flux,
             circuit_only=circuit_only,
             ramp_time_ns=float(cz_cfg.ramp_time_ns),
             hold_time_ns=float(fixed_hold_time_ns),
@@ -229,6 +231,7 @@ def run_runtime_benchmark(
             )
             result = run_cz_benchmark(
                 sweep_cfg,
+                target_flux=config.runtime_benchmark.target_flux,
                 circuit_only=circuit_only,
                 ramp_time_ns=float(cz_cfg.ramp_time_ns),
                 hold_time_ns=float(fixed_hold_time_ns),
