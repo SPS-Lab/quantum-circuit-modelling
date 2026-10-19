@@ -109,7 +109,7 @@ def plot_runtime_benchmark(
         ax_prop.set_xticks(x)
         ax_prop.xaxis.set_major_formatter(ScalarFormatter())
 
-        handles = model_legend_handles()[:2 if has_duffing else 1]
+        handles = model_legend_handles()[: 2 if has_duffing else 1]
         if not has_duffing:
             handles[0].set_label("Runtime circuit model")
         legend = add_model_figure_legend(
