@@ -86,6 +86,7 @@ def propagate_piecewise_constant(
             last_progress = now
     return amplitudes
 
+
 def propagate_piecewise_constant_cupy(
     hamiltonians_ghz: cp.ndarray,
     times_ns: cp.ndarray,
@@ -121,9 +122,7 @@ def propagate_piecewise_constant_cupy(
         times.ndim != 1
         or times.size == 0
         or times.size != n_time
-        or not cp.all(
-            cp.isfinite(times)
-        )
+        or not cp.all(cp.isfinite(times))
         or cp.any(cp.diff(times) <= 0)
     ):
         raise ValueError(
@@ -182,7 +181,9 @@ def propagate_piecewise_constant_cupy_wrapper(
             hamiltonians_ghz=cp.array(hamiltonians_ghz),
             times_ns=cp.array(times_ns),
             initial_states=cp.array(initial_states),
-            output_indices=cp.array(output_indices) if output_indices is not None else None,
+            output_indices=(
+                cp.array(output_indices) if output_indices is not None else None
+            ),
             progress_label=progress_label,
             progress_interval_s=progress_interval_s,
         )
