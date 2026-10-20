@@ -10,6 +10,7 @@ dependencies:
   # Numerical stack
   - numpy
   - scipy
+  - cuda-version=12.9
   - cupy
 
   # Quantum toolkits (model + simulation layers)

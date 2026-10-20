@@ -87,14 +87,14 @@ def propagate_piecewise_constant(
     return amplitudes
 
 def propagate_piecewise_constant_cupy(
-    hamiltonians_ghz: np.ndarray,
-    times_ns: np.ndarray,
-    initial_states: np.ndarray,
+    hamiltonians_ghz: cp.ndarray,
+    times_ns: cp.ndarray,
+    initial_states: cp.ndarray,
     *,
-    output_indices: np.ndarray | None = None,
+    output_indices: cp.ndarray | None = None,
     progress_label: str | None = None,
     progress_interval_s: float = 30.0,
-) -> np.ndarray:
+) -> cp.ndarray:
     """Propagate statevector columns with dense matrix exponentials.
     CuPy implementation.
 
@@ -109,9 +109,9 @@ def propagate_piecewise_constant_cupy(
     order); omit it to retain all rows. Full states are always propagated.
     Inputs are not modified. No model-specific observables are computed.
     """
-    hamiltonians = np.asarray(hamiltonians_ghz, dtype=complex)
-    times = np.asarray(times_ns, dtype=float)
-    states = np.asarray(initial_states, dtype=complex)
+    hamiltonians = cp.asarray(hamiltonians_ghz, dtype=complex)
+    times = cp.asarray(times_ns, dtype=float)
+    states = cp.asarray(initial_states, dtype=complex)
     if hamiltonians.ndim != 3 or hamiltonians.shape[1] != hamiltonians.shape[2]:
         raise ValueError(
             "hamiltonians_ghz must have shape (n_time, dimension, dimension)"
@@ -121,8 +121,10 @@ def propagate_piecewise_constant_cupy(
         times.ndim != 1
         or times.size == 0
         or times.size != n_time
-        or not np.all(np.isfinite(times))
-        or np.any(np.diff(times) <= 0)
+        or not cp.all(
+            cp.isfinite(times)
+        )
+        or cp.any(cp.diff(times) <= 0)
     ):
         raise ValueError(
             "times_ns must be a finite, nonempty, strictly increasing grid matching n_time"
@@ -132,22 +134,22 @@ def propagate_piecewise_constant_cupy(
             "initial_states must have shape (dimension, n_states) with n_states > 0"
         )
     if output_indices is None:
-        rows = np.arange(dimension)
+        rows = cp.arange(dimension)
     else:
-        rows = np.asarray(output_indices)
-        if rows.ndim != 1 or not np.issubdtype(rows.dtype, np.integer):
+        rows = cp.asarray(output_indices)
+        if rows.ndim != 1 or not cp.issubdtype(rows.dtype, cp.integer):
             raise ValueError("output_indices must be a 1D integer array")
-        if np.any(rows < 0) or np.any(rows >= dimension):
+        if cp.any(rows < 0) or cp.any(rows >= dimension):
             raise ValueError("output_indices are outside the Hamiltonian basis")
 
-    amplitudes = np.empty((n_time, rows.size, states.shape[1]), dtype=complex)
+    amplitudes = cp.empty((n_time, rows.size, states.shape[1]), dtype=complex)
     amplitudes[0] = states[rows, :]
     interval = max(float(progress_interval_s), 1.0)
     started = time.perf_counter()
     last_progress = started
     for k in range(n_time - 1):
         dt = float(times[k + 1] - times[k])
-        unitary = expm((-1.0j * 2.0 * np.pi * dt) * hamiltonians[k])
+        unitary = cuexpm((-1.0j * 2.0 * cp.pi * dt) * hamiltonians[k])
         states = unitary @ states
         amplitudes[k + 1] = states[rows, :]
         now = time.perf_counter()
@@ -161,6 +163,30 @@ def propagate_piecewise_constant_cupy(
             )
             last_progress = now
     return amplitudes
+
+
+def propagate_piecewise_constant_cupy_wrapper(
+    hamiltonians_ghz: np.ndarray,
+    times_ns: np.ndarray,
+    initial_states: np.ndarray,
+    *,
+    output_indices: np.ndarray | None = None,
+    progress_label: str | None = None,
+    progress_interval_s: float = 30.0,
+) -> np.ndarray:
+    """Wrapper around propagate_piecewise_constant_cupy to convert the result
+    to cupy and back to numpy.
+    """
+    return cp.asnumpy(
+        propagate_piecewise_constant_cupy(
+            hamiltonians_ghz=cp.array(hamiltonians_ghz),
+            times_ns=cp.array(times_ns),
+            initial_states=cp.array(initial_states),
+            output_indices=cp.array(output_indices) if output_indices is not None else None,
+            progress_label=progress_label,
+            progress_interval_s=progress_interval_s,
+        )
+    )
 
 
 def _is_diagonal(H: np.ndarray, rtol: float = 1e-10, atol: float = 1e-10) -> bool:

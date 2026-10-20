@@ -33,7 +33,7 @@ from models.three_mode import computational_state_indices
 from study_config import load_study_config
 from toolkit.observables import extract_cz_observables
 from toolkit.pulses import ramp_hold_ramp_flux_pulse
-from toolkit.solver import propagate_piecewise_constant
+from toolkit.solver import propagate_piecewise_constant_cupy_wrapper
 
 QUBIT_DIM = 8
 
@@ -126,7 +126,7 @@ def main() -> None:
     initial_states[computational_indices, np.arange(4)] = 1.0
 
     started = time.perf_counter()
-    amplitudes = propagate_piecewise_constant(
+    amplitudes = propagate_piecewise_constant_cupy_wrapper(
         hamiltonians,
         times_ns,
         initial_states,
