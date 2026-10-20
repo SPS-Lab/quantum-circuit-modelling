@@ -10,6 +10,7 @@ dependencies:
   # Numerical stack
   - numpy
   - scipy
+  - cupy
 
   # Quantum toolkits (model + simulation layers)
   - qutip
