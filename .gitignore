@@ -224,6 +224,7 @@ untracked/
 
 pyrightconfig.json
 
+.vscode
 
 # Temporarily ignored.
 model0/single_mode_duffiling.ipynb
