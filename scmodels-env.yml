@@ -32,3 +32,6 @@ dependencies:
 
   # To run tests
   - pytest
+
+  # Profiling
+  - snakeviz
