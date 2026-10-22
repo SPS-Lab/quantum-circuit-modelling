@@ -88,12 +88,13 @@ def main() -> None:
     )
     sweep_target = config.static_benchmark.flux_control.sweep_target
     idle_flux = getattr(config.system, sweep_target).flux
-    times_ns, pulse_flux = ramp_hold_ramp_flux_pulse(
+    times_ns, pulse_flux, counts = ramp_hold_ramp_flux_pulse(
         ramp_time_ns=args.ramp_time_ns,
         hold_time_ns=args.hold_time_ns,
         dt_ns=args.dt_ns,
         idle_flux=idle_flux,
         target_flux=args.target_flux,
+        compress=True,
     )
     dims = dict(
         nlevels_qubit=QUBIT_DIM,
@@ -101,7 +102,7 @@ def main() -> None:
     )
     print(
         f"Circuit CZ: N_E,q={QUBIT_DIM}, N_E,c={dims['nlevels_coupler']}, "
-        f"{times_ns.size - 1} propagation steps; "
+        f"{times_ns.size - 1} propagation steps, {pulse_flux.size} Hamiltonians; "
         f"{sweep_target} flux {idle_flux:g} -> {args.target_flux:g}, "
         f"ramp={args.ramp_time_ns:g} ns, hold={args.hold_time_ns:g} ns, "
         f"dt={args.dt_ns:g} ns",
@@ -130,6 +131,7 @@ def main() -> None:
         hamiltonians,
         times_ns,
         initial_states,
+        counts=counts,
         output_indices=computational_indices,
         progress_label="propagate circuit CZ",
     )

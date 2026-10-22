@@ -292,6 +292,38 @@ def test_circuit_only_helpers_return_typed_results(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.parametrize("circuit_only", [False, True])
+def test_cz_compressed_pulse_matches_expanded_evolution(
+    tmp_path, monkeypatch, circuit_only
+):
+    cfg = load_study_config(
+        system_params_path=_write_small_system_params(tmp_path),
+        study_params_path=_write_small_study_params(tmp_path),
+    )
+    kwargs = dict(
+        ramp_time_ns=1.0,
+        hold_time_ns=3.25,
+        dt_ns=0.5,
+        enable_hold_time_scan=False,
+        circuit_only=circuit_only,
+    )
+    compressed = run_cz_benchmark(cfg, **kwargs)
+    original_pulse = cz_module.ramp_hold_ramp_flux_pulse
+
+    def expanded_pulse(**pulse_kwargs):
+        pulse_kwargs.pop("compress")
+        times, flux = original_pulse(**pulse_kwargs)
+        return times, flux[:-1], np.ones(times.size - 1, dtype=int)
+
+    monkeypatch.setattr(cz_module, "ramp_hold_ramp_flux_pulse", expanded_pulse)
+    expanded = run_cz_benchmark(cfg, **kwargs)
+    for name, value in vars(compressed).items():
+        if isinstance(value, np.ndarray):
+            np.testing.assert_allclose(
+                value, getattr(expanded, name), rtol=1e-11, atol=1e-12, err_msg=name
+            )
+
+
 def test_runtime_cli_circuit_only_without_duffing_mode(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:

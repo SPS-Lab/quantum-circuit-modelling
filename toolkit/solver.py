@@ -16,6 +16,7 @@ def propagate_piecewise_constant(
     times_ns: np.ndarray,
     initial_states: np.ndarray,
     *,
+    counts: np.ndarray | None = None,
     output_indices: np.ndarray | None = None,
     progress_label: str | None = None,
     progress_interval_s: float = 30.0,
@@ -26,6 +27,12 @@ def propagate_piecewise_constant(
     ``times_ns`` is a nonempty, strictly increasing 1D grid. Hamiltonian ``k``
     acts on ``[times_ns[k], times_ns[k + 1])``; the final Hamiltonian is unused.
     Frequencies are in GHz, so each step is ``exp(-1j * 2*pi * H * dt_ns)``.
+
+    Alternatively, supply one Hamiltonian per segment and a 1D integer array
+    ``counts`` giving the positive number of time steps in each segment.
+    Counts must sum to ``len(times_ns) - 1``. Within each segment an exponential
+    is computed once per distinct step length and reused. The full time grid
+    and recorded amplitudes are unchanged, including any shorter final step.
 
     ``initial_states`` has shape ``(dimension, n_states)``. The returned complex
     amplitudes have shape ``(n_time, n_outputs, n_states)``, including the
@@ -40,17 +47,34 @@ def propagate_piecewise_constant(
         raise ValueError(
             "hamiltonians_ghz must have shape (n_time, dimension, dimension)"
         )
-    n_time, dimension, _ = hamiltonians.shape
+    n_hamiltonians, dimension, _ = hamiltonians.shape
     if (
         times.ndim != 1
         or times.size == 0
-        or times.size != n_time
         or not np.all(np.isfinite(times))
         or np.any(np.diff(times) <= 0)
     ):
         raise ValueError(
-            "times_ns must be a finite, nonempty, strictly increasing grid matching n_time"
+            "times_ns must be a finite, nonempty, strictly increasing grid"
         )
+    n_time = times.size
+    if counts is None:
+        if n_hamiltonians != n_time:
+            raise ValueError("times_ns must match the Hamiltonian stack length")
+        counts = np.ones(n_time - 1, dtype=int)
+    else:
+        counts = np.asarray(counts)
+        if (
+            counts.ndim != 1
+            or not np.issubdtype(counts.dtype, np.integer)
+            or counts.size != n_hamiltonians
+            or np.any(counts <= 0)
+            or sum(int(count) for count in counts) != n_time - 1
+        ):
+            raise ValueError(
+                "counts must contain one positive integer per Hamiltonian "
+                "and sum to len(times_ns) - 1"
+            )
     if states.ndim != 2 or states.shape[0] != dimension or states.shape[1] == 0:
         raise ValueError(
             "initial_states must have shape (dimension, n_states) with n_states > 0"
@@ -69,21 +93,27 @@ def propagate_piecewise_constant(
     interval = max(float(progress_interval_s), 1.0)
     started = time.perf_counter()
     last_progress = started
-    for k in range(n_time - 1):
-        dt = float(times[k + 1] - times[k])
-        unitary = expm((-1.0j * 2.0 * np.pi * dt) * hamiltonians[k])
-        states = unitary @ states
-        amplitudes[k + 1] = states[rows, :]
-        now = time.perf_counter()
-        if progress_label is not None and (now - last_progress) >= interval:
-            completed = k + 1
-            total = n_time - 1
-            percent = 100.0 * completed / total
-            elapsed = format_elapsed_compact(now - started)
-            log_progress(
-                f"{progress_label} progress: step {completed}/{total} ({percent:.1f}%) after {elapsed}"
-            )
-            last_progress = now
+    k = 0
+    for segment, count in enumerate(counts):
+        # Keep only the current segment's unitaries. Distinct floating-point
+        # step lengths are kept distinct rather than approximating the grid.
+        unitaries = {}
+        for _ in range(int(count)):
+            dt = float(times[k + 1] - times[k])
+            if dt not in unitaries:
+                unitaries[dt] = expm((-1.0j * 2.0 * np.pi * dt) * hamiltonians[segment])
+            states = unitaries[dt] @ states
+            amplitudes[k + 1] = states[rows, :]
+            k += 1
+            now = time.perf_counter()
+            if progress_label is not None and (now - last_progress) >= interval:
+                total = n_time - 1
+                percent = 100.0 * k / total
+                elapsed = format_elapsed_compact(now - started)
+                log_progress(
+                    f"{progress_label} progress: step {k}/{total} ({percent:.1f}%) after {elapsed}"
+                )
+                last_progress = now
     return amplitudes
 
 

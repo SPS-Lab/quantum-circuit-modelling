@@ -145,6 +145,7 @@ def _simulate_piecewise_constant_scipy(
     times_ns: np.ndarray,
     computational_indices: np.ndarray,
     *,
+    counts: np.ndarray | None = None,
     monitor_indices: np.ndarray | None = None,
     progress_label: str | None = None,
     progress_interval_s: float = 30.0,
@@ -164,6 +165,7 @@ def _simulate_piecewise_constant_scipy(
         H_stack,
         times_ns,
         states,
+        counts=counts,
         output_indices=np.concatenate((comp_idx, monitor_idx)),
         progress_label=progress_label,
         progress_interval_s=progress_interval_s,
@@ -206,12 +208,13 @@ def _evaluate_circuit_candidate(
     dt_ns: float,
     idx_circuit: np.ndarray,
 ) -> tuple[float, float, float]:
-    times_ns, pulse_flux = ramp_hold_ramp_flux_pulse(
+    times_ns, pulse_flux, counts = ramp_hold_ramp_flux_pulse(
         ramp_time_ns=ramp_time_ns,
         hold_time_ns=hold_time_ns,
         dt_ns=dt_ns,
         idle_flux=idle_flux,
         target_flux=target_flux,
+        compress=True,
     )
     circuit_stack = build_circuit_model_stack(
         flux_values=pulse_flux,
@@ -219,7 +222,9 @@ def _evaluate_circuit_candidate(
         circuit_config=config.static_benchmark.circuit_model,
         sweep_target=sweep_target,
     ).hamiltonian_stack
-    obs = _simulate_piecewise_constant_scipy(circuit_stack, times_ns, idx_circuit)
+    obs = _simulate_piecewise_constant_scipy(
+        circuit_stack, times_ns, idx_circuit, counts=counts
+    )
     phase_final = float(obs.conditional_phase[-1])
     phase_error = _phase_error_to_cz_target(phase_final)
     max_leak = float(np.max(obs.leakage_11))
@@ -415,13 +420,17 @@ def run_cz_benchmark(
         )
         hold_scan_runtime_s = float(time.perf_counter() - hold_scan_started)
 
-    times_ns, pulse_flux = ramp_hold_ramp_flux_pulse(
+    times_ns, pulse_flux, counts = ramp_hold_ramp_flux_pulse(
         ramp_time_ns=ramp_time_ns,
         hold_time_ns=selected_hold,
         dt_ns=dt_ns,
         idle_flux=idle_flux,
         target_flux=target_flux,
+        compress=True,
     )
+    # Preserve the sampled pulse in saved results and plots, including its
+    # final parking point, while building only the segment Hamiltonians.
+    full_pulse_flux = np.append(np.repeat(pulse_flux, counts), idle_flux)
 
     if not circuit_only:
         idx_effective = np.array([0, 1, 2, 3], dtype=int)
@@ -484,6 +493,7 @@ def run_cz_benchmark(
             H_effective,
             times_ns,
             idx_effective,
+            counts=counts,
             monitor_indices=None,
             progress_label="cz benchmark: propagate effective model",
         )
@@ -493,6 +503,7 @@ def run_cz_benchmark(
             duffing_stack,
             times_ns,
             idx_duffing,
+            counts=counts,
             monitor_indices=idx_duffing_intermediate,
             progress_label="cz benchmark: propagate Duffing model",
         )
@@ -503,6 +514,7 @@ def run_cz_benchmark(
         circuit_stack,
         times_ns,
         idx_circuit,
+        counts=counts,
         monitor_indices=idx_circuit_intermediate,
         progress_label="cz benchmark: propagate circuit model",
     )
@@ -519,7 +531,7 @@ def run_cz_benchmark(
     if circuit_only:
         return CzCircuitOnlyResult(
             times_ns=np.asarray(times_ns, dtype=float),
-            pulse_flux_values=np.asarray(pulse_flux, dtype=float),
+            pulse_flux_values=full_pulse_flux,
             sweep_target=sweep_target,
             idle_flux=float(idle_flux),
             target_flux=float(target_flux),
@@ -617,7 +629,7 @@ def run_cz_benchmark(
     duffing_pop_plus_plus = np.abs(duffing_statevector_plus_plus) ** 2
     return CzBenchmarkResult(
         times_ns=np.asarray(times_ns, dtype=float),
-        pulse_flux_values=np.asarray(pulse_flux, dtype=float),
+        pulse_flux_values=full_pulse_flux,
         sweep_target=sweep_target,
         idle_flux=float(idle_flux),
         target_flux=float(target_flux),

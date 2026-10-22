@@ -35,11 +35,18 @@ def ramp_hold_ramp_flux_pulse(
     dt_ns: float,
     idle_flux: float,
     target_flux: float,
-) -> tuple[np.ndarray, np.ndarray]:
+    compress: bool = False,
+) -> tuple[np.ndarray, np.ndarray] | tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Return a cosine ramp-hold-ramp flux pulse and time grid in ns.
 
     The returned grid includes both endpoints. Negative hold times are
     clamped to zero, matching the benchmark pulse convention.
+
+    With ``compress=True``, return ``(times, flux_values, counts)``. The time
+    grid is unchanged, but consecutive equal interval fluxes are represented
+    once, with a positive integer number of steps in ``counts``. Their sum
+    is ``len(times) - 1``. The unused terminal flux is omitted. Build one
+    Hamiltonian per returned flux and pass ``counts`` to the CPU propagator.
     """
     ramp = float(ramp_time_ns)
     hold = float(max(0.0, hold_time_ns))
@@ -64,4 +71,10 @@ def ramp_hold_ramp_flux_pulse(
             env = 0.5 * (1.0 + np.cos(np.pi * u))
         flux[k] = float(idle_flux) + delta * env
 
-    return times, flux
+    if not compress:
+        return times, flux
+
+    interval_flux = flux[:-1]
+    starts = np.concatenate(([0], np.flatnonzero(np.diff(interval_flux) != 0) + 1))
+    counts = np.diff(np.append(starts, interval_flux.size))
+    return times, interval_flux[starts], counts
