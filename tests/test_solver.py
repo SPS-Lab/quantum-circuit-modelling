@@ -182,6 +182,34 @@ def test_dask_preparation_matches_serial_and_does_not_cache_runs(monkeypatch) ->
         np.testing.assert_allclose(actual, expected, atol=1e-14)
 
 
+def test_process_preparation_matches_serial() -> None:
+    distributed = pytest.importorskip("distributed")
+    times = np.array([0.0, 0.5, 1.0, 1.5, 1.75])
+    hamiltonians = np.array(
+        [[[0.0, 0.25], [0.25, 0.0]], [[0.5, 0.0], [0.0, -0.5]]]
+    )
+    counts = np.array([2, 2])
+    serial = prepare_segments(hamiltonians, times, counts=counts)
+    with distributed.Client(
+        processes=True,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=None,
+    ) as client:
+        parallel = prepare_segments(hamiltonians, times, counts=counts, client=client)
+    for expected, actual in zip(serial, parallel):
+        assert set(actual) == set(expected)
+        for dt in expected:
+            np.testing.assert_allclose(actual[dt], expected[dt], atol=1e-14)
+    np.testing.assert_allclose(
+        propagate_piecewise_constant(
+            hamiltonians, times, np.eye(2), counts=counts, prepared_segments=parallel
+        ),
+        propagate_piecewise_constant(hamiltonians, times, np.eye(2), counts=counts),
+        atol=1e-14,
+    )
+
+
 @pytest.mark.parametrize("prepared", [[], [{0.25: np.eye(2)}], [{0.5: np.eye(3)}]])
 def test_invalid_prepared_segments(prepared) -> None:
     with pytest.raises(ValueError, match="prepared_segments"):

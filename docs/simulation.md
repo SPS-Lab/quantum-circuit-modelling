@@ -82,8 +82,21 @@ threads in a single process:
 
 ```bash
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
-python scripts/cz_example.py --preparation dask --threads 4
+python scripts/cz_example.py --preparation dask-threads --threads 4
 ```
+
+To compare against separate worker processes, each with one execution thread:
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+python scripts/cz_example.py --preparation dask-processes --workers 4
+```
+
+Processes allow Python code in different tasks to execute independently of the
+GIL. They also transfer Hamiltonians to workers and unitaries back to the
+client, adding communication and memory costs. The preparation timing includes
+these transfers. Both Dask modes provide the dashboard and submit one task per
+segment.
 
 The active dashboard URL is printed; by default it binds to
 `http://127.0.0.1:8787`. It shows segment preparation tasks while the example
@@ -92,15 +105,16 @@ to request any available port. Dask, distributed, and Bokeh are included in
 `scmodels-env.yml`.
 
 One task prepares each segment's dictionary of step length to unitary. Dask
-assigns these tasks to available threads, and results are gathered in pulse
+assigns these tasks to available workers, and results are gathered in pulse
 order. The four statevectors are then propagated sequentially through those
 unitaries. `--preparation serial` uses the same preparation function without
-Dask. Both modes prepare the complete schedule before propagating and retain
+Dask. All modes prepare the complete schedule before propagating and retain
 the prepared matrices in memory.
 
 For timing comparisons, keep BLAS thread settings the same between runs.
 Start with one BLAS thread per task to avoid nested thread pools competing for
-cores, and adjust `--threads` to control simultaneous preparations and their
+cores, and adjust `--threads` (threaded mode) or `--workers` (process mode)
+to control simultaneous preparations and their
 temporary memory use. The printed preparation time excludes Dask client
 startup; state propagation time excludes exponential preparation. Compare
 `Preparation + propagation` against the previous combined solver timing.

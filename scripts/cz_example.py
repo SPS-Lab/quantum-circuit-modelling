@@ -70,7 +70,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--preparation",
-        choices=("serial", "dask"),
+        choices=("serial", "dask-threads", "dask-processes"),
         default="serial",
         help="How to prepare segment unitaries before chronological propagation",
     )
@@ -79,6 +79,12 @@ def main() -> None:
         type=int,
         default=4,
         help="Concurrent preparation threads in Dask mode (one worker process)",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        help="Worker processes in dask-processes mode (one thread each)",
     )
     parser.add_argument(
         "--dashboard-address",
@@ -90,6 +96,8 @@ def main() -> None:
         parser.error("ramp time and dt must be positive; hold time must be nonnegative")
     if args.threads < 1:
         parser.error("threads must be >= 1")
+    if args.workers < 1:
+        parser.error("workers must be >= 1")
     if not all(
         np.isfinite(getattr(args, name))
         for name in (
@@ -158,14 +166,15 @@ def main() -> None:
 
     with ExitStack() as stack:
         client = None
-        if args.preparation == "dask":
+        if args.preparation in ("dask-threads", "dask-processes"):
             from dask.distributed import Client
 
+            processes = args.preparation == "dask-processes"
             client = stack.enter_context(
                 Client(
-                    processes=False,
-                    n_workers=1,
-                    threads_per_worker=args.threads,
+                    processes=processes,
+                    n_workers=args.workers if processes else 1,
+                    threads_per_worker=1 if processes else args.threads,
                     dashboard_address=args.dashboard_address,
                 )
             )

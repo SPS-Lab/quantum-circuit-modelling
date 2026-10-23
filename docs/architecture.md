@@ -76,7 +76,7 @@ Pass the returned list to `propagate_piecewise_constant` as
 the propagator prepares them serially itself. All prepared unitaries remain
 in memory while propagating. Propagation remains sequential and uses the same
 numerical operations in both modes. The [simulation guide](simulation.md#parallel-unitary-preparation)
-shows how to enable threaded execution and its dashboard.
+shows how to enable threaded or process execution and its dashboard.
 
 The CZ example, CZ benchmark, and its runtime benchmark use this compression.
 Saved CZ results still contain the full sampled pulse for plotting. The GPU
