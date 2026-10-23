@@ -17,6 +17,7 @@ profiling commands.
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 from dataclasses import replace
 from pathlib import Path
 import sys
@@ -33,9 +34,9 @@ from models.three_mode import computational_state_indices
 from study_config import load_study_config
 from toolkit.observables import extract_cz_observables
 from toolkit.pulses import ramp_hold_ramp_flux_pulse
-from toolkit.solver import propagate_piecewise_constant
+from toolkit.solver import prepare_segments, propagate_piecewise_constant
 
-QUBIT_DIM = 8
+QUBIT_DIM = 15
 
 
 def main() -> None:
@@ -67,10 +68,37 @@ def main() -> None:
         default=0.5,
         help="Propagation time step in ns (the final step may be shorter)",
     )
+    parser.add_argument(
+        "--preparation",
+        choices=("serial", "dask"),
+        default="serial",
+        help="How to prepare segment unitaries before chronological propagation",
+    )
+    parser.add_argument(
+        "--threads",
+        type=int,
+        default=4,
+        help="Concurrent preparation threads in Dask mode (one worker process)",
+    )
+    parser.add_argument(
+        "--dashboard-address",
+        default="127.0.0.1:8787",
+        help="Dask dashboard bind address; the active URL is printed",
+    )
     args = parser.parse_args()
     if args.ramp_time_ns <= 0 or args.dt_ns <= 0 or args.hold_time_ns < 0:
         parser.error("ramp time and dt must be positive; hold time must be nonnegative")
-    if not all(np.isfinite(value) for value in vars(args).values()):
+    if args.threads < 1:
+        parser.error("threads must be >= 1")
+    if not all(
+        np.isfinite(getattr(args, name))
+        for name in (
+            "ramp_time_ns",
+            "hold_time_ns",
+            "dt_ns",
+            "target_flux",
+        )
+    ):
         parser.error("pulse parameters must be finite")
 
     config = load_study_config(
@@ -109,6 +137,8 @@ def main() -> None:
         flush=True,
     )
 
+    print("pulse flux: ", pulse_flux)
+
     started = time.perf_counter()
     hamiltonians = build_circuit_model_stack(
         flux_values=pulse_flux,
@@ -126,16 +156,57 @@ def main() -> None:
     initial_states = np.zeros((hamiltonians.shape[1], 4), dtype=complex)
     initial_states[computational_indices, np.arange(4)] = 1.0
 
-    started = time.perf_counter()
-    amplitudes = propagate_piecewise_constant(
-        hamiltonians,
-        times_ns,
-        initial_states,
-        counts=counts,
-        output_indices=computational_indices,
-        progress_label="propagate circuit CZ",
-    )
-    print(f"Propagation: {time.perf_counter() - started:.3f} s", flush=True)
+    with ExitStack() as stack:
+        client = None
+        if args.preparation == "dask":
+            from dask.distributed import Client
+
+            client = stack.enter_context(
+                Client(
+                    processes=False,
+                    n_workers=1,
+                    threads_per_worker=args.threads,
+                    dashboard_address=args.dashboard_address,
+                )
+            )
+            # In-process scheduler addresses can advertise a different host
+            # from the dashboard's bind address. Use its actual service port.
+            dashboard_host = args.dashboard_address.rsplit(":", 1)[0] or "127.0.0.1"
+            if dashboard_host in ("0.0.0.0", "[::]"):
+                dashboard_host = "127.0.0.1"
+            dashboard_port = client.scheduler_info()["services"]["dashboard"]
+            print(
+                f"Dask dashboard: http://{dashboard_host}:{dashboard_port}/status",
+                flush=True,
+            )
+
+        print(f"Preparing {len(counts)} segments ({args.preparation})...", flush=True)
+        started = time.perf_counter()
+        prepared = prepare_segments(
+            hamiltonians, times_ns, counts=counts, client=client
+        )
+        preparation_time = time.perf_counter() - started
+        print(
+            f"Unitary preparation ({args.preparation}): {preparation_time:.3f} s",
+            flush=True,
+        )
+
+        started = time.perf_counter()
+        amplitudes = propagate_piecewise_constant(
+            hamiltonians,
+            times_ns,
+            initial_states,
+            counts=counts,
+            prepared_segments=prepared,
+            output_indices=computational_indices,
+            progress_label="propagate circuit CZ",
+        )
+        propagation_time = time.perf_counter() - started
+        print(f"State propagation: {propagation_time:.3f} s", flush=True)
+        print(
+            f"Preparation + propagation: {preparation_time + propagation_time:.3f} s",
+            flush=True,
+        )
     observables = extract_cz_observables(amplitudes)
     print(
         f"Final conditional phase={observables.conditional_phase[-1]:.6g} rad; "

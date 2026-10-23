@@ -12,7 +12,11 @@ if str(_ROOT) not in sys.path:
 
 from comparison.cz import _simulate_piecewise_constant_scipy
 from toolkit.observables import extract_cz_observables
-from toolkit.solver import propagate_piecewise_constant
+from toolkit.solver import (
+    prepare_segment,
+    prepare_segments,
+    propagate_piecewise_constant,
+)
 from toolkit.pulses import ramp_hold_ramp_flux_pulse
 import toolkit.solver as solver_module
 
@@ -111,6 +115,83 @@ def test_compressed_propagation_reuses_expm_and_preserves_short_final_step(
     )
     np.testing.assert_array_equal(actual, expected)
     assert len(calls) == 3  # X at .5 ns, Z at .5 ns, and Z at .25 ns.
+
+
+def test_prepare_segment_includes_short_final_step() -> None:
+    hamiltonian = np.diag([0.25, -0.25])
+    prepared = prepare_segment(hamiltonian, np.array([0.0, 0.5, 1.0, 1.25]))
+    assert set(prepared) == {0.5, 0.25}
+    for dt, unitary in prepared.items():
+        expected = np.diag(np.exp(-2j * np.pi * dt * np.diag(hamiltonian)))
+        np.testing.assert_allclose(unitary, expected, atol=1e-14)
+
+
+def test_dask_preparation_matches_serial_and_does_not_cache_runs(monkeypatch) -> None:
+    distributed = pytest.importorskip("distributed")
+    times = np.array([0.0, 0.5, 1.0, 1.5, 1.75])
+    hamiltonians = np.stack(
+        [
+            np.array([[0.0, 0.25], [0.25, 0.0]]),
+            np.diag([0.5, -0.5]),
+        ]
+    )
+    counts = np.array([2, 2])
+    serial = prepare_segments(hamiltonians, times, counts=counts)
+    expected = propagate_piecewise_constant(
+        hamiltonians, times, np.eye(2), counts=counts
+    )
+    calls = []
+    original_expm = solver_module.expm
+
+    def count_expm(exponent):
+        calls.append(1)
+        return original_expm(exponent)
+
+    monkeypatch.setattr(solver_module, "expm", count_expm)
+    with distributed.Client(
+        processes=False,
+        n_workers=1,
+        threads_per_worker=2,
+        protocol="inproc",
+        dashboard_address=None,
+    ) as client:
+        for _ in range(2):
+            parallel = prepare_segments(
+                hamiltonians, times, counts=counts, client=client
+            )
+            for serial_segment, parallel_segment in zip(serial, parallel):
+                assert set(serial_segment) == set(parallel_segment)
+                for dt in serial_segment:
+                    np.testing.assert_allclose(
+                        serial_segment[dt], parallel_segment[dt], atol=1e-14
+                    )
+        assert len(calls) == 6  # Three expm calls per run, never a cached result.
+
+    def forbidden(*args):
+        raise AssertionError("Propagation must use the prepared unitaries")
+
+    monkeypatch.setattr(solver_module, "expm", forbidden)
+    for prepared in (serial, parallel):
+        actual = propagate_piecewise_constant(
+            hamiltonians,
+            times,
+            np.eye(2),
+            counts=counts,
+            prepared_segments=prepared,
+        )
+        np.testing.assert_allclose(actual, expected, atol=1e-14)
+
+
+@pytest.mark.parametrize("prepared", [[], [{0.25: np.eye(2)}], [{0.5: np.eye(3)}]])
+def test_invalid_prepared_segments(prepared) -> None:
+    with pytest.raises(ValueError, match="prepared_segments"):
+        propagate_piecewise_constant(
+            np.zeros((1, 2, 2)),
+            np.array([0.0, 0.5]),
+            np.eye(2),
+            counts=np.array([1]),
+            prepared_segments=prepared,
+        )
 
 
 def test_default_cz_pulse_needs_nine_exponentials(monkeypatch) -> None:

@@ -11,38 +11,9 @@ from cupyx.scipy.linalg import expm as cuexpm
 from runtime_utils import format_elapsed_compact, log_progress
 
 
-def propagate_piecewise_constant(
-    hamiltonians_ghz: np.ndarray,
-    times_ns: np.ndarray,
-    initial_states: np.ndarray,
-    *,
-    counts: np.ndarray | None = None,
-    output_indices: np.ndarray | None = None,
-    progress_label: str | None = None,
-    progress_interval_s: float = 30.0,
-) -> np.ndarray:
-    """Propagate statevector columns with dense matrix exponentials.
-
-    ``hamiltonians_ghz`` has shape ``(n_time, dimension, dimension)`` and
-    ``times_ns`` is a nonempty, strictly increasing 1D grid. Hamiltonian ``k``
-    acts on ``[times_ns[k], times_ns[k + 1])``; the final Hamiltonian is unused.
-    Frequencies are in GHz, so each step is ``exp(-1j * 2*pi * H * dt_ns)``.
-
-    Alternatively, supply one Hamiltonian per segment and a 1D integer array
-    ``counts`` giving the positive number of time steps in each segment.
-    Counts must sum to ``len(times_ns) - 1``. Within each segment an exponential
-    is computed once per distinct step length and reused. The full time grid
-    and recorded amplitudes are unchanged, including any shorter final step.
-
-    ``initial_states`` has shape ``(dimension, n_states)``. The returned complex
-    amplitudes have shape ``(n_time, n_outputs, n_states)``, including the
-    initial state. ``output_indices`` selects basis rows to retain (in supplied
-    order); omit it to retain all rows. Full states are always propagated.
-    Inputs are not modified. No model-specific observables are computed.
-    """
+def _segment_schedule(hamiltonians_ghz, times_ns, counts):
     hamiltonians = np.asarray(hamiltonians_ghz, dtype=complex)
     times = np.asarray(times_ns, dtype=float)
-    states = np.asarray(initial_states, dtype=complex)
     if hamiltonians.ndim != 3 or hamiltonians.shape[1] != hamiltonians.shape[2]:
         raise ValueError(
             "hamiltonians_ghz must have shape (n_time, dimension, dimension)"
@@ -75,6 +46,109 @@ def propagate_piecewise_constant(
                 "counts must contain one positive integer per Hamiltonian "
                 "and sum to len(times_ns) - 1"
             )
+    return hamiltonians, times, counts
+
+
+def prepare_segment(
+    hamiltonian_ghz: np.ndarray, times_segment: np.ndarray
+) -> dict[float, np.ndarray]:
+    """Compute one unitary per exact step length for a single segment.
+
+    ``times_segment`` includes both endpoints, so a segment covering ``count``
+    steps has ``count + 1`` times. No statevectors are propagated here.
+    """
+    hamiltonian = np.asarray(hamiltonian_ghz, dtype=complex)
+    times = np.asarray(times_segment, dtype=float)
+    if hamiltonian.ndim != 2 or hamiltonian.shape[0] != hamiltonian.shape[1]:
+        raise ValueError("hamiltonian_ghz must be square")
+    if (
+        times.ndim != 1
+        or times.size < 2
+        or not np.all(np.isfinite(times))
+        or np.any(np.diff(times) <= 0)
+    ):
+        raise ValueError(
+            "times_segment must include both endpoints of increasing steps"
+        )
+    return {
+        float(dt): expm((-1.0j * 2.0 * np.pi * float(dt)) * hamiltonian)
+        for dt in np.unique(np.diff(times))
+    }
+
+
+def prepare_segments(
+    hamiltonians_ghz: np.ndarray,
+    times_ns: np.ndarray,
+    *,
+    counts: np.ndarray | None = None,
+    client=None,
+) -> list[dict[float, np.ndarray]]:
+    """Prepare all segment unitaries serially, or with a Dask distributed Client.
+
+    The schedule convention matches :func:`propagate_piecewise_constant`.
+    One Dask task is submitted per segment. Gathering preserves chronological
+    order even when tasks finish out of order. ``pure=False`` prevents reuse of
+    cached task results across separate timing runs. Dask is needed only when
+    a client is supplied; serial preparation has no Dask dependency.
+    """
+    hamiltonians, times, counts = _segment_schedule(hamiltonians_ghz, times_ns, counts)
+    boundaries = np.concatenate(([0], np.cumsum(counts)))
+    segment_times = [
+        times[int(start) : int(end) + 1]
+        for start, end in zip(boundaries[:-1], boundaries[1:])
+    ]
+    matrices = list(hamiltonians[: len(counts)])
+    if client is None:
+        return [prepare_segment(h, t) for h, t in zip(matrices, segment_times)]
+    # Keep dense matrices out of the task graph. With an in-process client,
+    # scatter places them in shared worker memory without process transfers.
+    matrix_futures = client.scatter(matrices, hash=False)
+    futures = []
+    try:
+        futures = client.map(prepare_segment, matrix_futures, segment_times, pure=False)
+        return client.gather(futures)
+    finally:
+        for future in futures + matrix_futures:
+            future.release()
+
+
+def propagate_piecewise_constant(
+    hamiltonians_ghz: np.ndarray,
+    times_ns: np.ndarray,
+    initial_states: np.ndarray,
+    *,
+    counts: np.ndarray | None = None,
+    prepared_segments: list[dict[float, np.ndarray]] | None = None,
+    output_indices: np.ndarray | None = None,
+    progress_label: str | None = None,
+    progress_interval_s: float = 30.0,
+) -> np.ndarray:
+    """Propagate statevector columns with dense matrix exponentials.
+
+    ``hamiltonians_ghz`` has shape ``(n_time, dimension, dimension)`` and
+    ``times_ns`` is a nonempty, strictly increasing 1D grid. Hamiltonian ``k``
+    acts on ``[times_ns[k], times_ns[k + 1])``; the final Hamiltonian is unused.
+    Frequencies are in GHz, so each step is ``exp(-1j * 2*pi * H * dt_ns)``.
+
+    Alternatively, supply one Hamiltonian per segment and a 1D integer array
+    ``counts`` giving the positive number of time steps in each segment.
+    Counts must sum to ``len(times_ns) - 1``. Within each segment an exponential
+    is computed once per distinct step length and reused. All segments are
+    prepared serially before state propagation, unless ``prepared_segments``
+    from :func:`prepare_segments` is supplied. Supplied unitaries must match
+    these Hamiltonians and this time grid. The full time grid
+    and recorded amplitudes are unchanged, including any shorter final step.
+
+    ``initial_states`` has shape ``(dimension, n_states)``. The returned complex
+    amplitudes have shape ``(n_time, n_outputs, n_states)``, including the
+    initial state. ``output_indices`` selects basis rows to retain (in supplied
+    order); omit it to retain all rows. Full states are always propagated.
+    Inputs are not modified. No model-specific observables are computed.
+    """
+    hamiltonians, times, counts = _segment_schedule(hamiltonians_ghz, times_ns, counts)
+    n_time = times.size
+    dimension = hamiltonians.shape[1]
+    states = np.asarray(initial_states, dtype=complex)
     if states.ndim != 2 or states.shape[0] != dimension or states.shape[1] == 0:
         raise ValueError(
             "initial_states must have shape (dimension, n_states) with n_states > 0"
@@ -88,6 +162,27 @@ def propagate_piecewise_constant(
         if np.any(rows < 0) or np.any(rows >= dimension):
             raise ValueError("output_indices are outside the Hamiltonian basis")
 
+    if prepared_segments is None:
+        prepared_segments = prepare_segments(
+            hamiltonians[: len(counts)], times, counts=counts
+        )
+    if len(prepared_segments) != len(counts):
+        raise ValueError("prepared_segments must contain one dictionary per segment")
+    start = 0
+    for count, unitaries in zip(counts, prepared_segments):
+        end = start + int(count)
+        if set(unitaries) != set(np.diff(times[start : end + 1])):
+            raise ValueError(
+                "prepared_segments step lengths do not match the time grid"
+            )
+        if any(
+            unitary.shape != (dimension, dimension) for unitary in unitaries.values()
+        ):
+            raise ValueError(
+                "prepared_segments unitary dimensions do not match Hamiltonians"
+            )
+        start = end
+
     amplitudes = np.empty((n_time, rows.size, states.shape[1]), dtype=complex)
     amplitudes[0] = states[rows, :]
     interval = max(float(progress_interval_s), 1.0)
@@ -95,13 +190,9 @@ def propagate_piecewise_constant(
     last_progress = started
     k = 0
     for segment, count in enumerate(counts):
-        # Keep only the current segment's unitaries. Distinct floating-point
-        # step lengths are kept distinct rather than approximating the grid.
-        unitaries = {}
+        unitaries = prepared_segments[segment]
         for _ in range(int(count)):
             dt = float(times[k + 1] - times[k])
-            if dt not in unitaries:
-                unitaries[dt] = expm((-1.0j * 2.0 * np.pi * dt) * hamiltonians[segment])
             states = unitaries[dt] @ states
             amplitudes[k + 1] = states[rows, :]
             k += 1

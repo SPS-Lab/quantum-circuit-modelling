@@ -9,7 +9,8 @@ python scripts/cz_example.py
 ```
 
 The example prints the pulse settings, Hamiltonian dimensions, build and
-propagation times, final conditional phase in radians, and leakage from initial
+unitary preparation and state propagation times, their combined time, final
+conditional phase in radians, and leakage from initial
 `|11>`. It runs a single fixed pulse and prints results to the terminal without
 creating figures or benchmark artifacts.
 
@@ -24,9 +25,12 @@ creating figures or benchmark artifacts.
    `models.circuit.build_circuit_model_stack`.
 4. Prepare the four computational basis states as columns in the full Hilbert
    space, using `models.three_mode.computational_state_indices`.
-5. Pass `counts` to `toolkit.solver.propagate_piecewise_constant` and retain the
-   computational basis amplitudes at every time point.
-6. Extract populations, leakage, and conditional phase with
+5. Prepare all segment unitaries with `toolkit.solver.prepare_segments`,
+   either serially or using a Dask client.
+6. Pass `counts` and `prepared_segments` to
+   `toolkit.solver.propagate_piecewise_constant` and retain the computational
+   basis amplitudes at every time point.
+7. Extract populations, leakage, and conditional phase with
    `toolkit.observables.extract_cz_observables`.
 
 Hamiltonians are in GHz and times are in ns; the propagator includes the
@@ -69,3 +73,36 @@ computational basis inputs used in this example.
 
 For calibrated model comparisons, parameter sweeps, and saved plots, use the
 [benchmark workflow](benchmark.md).
+
+## Parallel unitary preparation
+
+The example defaults to serial preparation. To prepare segment unitaries in
+parallel, use a local Dask distributed client with one worker and multiple
+threads in a single process:
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+python scripts/cz_example.py --preparation dask --threads 4
+```
+
+The active dashboard URL is printed; by default it binds to
+`http://127.0.0.1:8787`. It shows segment preparation tasks while the example
+runs and closes when the client exits. Use `--dashboard-address 127.0.0.1:0`
+to request any available port. Dask, distributed, and Bokeh are included in
+`scmodels-env.yml`.
+
+One task prepares each segment's dictionary of step length to unitary. Dask
+assigns these tasks to available threads, and results are gathered in pulse
+order. The four statevectors are then propagated sequentially through those
+unitaries. `--preparation serial` uses the same preparation function without
+Dask. Both modes prepare the complete schedule before propagating and retain
+the prepared matrices in memory.
+
+For timing comparisons, keep BLAS thread settings the same between runs.
+Start with one BLAS thread per task to avoid nested thread pools competing for
+cores, and adjust `--threads` to control simultaneous preparations and their
+temporary memory use. The printed preparation time excludes Dask client
+startup; state propagation time excludes exponential preparation. Compare
+`Preparation + propagation` against the previous combined solver timing.
+These are execution timings; initial imports and Hamiltonian building are
+outside that total.

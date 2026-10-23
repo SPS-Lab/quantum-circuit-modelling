@@ -13,6 +13,9 @@ dependencies:
   - threadpoolctl
   - cuda-version=12.9
   - cupy
+  - dask
+  - distributed
+  - bokeh
 
   # Quantum toolkits (model + simulation layers)
   - qutip
