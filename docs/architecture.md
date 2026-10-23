@@ -85,7 +85,12 @@ propagators retain their original uncompressed interface.
 Reusable pulse schedules live in `toolkit/pulses.py`. CZ analysis lives in
 `toolkit.observables.extract_cz_observables`, which consumes
 amplitude histories in computational order `|00>, |01>, |10>, |11>`. The CZ
-benchmark uses a thin adapter around the public propagator; the standalone
-[`CZ example`](../scripts/cz_example.py) calls the propagator and analyzes its
-output directly. Usage, pulse settings, and optional profiling are covered in
+benchmark and standalone [`CZ example`](../scripts/cz_example.py) share
+`toolkit.simulation.simulate_circuit`. It owns Hamiltonian building, default
+computational input construction, unitary preparation, propagation, and optional
+Dask client lifetime. It returns amplitudes and separate build, preparation,
+and state propagation timings; combined preparation and propagation preserves
+the benchmark timing convention. Custom state columns, recorded basis rows,
+and caller-owned Dask clients are supported. Effective and Duffing models
+continue to use the lower-level propagator. Usage, pulse settings, and optional profiling are covered in
 the [simulation guide](simulation.md).

@@ -5,8 +5,9 @@ Run from the repository root:
 
 The example constructs a flux pulse, builds circuit Hamiltonians, propagates
 the four computational basis states, and reports final conditional phase and
-leakage from |11>, along with build and propagation times. Each qubit uses eight
-levels; device parameters and remaining basis settings come from params/.
+leakage from |11>, along with build and propagation times. Qubit dimensions
+are set by QUBIT_DIM; device parameters and remaining basis settings come from
+params/.
 
 Pulse settings are fixed and can be overridden on the command line. Hamiltonians
 are in GHz and times are in ns; the solver applies the factor of 2*pi. Results
@@ -17,11 +18,9 @@ profiling commands.
 from __future__ import annotations
 
 import argparse
-from contextlib import ExitStack
 from dataclasses import replace
 from pathlib import Path
 import sys
-import time
 
 import numpy as np
 
@@ -29,12 +28,10 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from models.circuit import build_circuit_model_stack
-from models.three_mode import computational_state_indices
 from study_config import load_study_config
 from toolkit.observables import extract_cz_observables
 from toolkit.pulses import ramp_hold_ramp_flux_pulse
-from toolkit.solver import prepare_segments, propagate_piecewise_constant
+from toolkit.simulation import simulate_circuit
 
 QUBIT_DIM = 15
 
@@ -147,76 +144,20 @@ def main() -> None:
 
     print("pulse flux: ", pulse_flux)
 
-    started = time.perf_counter()
-    hamiltonians = build_circuit_model_stack(
-        flux_values=pulse_flux,
+    result = simulate_circuit(
         system_params=config.system,
         circuit_config=circuit,
         sweep_target=sweep_target,
-    ).hamiltonian_stack
-    print(
-        f"Build: {time.perf_counter() - started:.3f} s; "
-        f"Hamiltonian stack shape={hamiltonians.shape}",
-        flush=True,
+        flux_values=pulse_flux,
+        times_ns=times_ns,
+        counts=counts,
+        preparation=args.preparation,
+        threads=args.threads,
+        workers=args.workers,
+        dashboard_address=args.dashboard_address,
+        progress_label="Circuit CZ",
     )
-
-    computational_indices = computational_state_indices(**dims)
-    initial_states = np.zeros((hamiltonians.shape[1], 4), dtype=complex)
-    initial_states[computational_indices, np.arange(4)] = 1.0
-
-    with ExitStack() as stack:
-        client = None
-        if args.preparation in ("dask-threads", "dask-processes"):
-            from dask.distributed import Client
-
-            processes = args.preparation == "dask-processes"
-            client = stack.enter_context(
-                Client(
-                    processes=processes,
-                    n_workers=args.workers if processes else 1,
-                    threads_per_worker=1 if processes else args.threads,
-                    dashboard_address=args.dashboard_address,
-                )
-            )
-            # In-process scheduler addresses can advertise a different host
-            # from the dashboard's bind address. Use its actual service port.
-            dashboard_host = args.dashboard_address.rsplit(":", 1)[0] or "127.0.0.1"
-            if dashboard_host in ("0.0.0.0", "[::]"):
-                dashboard_host = "127.0.0.1"
-            dashboard_port = client.scheduler_info()["services"]["dashboard"]
-            print(
-                f"Dask dashboard: http://{dashboard_host}:{dashboard_port}/status",
-                flush=True,
-            )
-
-        print(f"Preparing {len(counts)} segments ({args.preparation})...", flush=True)
-        started = time.perf_counter()
-        prepared = prepare_segments(
-            hamiltonians, times_ns, counts=counts, client=client
-        )
-        preparation_time = time.perf_counter() - started
-        print(
-            f"Unitary preparation ({args.preparation}): {preparation_time:.3f} s",
-            flush=True,
-        )
-
-        started = time.perf_counter()
-        amplitudes = propagate_piecewise_constant(
-            hamiltonians,
-            times_ns,
-            initial_states,
-            counts=counts,
-            prepared_segments=prepared,
-            output_indices=computational_indices,
-            progress_label="propagate circuit CZ",
-        )
-        propagation_time = time.perf_counter() - started
-        print(f"State propagation: {propagation_time:.3f} s", flush=True)
-        print(
-            f"Preparation + propagation: {preparation_time + propagation_time:.3f} s",
-            flush=True,
-        )
-    observables = extract_cz_observables(amplitudes)
+    observables = extract_cz_observables(result.amplitudes)
     print(
         f"Final conditional phase={observables.conditional_phase[-1]:.6g} rad; "
         f"leakage from |11>={observables.leakage_11[-1]:.6g}",

@@ -17,7 +17,6 @@ from comparison.static import (
     run_static_benchmark,
 )
 from models import (
-    build_circuit_model_stack,
     build_duffing_model_stack_from_parameters,
     build_duffing_model_stack_from_scratch,
     build_effective_hamiltonian_stack,
@@ -29,6 +28,7 @@ from study_config import StudyConfig
 from toolkit.observables import CzDynamicsObservables, extract_cz_observables
 from toolkit.pulses import ramp_hold_ramp_flux_pulse
 from toolkit.solver import propagate_piecewise_constant
+from toolkit.simulation import simulate_circuit
 
 TWO_PI = 2.0 * np.pi
 
@@ -216,15 +216,16 @@ def _evaluate_circuit_candidate(
         target_flux=target_flux,
         compress=True,
     )
-    circuit_stack = build_circuit_model_stack(
+    simulation = simulate_circuit(
         flux_values=pulse_flux,
+        times_ns=times_ns,
+        counts=counts,
         system_params=config.system,
         circuit_config=config.static_benchmark.circuit_model,
         sweep_target=sweep_target,
-    ).hamiltonian_stack
-    obs = _simulate_piecewise_constant_scipy(
-        circuit_stack, times_ns, idx_circuit, counts=counts
+        output_indices=idx_circuit,
     )
+    obs = extract_cz_observables(simulation.amplitudes)
     phase_final = float(obs.conditional_phase[-1])
     phase_error = _phase_error_to_cz_target(phase_final)
     max_leak = float(np.max(obs.leakage_11))
@@ -477,16 +478,6 @@ def run_cz_benchmark(
                 ).hamiltonian_stack
         duffing_build_runtime_s = float(time.perf_counter() - duffing_build_started)
 
-    circuit_build_started = time.perf_counter()
-    with progress_heartbeat("cz benchmark: build circuit Hamiltonian"):
-        circuit_stack = build_circuit_model_stack(
-            flux_values=pulse_flux,
-            system_params=config.system,
-            circuit_config=config.static_benchmark.circuit_model,
-            sweep_target=sweep_target,
-        ).hamiltonian_stack
-    circuit_build_runtime_s = float(time.perf_counter() - circuit_build_started)
-
     if not circuit_only:
         effective_prop_started = time.perf_counter()
         obs_effective = _simulate_piecewise_constant_scipy(
@@ -509,16 +500,26 @@ def run_cz_benchmark(
         )
         duffing_prop_runtime_s = float(time.perf_counter() - duffing_prop_started)
 
-    circuit_prop_started = time.perf_counter()
-    obs_circuit = _simulate_piecewise_constant_scipy(
-        circuit_stack,
-        times_ns,
-        idx_circuit,
+    simulation = simulate_circuit(
+        flux_values=pulse_flux,
+        times_ns=times_ns,
         counts=counts,
-        monitor_indices=idx_circuit_intermediate,
-        progress_label="cz benchmark: propagate circuit model",
+        system_params=config.system,
+        circuit_config=config.static_benchmark.circuit_model,
+        sweep_target=sweep_target,
+        output_indices=np.concatenate((idx_circuit, idx_circuit_intermediate)),
+        progress_label="cz benchmark: circuit model",
     )
-    circuit_prop_runtime_s = float(time.perf_counter() - circuit_prop_started)
+    circuit_analysis_started = time.perf_counter()
+    obs_circuit = extract_cz_observables(
+        simulation.amplitudes[:, :4, :],
+        monitor_amplitudes=simulation.amplitudes[:, 4:, :],
+    )
+    circuit_build_runtime_s = simulation.build_runtime_s
+    # Like the other model adapters, benchmark solver timing includes analysis.
+    circuit_prop_runtime_s = simulation.propagation_runtime_s + float(
+        time.perf_counter() - circuit_analysis_started
+    )
 
     plus_plus_coeff = np.full(4, 0.5 + 0.0j, dtype=complex)
     circuit_statevector_plus_plus = np.einsum(
@@ -554,7 +555,7 @@ def run_cz_benchmark(
                 circuit_pop_plus_plus, dtype=float
             ),
             circuit_intermediate_population_11=obs_circuit.monitor_population_11,
-            circuit_hilbert_dim=int(circuit_stack.shape[-1]),
+            circuit_hilbert_dim=int(simulation.hamiltonian_shape[-1]),
             circuit_model_build_runtime_s=circuit_build_runtime_s,
             circuit_propagation_runtime_s=circuit_prop_runtime_s,
             shared_static_precompute_runtime_s=static_runtime_s,
@@ -599,7 +600,7 @@ def run_cz_benchmark(
         "n_time_steps": float(max(times_ns.size - 1, 0)),
         "effective_hilbert_dim": float(H_effective.shape[-1]),
         "duffing_hilbert_dim": float(duffing_stack.shape[-1]),
-        "circuit_hilbert_dim": float(circuit_stack.shape[-1]),
+        "circuit_hilbert_dim": float(simulation.hamiltonian_shape[-1]),
         "shared_static_precompute_runtime_s": static_runtime_s,
         "shared_hold_scan_runtime_s": float(hold_scan_runtime_s),
         "effective_model_build_runtime_s": effective_build_runtime_s,

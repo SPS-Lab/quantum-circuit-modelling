@@ -21,17 +21,36 @@ creating figures or benchmark artifacts.
    `toolkit.pulses.ramp_hold_ramp_flux_pulse(compress=True)`. This returns
    the full grid, a shorter list of consecutive flux segments, and integer
    `counts` counting how many time steps each segment is used.
-3. Build one circuit Hamiltonian per flux segment with
-   `models.circuit.build_circuit_model_stack`.
-4. Prepare the four computational basis states as columns in the full Hilbert
-   space, using `models.three_mode.computational_state_indices`.
-5. Prepare all segment unitaries with `toolkit.solver.prepare_segments`,
-   either serially or using a Dask client.
-6. Pass `counts` and `prepared_segments` to
-   `toolkit.solver.propagate_piecewise_constant` and retain the computational
-   basis amplitudes at every time point.
-7. Extract populations, leakage, and conditional phase with
+3. Call `toolkit.simulation.simulate_circuit` with the device settings and pulse.
+   It builds the Hamiltonians, prepares segment unitaries, and propagates the
+   four computational basis states. Select serial, threaded, or process
+   execution with `preparation`; no Dask client setup is needed in the script.
+4. Analyze `result.amplitudes` with
    `toolkit.observables.extract_cz_observables`.
+
+```python
+from toolkit.observables import extract_cz_observables
+from toolkit.simulation import simulate_circuit
+
+result = simulate_circuit(
+    system_params=config.system,
+    circuit_config=config.static_benchmark.circuit_model,
+    sweep_target="q1",
+    flux_values=pulse_flux,
+    times_ns=times_ns,
+    counts=counts,
+)
+observables = extract_cz_observables(result.amplitudes)
+```
+
+The same function is used by the CZ benchmark and its runtime benchmark.
+It returns build, unitary preparation, and state propagation times.
+`result.propagation_runtime_s` combines preparation and state propagation to
+match the existing benchmark timing convention. Dense Hamiltonians and
+unitaries are released after the call. Saved benchmark propagation timings
+also include observable extraction, as they do for the other models.
+For repeated runs with a persistent Dask cluster, pass `client=client` instead
+of a Dask preparation mode; the caller retains ownership of that client.
 
 Hamiltonians are in GHz and times are in ns; the propagator includes the
 required `2*pi` conversion. Full basis labels use `|q1,c,q0>`, and computational
@@ -49,7 +68,7 @@ calls, instead of building 485 Hamiltonians and computing 484 exponentials.
 
 The script reads device parameters from `params/system_params.json` and basis
 settings and the flux sweep target from `params/benchmark_params.json`. It sets
-both qubit Hilbert dimensions to `QUBIT_DIM = 8`, retaining the configured
+both qubit Hilbert dimensions using `QUBIT_DIM`, retaining the configured
 coupler dimension and charge-basis cutoffs. It uses the selected qubit's parking
 flux as the pulse's initial and final flux.
 
@@ -67,8 +86,8 @@ python scripts/cz_example.py --hold-time-ns 0 --dt-ns 2
 The second command is a short smoke run at the same Hilbert dimensions. Its
 shorter pulse and coarser time grid are for checking the workflow, not for
 assessing CZ gate performance. Edit `QUBIT_DIM` to explore other truncations.
-For other input states, pass your own statevector columns to the propagator
-and analyze its returned amplitudes; `extract_cz_observables` expects the four
+For other input states, pass `initial_states` and `output_indices` to
+`simulate_circuit` and analyze `result.amplitudes`; `extract_cz_observables` expects the four
 computational basis inputs used in this example.
 
 For calibrated model comparisons, parameter sweeps, and saved plots, use the
