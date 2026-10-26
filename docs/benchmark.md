@@ -301,6 +301,10 @@ saves:
   and pulse settings, package versions, worker PIDs, worker counts, thread counts,
   memory limits, CPU affinity, and actual BLAS/OpenMP threadpool details.
 - Timing and speedup PDFs in the standard paper and presentation styles.
+- `dask_scaling_summary.csv`: one row per stage, Dask mode, and parallelism,
+  plus one serial reference row per stage. It is regenerated on normal runs
+  and `--plot-only`. Plots use medians with min/max ranges; speedups are ratios
+  of medians.
 - Source snapshots for the scaling benchmark, script, plotter, public simulation
   module, and solver, including their contents when they are still untracked.
 

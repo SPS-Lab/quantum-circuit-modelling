@@ -1,3 +1,4 @@
+import csv
 from dataclasses import replace
 import hashlib
 import json
@@ -136,6 +137,45 @@ def test_cli_artifacts_and_plot_only(scaling_result, tmp_path, monkeypatch):
         len((path.parent / "dask_scaling_samples.csv").read_text().splitlines()) == 11
     )
     assert list(path.parent.glob("*.pdf"))
+    plot_json_path = path.parent / "dask_scaling.json"
+    assert not plot_json_path.exists()
+    summary_path = path.parent / "dask_scaling_summary.csv"
+    with summary_path.open(newline="") as handle:
+        summary_rows = list(csv.DictReader(handle))
+    assert len(summary_rows) == 2 * (2 * len(loaded.parallelism) + 1)
+    for row in summary_rows:
+        if row["stage"] == "preparation":
+            samples = loaded.preparation_samples_s
+            serial = loaded.serial_preparation_samples_s
+            speedups = loaded.preparation_speedup
+        else:
+            assert row["stage"] == "propagation"
+            samples = loaded.propagation_samples_s
+            serial = (
+                loaded.serial_preparation_samples_s
+                + loaded.serial_state_propagation_samples_s
+            )
+            speedups = loaded.propagation_speedup
+        mode = row["mode"]
+        i = loaded.parallelism.tolist().index(int(row["parallelism"]))
+        if mode == "serial":
+            group = serial
+            assert row["speedup"] == row["efficiency"] == ""
+        else:
+            mode_index = loaded.modes.tolist().index(mode)
+            group = samples[mode_index, i]
+            speedup = speedups[mode_index, i]
+            assert float(row["speedup"]) == speedup
+            assert float(row["efficiency"]) == speedup / int(row["parallelism"])
+        for column, aggregate in (
+            ("mean_s", np.mean),
+            ("stddev_s", np.std),
+            ("median_s", np.median),
+            ("min_s", np.min),
+            ("max_s", np.max),
+        ):
+            assert float(row[column]) == aggregate(group)
+    summary_path.unlink()
     original_metadata = metadata_path.read_bytes()
     monkeypatch.setattr(
         cli,
@@ -155,6 +195,9 @@ def test_cli_artifacts_and_plot_only(scaling_result, tmp_path, monkeypatch):
         ],
     )
     cli.main()
+    assert not plot_json_path.exists()
+    with summary_path.open(newline="") as handle:
+        assert list(csv.DictReader(handle)) == summary_rows
     assert metadata_path.read_bytes() == original_metadata
     with h5py.File(path) as h5:
         assert len(h5["meta/cli_reports"]) == 2
