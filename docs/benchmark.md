@@ -249,3 +249,62 @@ You can also rerender all plots from existing results:
 ```bash
 python scripts/run_all_benchmarks.py --plot-only
 ```
+
+## Dask strong scaling
+
+Run a fixed circuit CZ workload while varying Dask concurrency:
+
+```bash
+python scripts/run_dask_scaling_benchmark.py
+```
+
+Defaults live in [`params/dask_scaling_params.json`](../params/dask_scaling_params.json):
+`N_E,q=8`, parallelism `1, 2, 4, 8`, five repeats, one full-workload warmup,
+and one BLAS thread per task. The pulse matches the example's runtime-paper
+pulse: target flux `0.23333333333333334`, 2 ns ramps, hold
+`237.9595316591736 ns`, and dt `0.5 ns`. Device parameters, coupler dimension,
+and charge cutoffs come from the usual system and benchmark parameter files.
+All four computational basis inputs are propagated. The workload stays fixed
+throughout the concurrency sweep, without a flux or hold-time scan.
+
+```bash
+python scripts/run_dask_scaling_benchmark.py --qubit-dim 15 --parallelism 1 2 4 8
+python scripts/run_dask_scaling_benchmark.py --plot-only
+```
+
+Thread mode uses one worker with `p` threads; process mode uses `p` workers
+with one thread each. BLAS thread limits are applied in the parent and every
+worker, and actual worker threadpool counts are saved. The modes and concurrency
+points run in a seeded shuffled order; each cluster is reused for warmups and
+measured repeats. Warmup work is recomputed rather than cached. Each measured
+run calls the shared `simulate_circuit` workflow, building its Hamiltonians
+serially and timing that build separately.
+
+The figure shows unitary preparation and preparation-plus-propagation runtimes
+and speedups. Runtimes are medians with min/max ranges. Strong-scaling speedup
+is `median(T_mode,1) / median(T_mode,p)`, using each mode's own one-worker
+baseline. A separate serial reference exposes Dask overhead. Preparation
+includes matrix scatter/gather; cluster startup, teardown, warmups, and
+numerical validation are excluded. Startup times are saved separately.
+Amdahl's law limits the combined speedup because state propagation is sequential.
+The default compressed pulse has only nine segment tasks, so useful concurrency
+is limited by both task count and differences in task cost.
+
+In addition to the standard timestamped provenance directory, this benchmark
+saves:
+
+- `dask_scaling_results.h5`: every timing sample, pulse schedule, serial reference
+  amplitudes, numerical differences, execution order, and effective settings.
+- `dask_scaling_samples.csv`: raw serial/thread/process timing samples, including
+  build-plus-propagation totals.
+- `effective_settings.json` and `execution_environment.json`: resolved circuit
+  and pulse settings, package versions, worker PIDs, worker counts, thread counts,
+  memory limits, CPU affinity, and actual BLAS/OpenMP threadpool details.
+- Timing and speedup PDFs in the standard paper and presentation styles.
+- Source snapshots for the scaling benchmark, script, plotter, public simulation
+  module, and solver, including their contents when they are still untracked.
+
+Every warmup and measured trajectory is checked against the serial reference
+outside the timed sections. Use `--dashboard-address 127.0.0.1:0` for an available
+port; each active cluster's URL is printed. This benchmark runs separately from
+`run_all_benchmarks.py`, which reproduces the paper's original benchmarks.

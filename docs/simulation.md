@@ -139,3 +139,9 @@ startup; state propagation time excludes exponential preparation. Compare
 `Preparation + propagation` against the previous combined solver timing.
 These are execution timings; initial imports and Hamiltonian building are
 outside that total.
+
+To measure strong scaling over several thread and process counts with saved
+samples, plots, and provenance, use
+[`run_dask_scaling_benchmark.py`](../scripts/run_dask_scaling_benchmark.py).
+See [Dask strong scaling](benchmark.md#dask-strong-scaling) for timing boundaries
+and configuration.

@@ -1,0 +1,12 @@
+{
+  "qubit_dim": 15,
+  "parallelism": [1, 2, 4, 8],
+  "repeats": 5,
+  "warmups": 1,
+  "blas_threads": 1,
+  "seed": 0,
+  "target_flux": 0.23333333333333334,
+  "ramp_time_ns": 2.0,
+  "hold_time_ns": 237.9595316591736,
+  "dt_ns": 0.5
+}
